@@ -4,8 +4,9 @@ Workspace de exploración para un SaaS que transforma conversaciones con cliente
 
 ## Documento base
 
-- `docs/scope-to-profit.pdf` — visión del producto, MVP, marketing y plan inicial.
-- `docs/scope-to-profit.txt` — fuente editable del PDF.
+- `docs/scope-to-profit.md` — **fuente de verdad** — visión del producto, MVP, marketing y plan inicial. Plantilla manual base para docs del proyecto.
+
+> Nota: `scope-to-profit.pdf` eliminado — el md es la fuente de verdad.
 
 ## Próximo objetivo
 
