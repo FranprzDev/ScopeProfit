@@ -3,9 +3,9 @@
 Documento de concepto, producto y estrategia inicial — 1 de septiembre de 2026
 *Fuente de verdad — foco en docs para proyecto nuevo, pricing liviano*
 
-> **Estado:** Draft v0.7 — fuente de verdad `scope-to-profit.md` | **Foco v1:** Cliente (Next.js chat) ↔ Agente IA (filtra preguntas boludas + mejora TLDR) ↔ Vos (Telegram) → DB + S3 Brief → doc 7.1
+> **Estado:** Draft v0.8 — fuente de verdad `scope-to-profit.md` | **Foco v1:** Cliente (Next.js) ↔ Backend (Agente IA) ↔ Vos (Telegram) → DB + S3 Brief → doc 7.1
 
-> **Arquitectura v1:** 3 apps que conviven — `Telegram Bot (tu interfaz)` + `Next.js Frontend (chat cliente)` + `Backend API + DB + S3 (Brief y docs versionados)`
+> **Arquitectura v1:** 3 apps — `Telegram Bot (tu interfaz)` + `Next.js Frontend (chat cliente)` + `Backend API (donde vive el agente IA) + DB + S3`. Telegram y Next.js **nunca tocan la DB directo**, todo pasa por Backend API.
 
 **Índice rápido:** [1. Idea](#1-la-idea) · [2. Problema](#2-el-problema) · [3. Usuario](#3-usuario-inicial) · [4. Flujo](#4-flujo-principal) · [5. Diferenciales](#5-funciones-diferenciales) · [7. MVP](#7-mvp-ajustado) · [8. Producto entrada](#8-producto-de-entrada) · [11. Venta](#11-venta-inicial) · [14. Plan 30d](#14-plan-de-30-días-ajustado)
 
@@ -107,8 +107,8 @@ Compara precio cobrado, horas, costos externos, retrabajo, reuniones, soporte y 
 
 ## 6. QUÉ HACE LA IA Y QUÉ NO
 
-La IA puede (v1) — agente intermedio que trabaja sin vos presente:
-- lee chat Next.js (cliente) + Telegram (vos) — texto, imágenes, audios, videos, docs
+La IA puede (v1) — **agente que vive en el Backend** y trabaja sin vos presente:
+- lee mensajes/archivos que llegan vía Backend desde Next.js (cliente) y Telegram (vos) — texto, imágenes, audios, videos, docs
 - saca preguntas boludas de entrada / filtra ruido y repeticiones
 - elicia RF + RNF + contexto/dominio relevante para el proyecto
 - va mejorando el TLDR del proyecto en vivo (resumen que ves en Telegram por proyecto)
@@ -122,8 +122,8 @@ La IA NO hace en v1:
 - no calcula precio/margen/impuestos
 - no responde al cliente sin tu aprobación (vos decidís qué decirle — modo supervisado)
 
-El sistema controla de forma determinística (v1):
-- DB + S3 Brief: cada Telegram/Next.js mensaje y archivo se guarda en DB y archivo en S3, Brief versionado
+El sistema controla de forma determinística (v1) — todo en Backend:
+- Backend es el único que habla con DB y S3: cada mensaje/archivo de Telegram y Next.js entra por `POST /api/telegram/webhook` y `POST /api/chat` y se guarda en DB + archivo en S3, Brief versionado
 - versionado del doc (v0.1, v0.2...)
 - estados del proyecto (borrador → enviado → aprobado)
 - validación de plantilla completa (campos obligatorios de 7.1)
@@ -131,7 +131,7 @@ El sistema controla de forma determinística (v1):
 
 Queda para v1.1+ determinístico: horas reales, margen, rentabilidad, permisos avanzados.
 
-**Futuro (no v1):** desde el Brief enriquecido + imágenes, el sistema genera diagramas de flujo, secuencia, actividades y BPMN — por ahora solo PM (texto plano + info adicional).
+**Futuro (no v1):** desde el Brief enriquecido + imágenes, el Backend genera diagramas de flujo, secuencia, actividades y BPMN — por ahora solo PM (texto plano + info adicional).
 
 La IA propone. El profesional decide.
 
@@ -160,10 +160,10 @@ La IA propone. El profesional decide.
 **Dejar para después (roadmap):**
 `Jira/Trello/Slack` · `facturación/pagos` · `marketplace` · `múltiples modelos complejos` · `automatización total` · `3 alternativas comerciales`
 
-**Arquitectura v1 (3 apps que conviven):**
-- `Telegram Bot` → tu interfaz, recibe texto/imagen/audio/video, comandos, botones por proyecto
-- `Next.js Frontend` → chat cliente por link ` /p/<uuid>`, también texto/imagen/audio/video
-- `Backend API + DB + S3` → guarda todo, mantiene Brief y docs versionados por proyecto, alimenta a ambos UIs; el Brief es la fuente de verdad enriquecida (texto plano + imágenes + RF/RNF + dominio)
+**Arquitectura v1 (3 apps que conviven — Telegram nunca toca DB directo):**
+- `Telegram Bot` → tu interfaz, recibe texto/imagen/audio/video, comandos, botones por proyecto → **solo habla con Backend API** (`POST /api/telegram/webhook`)
+- `Next.js Frontend` → chat cliente por link `/p/<uuid>`, también texto/imagen/audio/video → **solo habla con Backend API** (`POST /api/chat`)
+- `Backend API (donde vive el agente IA) + DB + S3` → único con acceso a DB y S3, guarda todo, mantiene Brief y docs versionados por proyecto, alimenta a ambos UIs; el Brief es la fuente de verdad enriquecida (texto plano + imágenes + RF/RNF + dominio)
 
 ### 7.1 Plantilla Manual v1 (concreta — no abstracta)
 
