@@ -21,22 +21,24 @@ Objetivo: **filtrar y aclarar ideas** para que el presupuesto/cliente final sea 
 ```
 Cliente (Next.js chat)  →  Backend API (agente IA)  ←  Vos (Telegram)
                               ↓
-                           DB + S3 (Brief versionado + docs)
+                           DB + filesystem persistente (Brief versionado + docs)
 ```
 
 - **Telegram Bot** — tu interfaz. Creás proyectos, ves TLDR, gestionás docs. Recibe texto/imagen/audio/video/docs. **No toca DB directo**, habla solo con `POST /api/telegram/webhook`.
-- **Next.js Frontend** — chat para el cliente por link `https://tu-app.com/p/<uuid>`. Sin fricción, también multimedia. Habla solo con `POST /api/chat`.
-- **Backend API** — **donde vive el agente IA**. Único con acceso a DB y S3. Guarda todo, mantiene el Brief enriquecido versionado por proyecto, genera el doc con plantilla 7.1 y alimenta a ambas UIs.
+- **Telegram Bot** — tu interfaz. Creás proyectos, ves TLDR, gestionás docs mediante botones inline. `callback_query` controla ver, editar, aprobar, rechazar, archivar y gestionar links; la edición abre una URL HTTPS firmada solo para el profesional. **No toca DB directo**, habla solo con `POST /api/telegram/webhook`.
+- **Next.js Frontend** — chat colaborativo para el cliente por link `https://tu-app.com/p/<uuid>`. Muestra la conversación y el borrador 7.1 actualizado en vivo. El cliente puede editar partes habilitadas o proponer cambios por chat; el agente reprocesa el documento completo y detecta preguntas pendientes. Requiere cuenta iniciada para identificar al cliente. El link no vence por defecto y se revoca o vence desde Telegram. Habla solo con `POST /api/chat`.
+- **Backend API** — **donde vive el agente IA**. Único con acceso a DB y filesystem persistente. Guarda todo, mantiene el Brief enriquecido versionado por proyecto, genera el doc con plantilla 7.1 y alimenta a ambas UIs.
 
-El **Brief en S3** es la fuente de verdad enriquecida (texto plano + imágenes + RF/RNF + dominio) — base para futuros diagramas UML.
+El **Brief en PostgreSQL** es la fuente de verdad enriquecida (RF/RNF + dominio + versiones). El filesystem persistente guarda los archivos recibidos y los artefactos PDF/DOCX.
 
 ## Flujo v1
 
 1. Vos: `/createproject <nombre>` en Telegram → Backend crea proyecto y devuelve link Next.js para el cliente
 2. Cliente: chatea desordenado en Next.js (o vos pegás un WhatsApp en Telegram)
 3. Agente en Backend: filtra preguntas boludas, elicia RF/RNF + contexto, mejora el TLDR en vivo
-4. Backend: formaliza → genera doc con **plantilla manual 7.1** (única, fija en v1) → exporta PDF + guarda Brief en S3
-5. Vos: validás/edrás y le decís al cliente (modo supervisado, el agente no responde solo)
+4. Backend: formaliza → genera doc con **plantilla manual 7.1** (única, fija en v1) → exporta PDF/DOCX + guarda Brief en PostgreSQL
+5. Cliente y agente: revisan y mejoran el borrador en vivo; el cliente puede editar partes habilitadas o pedir cambios por chat
+6. Vos: validás desde Telegram y aprobás el alcance final; el sistema envía automáticamente al cliente el PDF y el DOCX editable
 
 ## Comandos Telegram v1
 
@@ -46,9 +48,9 @@ El **Brief en S3** es la fuente de verdad enriquecida (texto plano + imágenes +
 - `/doc <id>` — doc 7.1 actual + PDF
 - `/ask <id> <pregunta>` — inyecta pregunta al chat del cliente
 - `/archive <id>` — archiva
-- `/help` — ayuda
+- `/help` — comandos, botones y flujo de revisión/aprobación
 
-Todo mensaje/archivo (imagen, audio, video, doc) se guarda en DB + S3 vía Backend.
+Todo mensaje/archivo (imagen, audio, video, doc) se guarda en DB + filesystem persistente vía Backend.
 
 ## Plantilla Manual 7.1 (v1)
 
@@ -58,20 +60,33 @@ Una sola plantilla fija. El agente la rellena, vos editás texto. Después cada 
 
 Ver detalle completo en `docs/scope-to-profit.md:155`.
 
-## Stack previsto
+## Stack v1
 
 - **Bot:** `grammy` / `telegraf` (Node/TS), webhook `setWebhook` con `secret_token`
 - **Web:** Next.js (App Router), ruta `/p/[id]`
-- **API:** Node/TS (o el mismo Next.js API Routes), endpoints `/api/telegram/webhook`, `/api/chat`, `/api/projects`
-- **DB:** Postgres (Supabase/Neon) — tabla `projects`, `messages`, `docs`
-- **Storage:** S3 (Brief y archivos por proyecto)
-- **IA:** agente en Backend (LLM) con base de conocimiento de alcance oculto y trazabilidad con cita
+- **API:** NestJS (Node/TS), endpoints `/api/telegram/webhook`, `/api/chat`, `/api/projects`
+- **Agente:** LangGraph + LangChain JS dentro del Backend NestJS
+- **Modelos:** gateway configurable; el agente no queda atado a un proveedor ni modelo específico
+- **DB:** PostgreSQL — datos del producto, Brief versionado y checkpointer de LangGraph
+- **Storage:** filesystem persistente del Backend (archivos y artefactos por proyecto)
+- **Documentos:** fuente estructurada → Markdown, `pdfkit` → PDF y `docx` → DOCX editable
+- **Errores API:** `ApiErrorHandler` global con códigos estables en inglés y `requestId`
+- **Calidad:** unit, integration, E2E y smoke tests reproducibles sobre Docker
+- **CI/CD:** pipelines separados para Frontend y Backend; el Backend usa path filters
+- **Despliegue:** Docker Compose con PostgreSQL en contenedor propio y volúmenes persistentes
+- **Repositorio:** monorepo con pipelines independientes para Frontend y Backend
+- **Entrada:** texto e imágenes; edición integrada con Tiptap
+- **Actualización:** polling cada 10 segundos mientras el agente procesa
+- **RAG/vector DB:** fuera de v1; no se incorpora pgvector
+- **Email:** Brevo para magic links, usando su plan gratuito
+- **Modelo inicial:** Gemini 3.8 Flash con API key propia de cada usuario
 
 ## Estado
 
-- `v0.8` — docs completos, sin código aún. Repo: `github.com/FranprzDev/ScopeProfit`
-- Próximo paso: validar plantilla 7.1 con 5 conversaciones reales (a mano) antes de codear. Luego esqueleto `bot/` + `web/` + `api/`.
+- `v0.8` — arquitectura y flujo documentados, sin código aún. Repo: `github.com/FranprzDev/ScopeProfit`
+- Próximo paso: revisar y aprobar el plan técnico documentado en `docs/technical-plan.md`; luego implementar el vertical slice. La plantilla 7.1 se valida durante ese vertical slice con 5 conversaciones reales.
 
 ## Docs
 
 - `docs/scope-to-profit.md` — documento completo (15 secciones, plan 30 días, diferenciadores)
+- `docs/technical-plan.md` — arquitectura, módulos, datos, API, Docker y orden de implementación v1
