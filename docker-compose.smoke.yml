@@ -1,0 +1,32 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: scopeprofit
+      POSTGRES_PASSWORD: smoke-only-password
+      POSTGRES_DB: scopeprofit_smoke
+    volumes:
+      - smoke_db:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U scopeprofit -d scopeprofit_smoke]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+  test:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: build
+    environment:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://scopeprofit:smoke-only-password@postgres:5432/scopeprofit_smoke
+      STORAGE_ROOT: /data/storage
+    volumes:
+      - smoke_storage:/data/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: [sh, -c, 'npm run db:migrate -w @scopeprofit/api && npm run test -w @scopeprofit/api']
+volumes:
+  smoke_db:
+  smoke_storage:

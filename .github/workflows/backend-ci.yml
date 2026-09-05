@@ -1,0 +1,52 @@
+name: Backend CI
+on:
+  pull_request:
+    paths: ['apps/api/**', 'packages/contracts/**', 'package.json', 'package-lock.json', 'docker-compose*.yml', 'scripts/**', '.github/workflows/backend-ci.yml', '.dockerignore']
+  push:
+    branches: [main]
+    paths: ['apps/api/**', 'packages/contracts/**', 'package.json', 'package-lock.json', 'docker-compose*.yml', 'scripts/**', '.github/workflows/backend-ci.yml', '.dockerignore']
+permissions:
+  contents: read
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: scopeprofit
+          POSTGRES_PASSWORD: test-only-password
+          POSTGRES_DB: scopeprofit_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U scopeprofit -d scopeprofit_test"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      DATABASE_URL: postgresql://scopeprofit:test-only-password@localhost:5432/scopeprofit_test
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build -w @scopeprofit/contracts
+      - run: npm run db:migrate
+      - run: npm run lint -w @scopeprofit/api
+      - run: npm run typecheck -w @scopeprofit/api
+      - run: npm run test:unit -w @scopeprofit/api
+      - run: npm run test:integration -w @scopeprofit/api
+      - run: npm run test:e2e -w @scopeprofit/api
+      - run: npm run build -w @scopeprofit/api
+      - run: npm run smoke
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-production
+          path: |
+            apps/api/dist
+            apps/api/prisma
+          retention-days: 7

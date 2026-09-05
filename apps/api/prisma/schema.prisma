@@ -1,0 +1,201 @@
+generator client {
+ provider = "prisma-client-js"
+}
+datasource db {
+ provider = "postgresql"
+ url = env("DATABASE_URL")
+}
+enum Role {
+ client
+ professional
+}
+enum ProjectStatus {
+ draft
+ in_review
+ changes_requested
+ approved
+ delivered
+ archived
+}
+enum AgentStatus {
+ idle
+ pending
+ running
+ failed
+ agent_configuration_required
+}
+model User {
+ id String @id @default(uuid()) @db.Uuid
+ email String? @unique
+ telegramId String? @unique @map("telegram_id")
+ role Role @default(client)
+ encryptedApiKey String? @map("encrypted_api_key")
+ createdAt DateTime @default(now()) @map("created_at")
+ sessions Session[]
+ projects Project[]
+ @@map("users")
+}
+model Session {
+ id String @id @default(uuid()) @db.Uuid
+ tokenHash String @unique @map("token_hash")
+ userId String @db.Uuid @map("user_id")
+ user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+ expiresAt DateTime @map("expires_at")
+ revokedAt DateTime? @map("revoked_at")
+ @@index([expiresAt])
+ @@map("sessions")
+}
+model MagicLink {
+ id String @id @default(uuid()) @db.Uuid
+ tokenHash String @unique @map("token_hash")
+ email String
+ projectId String? @db.Uuid @map("project_id")
+ linkToken String? @map("link_token")
+ expiresAt DateTime @map("expires_at")
+ usedAt DateTime? @map("used_at")
+ createdAt DateTime @default(now()) @map("created_at")
+ @@index([email,createdAt])
+ @@map("magic_links")
+}
+model AdminNonce {
+ nonce String @id
+ userId String @db.Uuid @map("user_id")
+ projectId String @db.Uuid @map("project_id")
+ expiresAt DateTime @map("expires_at")
+ usedAt DateTime? @map("used_at")
+ @@map("admin_nonces")
+}
+model Project {
+ id String @id @default(uuid()) @db.Uuid
+ name String
+ ownerId String @db.Uuid @map("owner_id")
+ owner User @relation(fields:[ownerId],references:[id])
+ clientEmail String? @map("client_email")
+ status ProjectStatus @default(draft)
+ agentStatus AgentStatus @default(idle) @map("agent_status")
+ agentStartedAt DateTime? @map("agent_started_at")
+ agentError String? @map("agent_error")
+ createdAt DateTime @default(now()) @map("created_at")
+ updatedAt DateTime @updatedAt @map("updated_at")
+ links ProjectLink[]
+ messages Message[]
+ files File[]
+ brief Brief?
+ briefVersions BriefVersion[]
+ document Document?
+ @@index([ownerId])
+ @@index([clientEmail])
+ @@index([status])
+ @@map("projects")
+}
+model ProjectLink {
+ id String @id @default(uuid()) @db.Uuid
+ projectId String @db.Uuid @map("project_id")
+ project Project @relation(fields:[projectId],references:[id],onDelete:Cascade)
+ tokenHash String @unique @map("token_hash")
+ encryptedToken String @map("encrypted_token")
+ expiresAt DateTime? @map("expires_at")
+ revokedAt DateTime? @map("revoked_at")
+ createdAt DateTime @default(now()) @map("created_at")
+ @@index([projectId])
+ @@map("project_links")
+}
+model Message {
+ id String @id @default(uuid()) @db.Uuid
+ projectId String @db.Uuid @map("project_id")
+ project Project @relation(fields:[projectId],references:[id],onDelete:Cascade)
+ threadId String @map("thread_id")
+ authorId String? @map("author_id")
+ authorRole String @map("author_role")
+ content String
+ externalId String? @unique @map("external_id")
+ createdAt DateTime @default(now()) @map("created_at")
+ files File[]
+ @@index([projectId,createdAt,id])
+ @@map("messages")
+}
+model File {
+ id String @id @default(uuid()) @db.Uuid
+ projectId String @db.Uuid @map("project_id")
+ project Project @relation(fields:[projectId],references:[id],onDelete:Cascade)
+ messageId String? @db.Uuid @map("message_id")
+ message Message? @relation(fields:[messageId],references:[id])
+ name String
+ mimeType String @map("mime_type")
+ size Int
+ path String
+ checksum String
+ createdAt DateTime @default(now()) @map("created_at")
+ @@index([projectId])
+ @@map("files")
+}
+model Brief {
+ projectId String @id @db.Uuid @map("project_id")
+ project Project @relation(fields:[projectId],references:[id],onDelete:Cascade)
+ version Int @default(0)
+ data Json
+ updatedAt DateTime @updatedAt @map("updated_at")
+ @@map("briefs")
+}
+model BriefVersion {
+ id String @id @default(uuid()) @db.Uuid
+ projectId String @db.Uuid @map("project_id")
+ project Project @relation(fields:[projectId],references:[id],onDelete:Cascade)
+ version Int
+ data Json
+ source String
+ actorId String? @map("actor_id")
+ createdAt DateTime @default(now()) @map("created_at")
+ @@unique([projectId,version])
+ @@map("brief_versions")
+}
+model Document {
+ id String @id @default(uuid()) @db.Uuid
+ projectId String @unique @db.Uuid @map("project_id")
+ project Project @relation(fields:[projectId],references:[id],onDelete:Cascade)
+ currentVersion Int @default(0) @map("current_version")
+ versions DocumentVersion[]
+ @@map("documents")
+}
+model DocumentVersion {
+ id String @id @default(uuid()) @db.Uuid
+ documentId String @db.Uuid @map("document_id")
+ document Document @relation(fields:[documentId],references:[id],onDelete:Cascade)
+ version Int
+ briefVersion Int @map("brief_version")
+ data Json
+ editorContent Json? @map("editor_content")
+ status String @default("draft")
+ artifacts Json
+ approvedBy String? @map("approved_by")
+ approvedAt DateTime? @map("approved_at")
+ deliveredAt DateTime? @map("delivered_at")
+ deliveryKey String? @unique @map("delivery_key")
+ createdAt DateTime @default(now()) @map("created_at")
+ @@unique([documentId,version])
+ @@map("document_versions")
+}
+model AuditEvent {
+ id String @id @default(uuid()) @db.Uuid
+ projectId String? @db.Uuid @map("project_id")
+ actorId String? @map("actor_id")
+ action String
+ result String
+ metadata Json?
+ createdAt DateTime @default(now()) @map("created_at")
+ @@index([projectId,createdAt])
+ @@map("audit_events")
+}
+model TelegramUpdate {
+ id String @id
+ status String
+ createdAt DateTime @default(now()) @map("created_at")
+ @@map("telegram_updates")
+}
+model TelegramState {
+ userId String @id @map("user_id")
+ projectId String? @map("project_id")
+ action String
+ expiresAt DateTime @map("expires_at")
+ @@map("telegram_states")
+}

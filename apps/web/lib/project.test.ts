@@ -1,0 +1,8 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { shouldPoll, POLL_MAX_DURATION, documentText, textDocument, validateImage } from './project';
+import { api, ApiError } from './api';
+test('polling only operates while pending and stops at time/error limits',()=>{assert.equal(shouldPoll('pending',0,0),true);assert.equal(shouldPoll('running',4,100),true);for(const status of ['idle','failed','agent_configuration_required'] as const)assert.equal(shouldPoll(status,0,0),false);assert.equal(shouldPoll('running',5,0),false);assert.equal(shouldPoll('running',0,POLL_MAX_DURATION),false);});
+test('Tiptap plain text roundtrip preserves lines and treats markup as text',()=>{const text='Primera línea\n<script>alert(1)</script>\n';assert.equal(documentText(textDocument(text)),text);});
+test('image limits reject unsupported files and oversized uploads',()=>{assert.equal(validateImage({type:'image/png',size:1024}),null);assert.ok(validateImage({type:'application/pdf',size:1024}));assert.ok(validateImage({type:'image/jpeg',size:10*1024*1024+1}));});
+test('API forwards project access and surfaces structured failures',async()=>{const original=globalThis.fetch;try{globalThis.fetch=async(_input,init)=>{assert.equal(new Headers(init?.headers).get('x-project-token'),'project-token');return Response.json({success:false,error:{code:'VERSION_CONFLICT',message:'Conflict'}},{status:409});};await assert.rejects(api('/projects/id',{},'project-token'),(error:unknown)=>error instanceof ApiError&&error.code==='VERSION_CONFLICT'&&error.status===409);}finally{globalThis.fetch=original;}});
