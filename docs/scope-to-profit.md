@@ -3,9 +3,9 @@
 Documento de concepto, producto y estrategia inicial — 1 de septiembre de 2026
 *Fuente de verdad — foco en docs para proyecto nuevo, pricing liviano*
 
-> **Estado:** Draft v0.8 — fuente de verdad `scope-to-profit.md` | **Foco v1:** Cliente (Next.js) ↔ Backend (Agente IA) ↔ Vos (Telegram) → DB + S3 Brief → doc 7.1
+> **Estado:** Draft v0.8 — fuente de verdad `scope-to-profit.md` | **Foco v1:** Cliente (Next.js) ↔ Backend (Agente IA) ↔ Vos (Telegram) → DB + filesystem persistente Brief → doc 7.1
 
-> **Arquitectura v1:** 3 apps — `Telegram Bot (tu interfaz)` + `Next.js Frontend (chat cliente)` + `Backend API (donde vive el agente IA) + DB + S3`. Telegram y Next.js **nunca tocan la DB directo**, todo pasa por Backend API.
+> **Arquitectura v1:** 3 apps — `Telegram Bot (tu interfaz)` + `Next.js Frontend (chat cliente)` + `Backend API (donde vive el agente IA) + DB + filesystem persistente`. Telegram y Next.js **nunca tocan la DB directo**, todo pasa por Backend API.
 
 **Índice rápido:** [1. Idea](#1-la-idea) · [2. Problema](#2-el-problema) · [3. Usuario](#3-usuario-inicial) · [4. Flujo](#4-flujo-principal) · [5. Diferenciales](#5-funciones-diferenciales) · [7. MVP](#7-mvp-ajustado) · [8. Producto entrada](#8-producto-de-entrada) · [11. Venta](#11-venta-inicial) · [14. Plan 30d](#14-plan-de-30-días-ajustado)
 
@@ -16,7 +16,7 @@ Documento de concepto, producto y estrategia inicial — 1 de septiembre de 2026
 Scope-to-Profit transforma **ideas desordenadas que trae un cliente** en **un doc formal que permite diagnosticar correctamente** qué sistema te están pidiendo — sin que tengas que estar presente en la primera ronda de preguntas.
 
 Entrada: audios, WhatsApps, docs, imágenes, videos, texto — todo lo que el cliente tira desordenado.
-Salida: un doc de proyecto claro (plantilla manual v1) y un Brief guardado en S3 con:
+Salida: un doc de proyecto claro (plantilla manual v1) y un Brief versionado en PostgreSQL con:
 
 - requerimientos claros (qué quiere realmente)
 - preguntas pendientes (qué falta entender del sistema)
@@ -30,7 +30,7 @@ No es otro generador de textos con IA. Es un **formalizer + diagnosticador**: or
 
 **Foco v1 acordado:** poder llevar ideas desordenadas a algo formal y diagnosticable con una sola plantilla manual fija. Pricing/rentabilidad y control de cambios quedan para v1.1+.
 
-**Terminología v1:** `docs` = documento único del proyecto generado con plantilla 7.1. `Alcance` es la sección 5 dentro de ese doc. `Propuesta` es el PDF exportado del doc.
+**Terminología v1:** `docs` = documento único del proyecto generado con plantilla 7.1. `Alcance` es la sección 5 dentro de ese doc. `Propuesta` es el PDF exportado del doc. Al aprobar, el cliente recibe automáticamente el PDF y un DOCX editable.
 
 Promesa principal:
 > "Traé el desorden del cliente, llevátelo formalizado y diagnosticado para entender qué sistema te piden realmente."
@@ -74,7 +74,7 @@ No comenzar con grandes empresas.
 | 3 | **ANÁLISIS / DIAGNÓSTICO** | Formaliza y diagnostica cuestiones interesantes del sistema: RF, RNF, actores/permisos, integraciones, datos, pantallas, reglas, dominio, riesgos, supuestos | ✅ v1 |
 | 4 | **ALCANCE** | Genera versión editable: incluidos / excluidos / supuestos / criterios | ✅ **Core v1** |
 | 5 | **ESTIMACIÓN** | Rango por módulos (liviana, solo horas, sin precio/margen) | ✅ v1 liviana |
-| 6 | **DOC + BRIEF** | Genera doc único con plantilla 7.1 → exporta PDF + guarda Brief actualizado en S3 (todo versionado) | ✅ v1 |
+| 6 | **DOC + BRIEF** | Genera doc único con plantilla 7.1 → exporta PDF/DOCX + guarda Brief actualizado en filesystem persistente (todo versionado) | ✅ v1 |
 | 7 | **CAMBIOS** | Compara nuevo pedido vs alcance → change request | ⏳ v1.1 |
 | 8 | **APRENDIZAJE** | Compara estimado vs real | ⏳ v1.1 |
 | 9 | **DOCS AVANZADOS (futuro)** | Diagramas flujo / secuencia / actividades / proceso (BPMN/UML) desde el Brief | 🔮 roadmap |
@@ -120,12 +120,12 @@ La IA puede (v1) — **agente que vive en el Backend** y trabaja sin vos present
 La IA NO hace en v1:
 - no inventa requisitos sin cita o archivo (deja vacío y genera pregunta)
 - no calcula precio/margen/impuestos
-- no responde al cliente sin tu aprobación (vos decidís qué decirle — modo supervisado)
+- conversa con el cliente, hace preguntas y actualiza el borrador sin tu presencia; no confirma ni entrega el alcance final sin tu aprobación desde Telegram
 
 El sistema controla de forma determinística (v1) — todo en Backend:
-- Backend es el único que habla con DB y S3: cada mensaje/archivo de Telegram y Next.js entra por `POST /api/telegram/webhook` y `POST /api/chat` y se guarda en DB + archivo en S3, Brief versionado
+- Backend es el único que habla con DB y filesystem: cada mensaje/archivo de Telegram y Next.js entra por `POST /api/telegram/webhook` y `POST /api/chat` y se guarda en DB + archivo en filesystem persistente, Brief versionado
 - versionado del doc (v0.1, v0.2...)
-- estados del proyecto (borrador → enviado → aprobado)
+- estados del proyecto (`draft` → `in_review` → `changes_requested` → `approved` → `delivered` → `archived`)
 - validación de plantilla completa (campos obligatorios de 7.1)
 - cómputo de rango horas (suma simple, sin fórmulas de margen)
 
@@ -141,7 +141,7 @@ La IA propone. El profesional decide.
 
 | # | Feature | Nota |
 |---|---------|------|
-| 1 | Login simple | |
+| 1 | Login del cliente | Email con magic link; la sesión identifica al cliente y no requiere contraseña |
 | 2 | Crear proyecto | Se crea desde Telegram, genera link Next.js para el cliente |
 | 3 | **Frontend Next.js — chat cliente** | Cliente chatea desordenado, sin fricción |
 | 4 | **Telegram — tu interfaz** | Vos gestionás todos tus proyectos desde Telegram. `/projects` devuelve **un botón por proyecto** (InlineKeyboard) |
@@ -150,12 +150,12 @@ La IA propone. El profesional decide.
 | 7 | Formalización: requerimientos + riesgos/preguntas | Con trazabilidad a cita textual |
 | 8 | Alcance editable | incluidos / excluidos / supuestos / criterios |
 | 9 | Estimación por módulos | *rango liviano, sin margen complejo* |
-| 10 | Generación de doc con plantilla 7.1 → PDF | Listo para decirle al cliente / enviar |
+| 10 | Generación de doc con plantilla 7.1 → PDF/DOCX | Listo para decirle al cliente / enviar |
 
 **→ v1.1:**
 - [ ] Registro de horas estimadas y reales
 - [ ] Comparación final estimado/real
-- [ ] Docs avanzados: diagramas flujo/secuencia/actividades/BPMN desde Brief + S3
+- [ ] Docs avanzados: diagramas flujo/secuencia/actividades/BPMN desde Brief + filesystem persistente
 
 **Dejar para después (roadmap):**
 `Jira/Trello/Slack` · `facturación/pagos` · `marketplace` · `múltiples modelos complejos` · `automatización total` · `3 alternativas comerciales`
@@ -163,7 +163,18 @@ La IA propone. El profesional decide.
 **Arquitectura v1 (3 apps que conviven — Telegram nunca toca DB directo):**
 - `Telegram Bot` → tu interfaz, recibe texto/imagen/audio/video, comandos, botones por proyecto → **solo habla con Backend API** (`POST /api/telegram/webhook`)
 - `Next.js Frontend` → chat cliente por link `/p/<uuid>`, también texto/imagen/audio/video → **solo habla con Backend API** (`POST /api/chat`)
-- `Backend API (donde vive el agente IA) + DB + S3` → único con acceso a DB y S3, guarda todo, mantiene Brief y docs versionados por proyecto, alimenta a ambos UIs; el Brief es la fuente de verdad enriquecida (texto plano + imágenes + RF/RNF + dominio)
+- `Backend API (donde vive el agente IA) + DB + filesystem persistente` → único con acceso a DB y filesystem, guarda todo, mantiene Brief y docs versionados por proyecto, alimenta a ambos UIs; el Brief es la fuente de verdad enriquecida (texto plano + imágenes + RF/RNF + dominio). La ruta raíz del filesystem debe ser configurable y estar montada en almacenamiento persistente en producción; no se puede usar un disco efímero.
+
+### 7.4 Stack técnico y memoria v1
+
+- `Next.js` es el Frontend del cliente.
+- `NestJS` es el Backend y contiene el módulo del agente.
+- `LangGraph + LangChain JS` implementan el harness, el flujo y las herramientas del agente.
+- El acceso a modelos se realiza mediante una configuración de gateway/proveedor intercambiable. La lógica del agente recibe `AI_MODEL`, `AI_GATEWAY_BASE_URL` y las credenciales por entorno, sin acoplarse a un modelo concreto.
+- `PostgreSQL` es la memoria persistente y la fuente de verdad del producto: usuarios, proyectos, mensajes, Brief, requisitos, preguntas, riesgos, alcance, estados, auditoría y checkpoints de LangGraph.
+- La memoria de conversación actual usa un checkpointer por `thread_id`; la memoria persistente usa el Brief estructurado y versionado por proyecto. Ambas viven en PostgreSQL.
+- El filesystem persistente almacena únicamente archivos binarios y artefactos generados: multimedia, documentos recibidos, Markdown, PDF y DOCX.
+- `RAG`, `pgvector` y una vector database quedan fuera de v1. Se evaluarán solo si aparece una necesidad concreta de búsqueda semántica entre muchos proyectos o documentos.
 
 ### 7.1 Plantilla Manual v1 (concreta — no abstracta)
 
@@ -219,15 +230,96 @@ Sin cálculo de margen/impuestos en v1. Solo total horas rango.
 ### 7.2 Comandos Telegram v1
 
 - `/createproject <nombre>` → crea proyecto, genera `https://tu-app.com/p/<uuid>`, responde con botón `🔗 Abrir chat cliente` + `📋 Copiar link`
-- `/projects` → **lista con un botón por proyecto** (1 fila = 1 proyecto). Ej: `🟡 Ecommerce LaTienda — 3 preguntas pendientes` / `🟢 Landing Acme — listo para enviar`. Al tocar abre detalle: TLDR actual, semáforo, botones `Ver doc`, `Copiar link cliente`, `Archivar`
-  - Implementación: `sendMessage` con `reply_markup: { inline_keyboard: [[{text: "Ecommerce LaTienda", callback_data: "project:abc123"}]] }` — `core.telegram.org/bots/api#inlinekeyboardbutton`
+- `/projects` → **lista con un botón por proyecto** (1 fila = 1 proyecto). Ej: `🟡 Ecommerce LaTienda — 3 preguntas pendientes` / `🟢 Landing Acme — listo para enviar`. Al tocar abre detalle: TLDR actual, semáforo, botones `Ver doc`, `Editar doc`, `Copiar link cliente`, `Aprobar`, `Rechazar`, `Gestionar link`, `Archivar`
+  - Implementación: `sendMessage` con `reply_markup: { inline_keyboard: [[{text: "Ecommerce LaTienda", callback_data: "project:open:abc123"}]] }` — `callback_data` debe ser breve (1–64 bytes) y el Backend debe validar que el callback pertenece al profesional autorizado.
 - `/tldr <id>` → muestra TLDR actualizado del proyecto (mejorado por agente)
 - `/doc <id>` → renderiza doc 7.1 actual del proyecto en Telegram + link PDF
 - `/ask <id> <pregunta>` → inyecta pregunta manual al chat del cliente
 - `/archive <id>` → archiva proyecto
-- `/help` → ayuda corta
+- `/help` → muestra los comandos, botones y una explicación breve del flujo de revisión y aprobación
 
-> Telegram recibe **texto, imágenes, audios, videos y docs** — todo se guarda en DB y archivo en S3 y alimenta el Brief. Comodidad: no tenés que estar presente para la primera ronda de preguntas boludas.
+> Telegram recibe **texto, imágenes, audios, videos y docs** — todo se guarda en DB y archivo en filesystem persistente y alimenta el Brief. Comodidad: no tenés que estar presente para la primera ronda de preguntas boludas.
+
+#### 7.2.1 Botones y flujos de supervisión
+
+Telegram usa un `InlineKeyboardMarkup` adjunto a los mensajes del bot. Los botones de acción usan `callback_data`; al pulsarlos, Telegram envía un `callback_query` al webhook del Backend. El Backend debe responder siempre con `answerCallbackQuery` para cerrar el estado de carga del botón y luego actualizar el mensaje mediante `editMessageText` o `editMessageReplyMarkup`.
+
+Ejemplo de detalle de proyecto:
+
+```json
+{
+  "inline_keyboard": [
+    [
+      { "text": "📄 Ver borrador", "callback_data": "project:doc:abc123" },
+      { "text": "✏️ Editar doc", "callback_data": "project:edit:abc123" }
+    ],
+    [
+      { "text": "✅ Aprobar", "callback_data": "project:approve:abc123" },
+      { "text": "↩️ Rechazar", "callback_data": "project:reject:abc123" }
+    ],
+    [
+      { "text": "🔗 Gestionar link", "callback_data": "project:link:abc123" },
+      { "text": "🗃 Archivar", "callback_data": "project:archive:abc123" }
+    ]
+  ]
+}
+```
+
+El flujo de aprobación es:
+
+1. El profesional pulsa `Aprobar`.
+2. El bot muestra un segundo botón de confirmación con la versión exacta del documento.
+3. El Backend valida usuario, proyecto, estado y versión actual.
+4. El Backend registra quién aprobó, cuándo y qué versión aprobó.
+5. El proyecto pasa a `aprobado`.
+6. El Backend genera o actualiza el PDF final y el DOCX editable correspondiente.
+7. El sistema envía automáticamente al cliente el PDF y el DOCX editable.
+
+La aprobación es la confirmación del alcance y la orden de entrega. No existe un botón posterior separado para enviar el PDF o el DOCX.
+
+El flujo de rechazo es:
+
+1. El profesional pulsa `Rechazar`.
+2. El bot muestra `Pedir cambios al agente` y `Cancelar`.
+3. Si pide cambios, el bot solicita una observación breve mediante el siguiente mensaje del profesional.
+4. El Backend agrega esa observación al contexto del proyecto y solicita al agente una nueva revisión completa.
+5. El proyecto vuelve a `borrador` y conserva la versión rechazada en el historial.
+
+La edición manual usa un botón `Editar doc` que abre una URL HTTPS firmada con una duración de 10 días. La URL incluye un token con proyecto, usuario, permisos, vencimiento y nonce; no incluye datos sensibles. El Backend valida la firma, el vencimiento, el nonce y que el usuario de Telegram sea un profesional autorizado antes de crear una sesión de edición. El cliente nunca recibe esta URL ni una firma con permisos de profesional. Cualquier profesional autorizado puede editar todas las partes del documento.
+
+Al guardar una edición manual, el Backend persiste una nueva versión y envía al agente el documento completo actualizado junto con el Brief, mensajes y archivos vigentes. El agente revisa consistencia, detecta contradicciones y agrega preguntas o sugerencias faltantes; no sobrescribe silenciosamente la edición manual.
+
+La gestión del link del cliente también se realiza con botones:
+
+- `🔗 Regenerar link` — invalida el token anterior y crea uno nuevo;
+- `🚫 Revocar acceso` — deja el link inutilizable;
+- `⏱ Establecer vencimiento` — solicita una fecha/hora y revoca automáticamente al vencer;
+- `↩️ Cancelar` — vuelve al detalle del proyecto.
+
+Por defecto, el link no vence. Aunque pueda compartirse, el cliente debe iniciar sesión para participar y quedar identificado. El Backend debe comprobar proyecto, cuenta, sesión y estado del link en cada operación.
+
+La autorización de Telegram no se limita a un único usuario. El Backend recibe desde entorno una lista de IDs autorizados, por ejemplo `TELEGRAM_AUTHORIZED_USER_IDS=123456789,987654321`, y la duración de las URLs firmadas se configura con `ADMIN_EDIT_URL_TTL_DAYS=10`. Ningún ID se hardcodea en el código.
+
+Las acciones de botones deben ser idempotentes: pulsar dos veces `Aprobar`, `Rechazar` o `Revocar` no debe duplicar versiones ni producir estados inválidos. Las operaciones destructivas o irreversibles siempre requieren confirmación secundaria.
+
+Referencia técnica: [Telegram Bot API — InlineKeyboardButton, CallbackQuery y métodos de edición](https://core.telegram.org/bots/api#inlinekeyboardbutton).
+
+### 7.3 Contrato del Chat Cliente
+
+El chat cliente es una vista colaborativa del relevamiento. El cliente conversa con el agente y ve en la misma pantalla la conversación y el borrador del documento 7.1 actualizado en vivo.
+
+El cliente puede mejorar el borrador de dos formas:
+
+1. editar manualmente las partes habilitadas del documento, aunque el flujo esperado es hacerlo principalmente mediante el chat;
+2. proponer cambios, correcciones o información adicional mediante el chat.
+
+Cuando el cliente propone cambios por chat, el agente incorpora el contexto al Brief, vuelve a generar el documento completo y revisa qué preguntas, contradicciones o sugerencias todavía faltan para aclarar el alcance. Cuando el profesional edita el documento manualmente, el sistema envía al agente el documento completo actualizado junto con toda la información vigente del proyecto para que lo revise, mantenga la consistencia con el Brief y agregue las preguntas o sugerencias que todavía hagan falta.
+
+El agente puede trabajar y conversar sin la presencia del profesional. La aprobación del profesional no bloquea el relevamiento ni la edición del borrador: desde Telegram, el profesional confirma cuándo el alcance está listo para pasar de borrador a enviado o aprobado y ordena la entrega automática del documento/PDF final y del DOCX editable.
+
+El acceso requiere una cuenta iniciada para identificar al cliente. El link puede compartirse, pero no habilita participación anónima. Por defecto no vence; el profesional puede revocarlo o establecerle un vencimiento mediante un comando de Telegram.
+
+El cliente no ve información interna del profesional, como margen, rentabilidad, costos internos o razonamiento privado del agente.
 
 ## 8. PRODUCTO DE ENTRADA
 
