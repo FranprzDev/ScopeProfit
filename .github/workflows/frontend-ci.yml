@@ -1,0 +1,37 @@
+name: Frontend CI
+on:
+  pull_request:
+    paths: ['apps/web/**', 'packages/contracts/**', 'package.json', 'package-lock.json', '.github/workflows/frontend-ci.yml', '.dockerignore']
+  push:
+    branches: [main]
+    paths: ['apps/web/**', 'packages/contracts/**', 'package.json', 'package-lock.json', '.github/workflows/frontend-ci.yml', '.dockerignore']
+permissions:
+  contents: read
+concurrency:
+  group: frontend-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build -w @scopeprofit/contracts
+      - run: npm run lint -w @scopeprofit/web
+      - run: npm run typecheck -w @scopeprofit/web
+      - run: npm run test -w @scopeprofit/web
+      - run: npm run build -w @scopeprofit/web
+      - run: docker build -f apps/web/Dockerfile -t scopeprofit-web .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-production
+          path: |
+            apps/web/.next/standalone
+            apps/web/.next/static
+            apps/web/public
+          include-hidden-files: true
+          retention-days: 7
