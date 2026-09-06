@@ -20,7 +20,7 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-scopeprofit}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-scopeprofit}
-    command: [npm, run, db:migrate, -w, '@scopeprofit/api']
+    command: [pnpm, --filter, '@scopeprofit/api', run, db:migrate]
     depends_on:
       postgres:
         condition: service_healthy

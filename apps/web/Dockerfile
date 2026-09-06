@@ -1,13 +1,14 @@
 FROM node:22-bookworm-slim AS build
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
-COPY package*.json ./
+RUN corepack enable && corepack prepare pnpm@11.2.2 --activate
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json apps/web/package.json
 COPY packages/contracts/package.json packages/contracts/package.json
-RUN npm ci --workspace @scopeprofit/web --workspace @scopeprofit/contracts --include-workspace-root
+RUN pnpm install --frozen-lockfile --filter @scopeprofit/web --filter @scopeprofit/contracts
 COPY packages/contracts packages/contracts
 COPY apps/web apps/web
-RUN npm run build -w @scopeprofit/contracts && npm run build -w @scopeprofit/web
+RUN pnpm --filter @scopeprofit/contracts run build && pnpm --filter @scopeprofit/web run build
 
 FROM node:22-bookworm-slim AS runtime
 WORKDIR /app

@@ -21,7 +21,7 @@ La aplicación está funcionalmente completa e implementada según `README.md`, 
 
 ## 4. Validación previa al primer despliegue
 
-- [ ] Ejecutar `npm run production:preflight` en el entorno real con las variables reales cargadas.
+- [ ] Ejecutar `pnpm run production:preflight` en el entorno real con las variables reales cargadas.
 - [ ] Confirmar CI en verde en el PR #3 (`backend-ci.yml`, `frontend-ci.yml`).
 - [ ] Configurar el webhook de Telegram apuntando a `WEB_URL` una vez desplegado.
 
