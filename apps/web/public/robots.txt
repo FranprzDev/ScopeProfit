@@ -1,1 +1,4 @@
-ScopeProfit
+User-agent: *
+Allow: /
+
+Sitemap: https://scopeprofit.app/sitemap.xml
