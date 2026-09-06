@@ -49,8 +49,8 @@ export default function Layout({ children }: Readonly<{ children: React.ReactNod
             <span className="brand-icon">s<span>p</span></span>Scope<span>Profit</span>
           </Link>
           <nav aria-label="Principal">
-            <Link href="/checklist">Checklist gratuita</Link>
-            <Link href="/dashboard" className="nav-enter">Mi espacio <span aria-hidden>↗</span></Link>
+            <Link href="/login">Iniciar sesión</Link>
+            <Link href="/login" className="nav-enter">Crear cuenta <span aria-hidden>↗</span></Link>
           </nav>
         </header>
         {children}
