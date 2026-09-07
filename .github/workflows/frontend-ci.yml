@@ -1,10 +1,10 @@
 name: Frontend CI
 on:
   pull_request:
-    paths: ['apps/web/**', 'packages/contracts/**', 'package.json', 'package-lock.json', '.github/workflows/frontend-ci.yml', '.dockerignore']
+    paths: ['apps/web/**', 'packages/contracts/**', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', '.github/workflows/frontend-ci.yml', '.dockerignore']
   push:
     branches: [main]
-    paths: ['apps/web/**', 'packages/contracts/**', 'package.json', 'package-lock.json', '.github/workflows/frontend-ci.yml', '.dockerignore']
+    paths: ['apps/web/**', 'packages/contracts/**', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', '.github/workflows/frontend-ci.yml', '.dockerignore']
 permissions:
   contents: read
 concurrency:
@@ -15,16 +15,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm run build -w @scopeprofit/contracts
-      - run: npm run lint -w @scopeprofit/web
-      - run: npm run typecheck -w @scopeprofit/web
-      - run: npm run test -w @scopeprofit/web
-      - run: npm run build -w @scopeprofit/web
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @scopeprofit/contracts run build
+      - run: pnpm --filter @scopeprofit/web run lint
+      - run: pnpm --filter @scopeprofit/web run typecheck
+      - run: pnpm --filter @scopeprofit/web run test
+      - run: pnpm --filter @scopeprofit/web run build
       - run: docker build -f apps/web/Dockerfile -t scopeprofit-web .
       - uses: actions/upload-artifact@v4
         with:

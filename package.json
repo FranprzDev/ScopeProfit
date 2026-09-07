@@ -2,21 +2,17 @@
   "name": "scopeprofit",
   "version": "1.0.0",
   "private": true,
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
   "engines": {
     "node": ">=22 <27"
   },
   "scripts": {
-    "dev:api": "npm run dev -w @scopeprofit/api",
-    "dev:web": "npm run dev -w @scopeprofit/web",
-    "build": "npm run build -w @scopeprofit/contracts && npm run build -w @scopeprofit/api && npm run build -w @scopeprofit/web",
-    "lint": "npm run lint --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
-    "db:migrate": "npm run db:migrate -w @scopeprofit/api",
+    "dev:api": "pnpm --filter @scopeprofit/api run dev",
+    "dev:web": "pnpm --filter @scopeprofit/web run dev",
+    "build": "pnpm --filter @scopeprofit/contracts run build && pnpm --filter @scopeprofit/api run build && pnpm --filter @scopeprofit/web run build",
+    "lint": "pnpm -r --if-present run lint",
+    "typecheck": "pnpm -r --if-present run typecheck",
+    "test": "pnpm -r --if-present run test",
+    "db:migrate": "pnpm --filter @scopeprofit/api run db:migrate",
     "smoke": "bash scripts/smoke.sh",
     "production:preflight": "node scripts/preflight.mjs"
   },
