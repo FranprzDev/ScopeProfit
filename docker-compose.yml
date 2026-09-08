@@ -47,21 +47,36 @@ services:
       timeout: 5s
       retries: 12
     restart: unless-stopped
-  web:
+  landing:
     build:
       context: .
-      dockerfile: apps/web/Dockerfile
+      dockerfile: apps/landing/Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+    ports: ['127.0.0.1:${LANDING_PORT:-3000}:3000']
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://localhost:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+  app:
+    build:
+      context: .
+      dockerfile: apps/app/Dockerfile
     environment:
       NODE_ENV: production
       API_INTERNAL_URL: http://api:3001
-      PORT: 3000
+      PORT: 3002
       HOSTNAME: 0.0.0.0
-    ports: ['127.0.0.1:${WEB_PORT:-3000}:3000']
+    ports: ['127.0.0.1:${APP_PORT:-3002}:3002']
     depends_on:
       api:
         condition: service_healthy
     healthcheck:
-      test: [CMD, node, -e, "fetch('http://localhost:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test: [CMD, node, -e, "fetch('http://localhost:3002').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s
       timeout: 5s
       retries: 12

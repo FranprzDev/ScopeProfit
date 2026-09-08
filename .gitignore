@@ -8,6 +8,11 @@ coverage/
 *.tsbuildinfo
 .DS_Store
 /storage/
+storage/
+apps/api/storage/
 artifacts/
 playwright-report/
 test-results/
+verification-screenshots/
+*.screenshot.png
+.landing-*.png

@@ -1,17 +1,34 @@
 name: Frontend CI
 on:
   pull_request:
-    paths: ['apps/web/**', 'packages/contracts/**', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', '.github/workflows/frontend-ci.yml', '.dockerignore']
+    paths: ['apps/landing/**', 'apps/app/**', 'packages/contracts/**', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', '.github/workflows/frontend-ci.yml', '.dockerignore']
   push:
     branches: [main]
-    paths: ['apps/web/**', 'packages/contracts/**', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', '.github/workflows/frontend-ci.yml', '.dockerignore']
+    paths: ['apps/landing/**', 'apps/app/**', 'packages/contracts/**', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', '.github/workflows/frontend-ci.yml', '.dockerignore']
 permissions:
   contents: read
 concurrency:
   group: frontend-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  frontend:
+  landing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @scopeprofit/landing run lint
+      - run: pnpm --filter @scopeprofit/landing run typecheck
+      - run: pnpm --filter @scopeprofit/landing run build
+      - run: docker build -f apps/landing/Dockerfile -t scopeprofit-landing .
+
+  app:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,17 +41,17 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @scopeprofit/contracts run build
-      - run: pnpm --filter @scopeprofit/web run lint
-      - run: pnpm --filter @scopeprofit/web run typecheck
-      - run: pnpm --filter @scopeprofit/web run test
-      - run: pnpm --filter @scopeprofit/web run build
-      - run: docker build -f apps/web/Dockerfile -t scopeprofit-web .
+      - run: pnpm --filter @scopeprofit/app run lint
+      - run: pnpm --filter @scopeprofit/app run typecheck
+      - run: pnpm --filter @scopeprofit/app run test
+      - run: pnpm --filter @scopeprofit/app run build
+      - run: docker build -f apps/app/Dockerfile -t scopeprofit-app .
       - uses: actions/upload-artifact@v4
         with:
-          name: frontend-production
+          name: app-production
           path: |
-            apps/web/.next/standalone
-            apps/web/.next/static
-            apps/web/public
+            apps/app/.next/standalone
+            apps/app/.next/static
+            apps/app/public
           include-hidden-files: true
           retention-days: 7
