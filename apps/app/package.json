@@ -1,12 +1,12 @@
 {
-  "name": "@scopeprofit/web",
+  "name": "@scopeprofit/app",
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "node scripts/dev.mjs",
-    "dev:direct": "next dev --hostname 0.0.0.0",
+    "dev": "PORT=3002 node scripts/dev.mjs",
+    "dev:direct": "next dev -p 3002 --hostname 0.0.0.0",
     "build": "next build",
-    "start": "next start --hostname 0.0.0.0",
+    "start": "next start -p 3002 --hostname 0.0.0.0",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test lib/*.test.ts"
@@ -16,13 +16,10 @@
     "@tiptap/extension-table": "3.31.3",
     "@tiptap/react": "3.31.3",
     "@tiptap/starter-kit": "3.31.3",
-    "@types/three": "^0.185.4",
-    "gsap": "^3.15.0",
     "lucide-react": "^1.41.0",
     "next": "16.3.4",
     "react": "19.2.8",
-    "react-dom": "19.2.8",
-    "three": "^0.185.1"
+    "react-dom": "19.2.8"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

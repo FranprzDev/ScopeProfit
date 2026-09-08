@@ -5,25 +5,22 @@ import Link from 'next/link';
 
 export function SiteHeader() {
   const pathname = usePathname();
-  if (pathname === '/' || pathname === '/faq' || pathname === '/status') return null;
+  if (pathname === '/login') return null;
 
   return (
     <header className="site-header">
-      <Link className="brand" href="/" aria-label="ScopeProfit inicio">
+      <Link className="brand" href="/dashboard" aria-label="ScopeProfit Panel">
         <span className="brand-icon">s<span>p</span></span>Scope<span>Profit</span>
       </Link>
       <nav aria-label="Principal">
-        <Link href="/login">Iniciar sesión</Link>
-        <Link href="/login" className="nav-enter">Crear cuenta <span aria-hidden>↗</span></Link>
+        <Link href="/dashboard">Proyectos</Link>
+        <Link href="/settings">Configuración</Link>
       </nav>
     </header>
   );
 }
 
 export function SiteFooter() {
-  const pathname = usePathname();
-  if (pathname === '/' || pathname === '/faq' || pathname === '/status') return null;
-
   return (
     <footer className="site-footer">
       <span>ScopeProfit · Cobrá por lo que hacés. Cotizá lo que no.</span>
