@@ -1,8 +1,13 @@
 import type { NextConfig } from 'next';
 import path from 'node:path';
+
+const isVercel = process.env.VERCEL === '1';
+
 const config: NextConfig = {
-  output: 'standalone',
-  outputFileTracingRoot: path.resolve(process.cwd(), '../..'),
+  ...(isVercel ? {} : {
+    output: 'standalone',
+    outputFileTracingRoot: path.resolve(process.cwd(), '../..'),
+  }),
   poweredByHeader: false,
   async headers() {
     return [{ source: '/:path*', headers: [
@@ -13,4 +18,5 @@ const config: NextConfig = {
     ] }];
   },
 };
+
 export default config;
