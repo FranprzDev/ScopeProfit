@@ -1,10 +1,32 @@
 name: Frontend CI
 on:
   pull_request:
-    paths: ['apps/landing/**', 'apps/app/**', 'packages/contracts/**', 'package.json', '.prettierrc.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', '.github/workflows/frontend-ci.yml', '.dockerignore']
+    paths:
+      [
+        'apps/landing/**',
+        'apps/app/**',
+        'packages/contracts/**',
+        'package.json',
+        '.prettierrc.json',
+        'pnpm-lock.yaml',
+        'pnpm-workspace.yaml',
+        '.github/workflows/frontend-ci.yml',
+        '.dockerignore',
+      ]
   push:
     branches: [main]
-    paths: ['apps/landing/**', 'apps/app/**', 'packages/contracts/**', 'package.json', '.prettierrc.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', '.github/workflows/frontend-ci.yml', '.dockerignore']
+    paths:
+      [
+        'apps/landing/**',
+        'apps/app/**',
+        'packages/contracts/**',
+        'package.json',
+        '.prettierrc.json',
+        'pnpm-lock.yaml',
+        'pnpm-workspace.yaml',
+        '.github/workflows/frontend-ci.yml',
+        '.dockerignore',
+      ]
 permissions:
   contents: read
 concurrency:

@@ -7,6 +7,7 @@
 ## Qué resuelve
 
 Un cliente llega con audios, imágenes, videos, textos sueltos y frases tipo "quiero algo simple pero que...". Scope-to-Profit formaliza ese caos en:
+
 - requerimientos (RF/RNF) con cita textual
 - preguntas pendientes que bloquean el alcance
 - riesgos con semáforo

@@ -26,7 +26,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command: [sh, -c, 'pnpm --filter @scopeprofit/api run db:migrate && pnpm --filter @scopeprofit/api run test']
+    command:
+      [
+        sh,
+        -c,
+        'pnpm --filter @scopeprofit/api run db:migrate && pnpm --filter @scopeprofit/api run test',
+      ]
 volumes:
   smoke_db:
   smoke_storage:

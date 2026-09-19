@@ -1,0 +1,5 @@
+pnpm-lock.yaml
+apps/api/src/modules/agent/interview-pitch.md
+apps/api/src/modules/agent/.interview-pitch.md.swp
+**/dist/
+**/.next/

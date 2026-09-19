@@ -17,8 +17,8 @@
     "db:migrate": "pnpm --filter @scopeprofit/api run db:migrate",
     "smoke": "bash scripts/smoke.sh",
     "production:preflight": "node scripts/preflight.mjs",
-    "format": "prettier --write \"apps/**/*.{ts,tsx,mjs}\" \"packages/**/*.ts\"",
-    "format:check": "prettier --check \"apps/**/*.{ts,tsx,mjs}\" \"packages/**/*.ts\""
+    "format": "prettier --write \"apps/**/*.{ts,tsx,mjs,json,md,yml,yaml}\" \"packages/**/*.{ts,tsx,mjs,json,md,yml,yaml}\" \"scripts/**/*.{js,mjs,ts,json,yml,yaml}\" \"docs/**/*.md\" \"README.md\" \".github/**/*.{yml,yaml}\" \"docker-compose*.yml\"",
+    "format:check": "prettier --check \"apps/**/*.{ts,tsx,mjs,json,md,yml,yaml}\" \"packages/**/*.{ts,tsx,mjs,json,md,yml,yaml}\" \"scripts/**/*.{js,mjs,ts,json,yml,yaml}\" \"docs/**/*.md\" \"README.md\" \".github/**/*.{yml,yaml}\" \"docker-compose*.yml\""
   },
   "overrides": {
     "deepmerge-ts": "^8.0.2"
