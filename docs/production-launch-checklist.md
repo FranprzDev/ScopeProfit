@@ -6,6 +6,7 @@ La aplicación está funcionalmente completa e implementada según `README.md`, 
 
 - [ ] **Brevo**: crear cuenta, verificar dominio/remitente, generar `BREVO_API_KEY`, definir `BREVO_SENDER_EMAIL` verificado.
 - [ ] **Gemini**: cada usuario final carga su propia `GEMINI_API_KEY` desde `/settings` (ya implementado con cifrado AES-256-GCM). No requiere key global del operador.
+- [ ] **Vercel AI Gateway**: cargar `AI_GATEWAY_API_KEY` en el entorno del backend para que Jev pueda decidir si el brief necesita aclaraciones.
 - [ ] **Telegram**: crear bot con @BotFather, obtener `TELEGRAM_BOT_TOKEN`, definir `TELEGRAM_AUTHORIZED_USER_IDS` (IDs numéricos autorizados), generar `TELEGRAM_WEBHOOK_SECRET` propio.
 
 ## 2. Infraestructura
