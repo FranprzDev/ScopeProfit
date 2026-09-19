@@ -16,6 +16,7 @@ import { DocumentsService } from '../documents/documents.service';
 import { ok, SESSION_COOKIE } from '../../response';
 import { fail } from '../../security';
 import { ChangeRequestsService } from './change-requests.service';
+import { ChangeRequestStatus } from '@prisma/client';
 
 class CreateProjectDto {
   @IsString() @MaxLength(200) name!: string;
@@ -32,7 +33,7 @@ class ChangeRequestDto {
   @IsString() @MaxLength(10_000) request!: string;
 }
 class ChangeDecisionDto {
-  @IsIn(['accepted', 'rejected']) status!: 'accepted' | 'rejected';
+  @IsIn([ChangeRequestStatus.accepted, ChangeRequestStatus.rejected]) status!: ChangeRequestStatus;
 }
 
 @Controller('projects')

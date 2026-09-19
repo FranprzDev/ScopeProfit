@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
 import { AuthService } from '../auth/auth.service';
 import { fail } from '../../security';
+import { ChangeClassification, ChangeRequestStatus } from '@prisma/client';
 
 @Injectable()
 export class ChangeRequestsService {
@@ -20,11 +21,7 @@ export class ChangeRequestsService {
     if (!text) fail('INVALID_CHANGE_REQUEST', 400);
     const included = project.brief.data.included as string[];
     const excluded = project.brief.data.excluded as string[];
-    const classification = excluded.some((item) => text.includes(item.toLowerCase()))
-      ? 'out_of_scope'
-      : included.some((item) => text.includes(item.toLowerCase()))
-        ? 'in_scope'
-        : 'ambiguous';
+    const classification = this.classify(text, included, excluded);
     return this.db.$transaction(async (tx) => {
       const change = await tx.changeRequest.create({
         data: {
@@ -53,7 +50,7 @@ export class ChangeRequestsService {
     return this.db.changeRequest.findMany({ where: { projectId }, orderBy: { createdAt: 'desc' } });
   }
 
-  async decide(projectId: string, id: string, status: 'accepted' | 'rejected', user: any) {
+  async decide(projectId: string, id: string, status: ChangeRequestStatus, user: any) {
     this.auth.professional(user);
     await this.auth.project(user, projectId);
     const updated = await this.db.changeRequest.updateMany({
@@ -71,5 +68,15 @@ export class ChangeRequestsService {
       },
     });
     return this.db.changeRequest.findUniqueOrThrow({ where: { id } });
+  }
+
+  private classify(text: string, included: string[], excluded: string[]) {
+    for (const item of excluded) {
+      if (text.includes(item.toLowerCase())) return ChangeClassification.out_of_scope;
+    }
+    for (const item of included) {
+      if (text.includes(item.toLowerCase())) return ChangeClassification.in_scope;
+    }
+    return ChangeClassification.ambiguous;
   }
 }
