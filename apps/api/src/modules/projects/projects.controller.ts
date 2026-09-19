@@ -20,8 +20,6 @@ import { ChangeRequestStatus } from '@prisma/client';
 import { TimeEntriesService } from './time-entries.service';
 import { ProfitabilityService } from './profitability.service';
 import { MetricsService } from './metrics.service';
-import { TimeEntriesService } from './time-entries.service';
-import { MetricsService } from './metrics.service';
 
 class CreateProjectDto {
   @IsString() @MaxLength(200) name!: string;

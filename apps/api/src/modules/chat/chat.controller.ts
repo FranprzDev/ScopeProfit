@@ -25,6 +25,9 @@ import { fail } from '../../security';
 class MessageDto {
   @IsString() @MaxLength(1_000_000) content!: string;
 }
+enum AttachmentErrorCode {
+  InvalidAttachment = 'INVALID_ATTACHMENT',
+}
 
 @Controller('projects/:id')
 export class ChatController {
@@ -100,7 +103,7 @@ export class ChatController {
     if (['approved', 'delivered', 'archived'].includes(project.status)) fail('PROJECT_LOCKED');
     if (!file)
       throw new BadRequestException({
-        code: 'INVALID_ATTACHMENT',
+        code: AttachmentErrorCode.InvalidAttachment,
         message: 'Attachment file is required',
       });
     const image = file.mimetype.startsWith('image/');
