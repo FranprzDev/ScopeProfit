@@ -17,6 +17,7 @@ import { ok, SESSION_COOKIE } from '../../response';
 import { fail } from '../../security';
 import { ChangeRequestsService } from './change-requests.service';
 import { ChangeRequestStatus } from '@prisma/client';
+import { ProfitabilityService } from './profitability.service';
 
 class CreateProjectDto {
   @IsString() @MaxLength(200) name!: string;
@@ -35,6 +36,11 @@ class ChangeRequestDto {
 class ChangeDecisionDto {
   @IsIn([ChangeRequestStatus.accepted, ChangeRequestStatus.rejected]) status!: ChangeRequestStatus;
 }
+class ProfitabilityDto {
+  @IsOptional() @IsInt() @Min(0) priceCents?: number;
+  @IsOptional() @IsInt() @Min(0) externalCostCents?: number;
+  @IsOptional() @IsInt() @Min(0) internalRateCents?: number;
+}
 
 @Controller('projects')
 export class ProjectsController {
@@ -43,6 +49,7 @@ export class ProjectsController {
     private projects: ProjectsService,
     private documents: DocumentsService,
     private changes: ChangeRequestsService,
+    private profitability: ProfitabilityService,
   ) {}
   private token(req: Request) {
     return (req.headers['x-project-token'] as string) || undefined;
@@ -121,6 +128,20 @@ export class ProjectsController {
   ) {
     const user = await this.user(req);
     return ok(await this.changes.decide(id, changeId, body.status, user));
+  }
+
+  @Get(':id/profitability') async profitabilityView(@Req() req: Request, @Param('id') id: string) {
+    const user = await this.user(req);
+    return ok(await this.profitability.get(id, user));
+  }
+
+  @Patch(':id/profitability') async updateProfitability(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: ProfitabilityDto,
+  ) {
+    const user = await this.user(req);
+    return ok(await this.profitability.update(id, user, body));
   }
 
   @Patch(':id/link') async link(
