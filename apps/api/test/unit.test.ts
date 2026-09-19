@@ -7,6 +7,33 @@ import { encrypt, decrypt, hash, secureEqual, authorizedTelegramIds } from '../s
 import { validateBrief, validateSources } from '../src/modules/brief/brief.validation';
 import { validateEditor, markdown } from '../src/modules/documents/render';
 import { emptyBrief } from '@scopeprofit/contracts';
+import { enforceClarificationQuestion, needsClarification } from '../src/modules/agent/jev-gate';
+
+test('Jev clarification threshold routes uncertain briefs to the LLM', () => {
+  assert.equal(needsClarification(0.5), true);
+  assert.equal(needsClarification(0.49), false);
+});
+
+test('the Jev-positive path requires exactly one new clarification question', () => {
+  const brief = {
+    ...emptyBrief(),
+    questions: [
+      { id: 'old', question: '¿Qué alcance?', reason: 'scope', blocksEstimate: true },
+      { id: 'new', question: '¿Qué plazo?', reason: 'timeline', blocksEstimate: true },
+    ],
+  };
+  const result = enforceClarificationQuestion(brief, [brief.questions[0]], true);
+  assert.deepEqual(result.questions, [brief.questions[0], brief.questions[1]]);
+  assert.throws(() => enforceClarificationQuestion(brief, [], true), /QUESTION_COUNT_INVALID/);
+});
+
+test('the Jev-negative path removes accidental new questions', () => {
+  const brief = {
+    ...emptyBrief(),
+    questions: [{ id: 'new', question: '¿Qué plazo?', reason: 'timeline', blocksEstimate: true }],
+  };
+  assert.deepEqual(enforceClarificationQuestion(brief, [], false).questions, []);
+});
 
 test('encrypt/decrypt round trip', () => {
   const secret = 'AIzaSyExampleKeyValue1234567890';
