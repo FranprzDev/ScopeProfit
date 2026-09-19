@@ -7,6 +7,7 @@ import { ProjectsController } from './modules/projects/projects.controller';
 import { ChatController } from './modules/chat/chat.controller';
 import { BriefController } from './modules/brief/brief.controller';
 import { DocumentsController } from './modules/documents/documents.controller';
+import { ChangeRequestsService } from './modules/projects/change-requests.service';
 
 @Module({
   imports: [CoreModule, TelegramModule],
@@ -18,5 +19,6 @@ import { DocumentsController } from './modules/documents/documents.controller';
     BriefController,
     DocumentsController,
   ],
+  providers: [ChangeRequestsService],
 })
 export class AppModule {}

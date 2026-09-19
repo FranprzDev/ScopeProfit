@@ -33,6 +33,7 @@ model User {
  createdAt DateTime @default(now()) @map("created_at")
  sessions Session[]
  projects Project[]
+ changeRequests ChangeRequest[]
  @@map("users")
 }
 model Session {
@@ -83,10 +84,28 @@ model Project {
  brief Brief?
  briefVersions BriefVersion[]
  document Document?
+ changeRequests ChangeRequest[]
  @@index([ownerId])
  @@index([clientEmail])
  @@index([status])
  @@map("projects")
+}
+model ChangeRequest {
+ id String @id @default(uuid()) @db.Uuid
+ projectId String @db.Uuid @map("project_id")
+ project Project @relation(fields:[projectId],references:[id],onDelete:Cascade)
+ actorId String? @db.Uuid @map("actor_id")
+ actor User? @relation(fields:[actorId],references:[id])
+ baseBriefVersion Int @map("base_brief_version")
+ request String
+ classification String
+ status String @default("proposed")
+ minHours Int? @map("min_hours")
+ maxHours Int? @map("max_hours")
+ createdAt DateTime @default(now()) @map("created_at")
+ updatedAt DateTime @updatedAt @map("updated_at")
+ @@index([projectId,createdAt])
+ @@map("change_requests")
 }
 model ProjectLink {
  id String @id @default(uuid()) @db.Uuid

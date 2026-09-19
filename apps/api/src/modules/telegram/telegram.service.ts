@@ -10,6 +10,7 @@ import { StorageService } from '../storage/storage.service';
 import { markdown } from '../documents/render';
 import { authorizedTelegramIds } from '../../security';
 import { diffBrief } from '../brief/brief-diff';
+import { ChangeRequestsService } from '../projects/change-requests.service';
 
 const short = (id: string) => id.replace(/-/g, '').slice(0, 12);
 
@@ -24,6 +25,7 @@ export class TelegramService {
     private documents: DocumentsService,
     private agent: AgentService,
     private storage: StorageService,
+    private changes: ChangeRequestsService,
   ) {
     this.register();
   }
@@ -88,7 +90,7 @@ export class TelegramService {
 
     bot.command('help', (ctx) =>
       ctx.reply(
-        '/createproject <nombre>\n/projects\n/tldr <id>\n/diff <id> <desde> <hasta>\n/doc <id>\n/ask <id> <pregunta>\n/archive <id>\n/help\n\nAprobar y rechazar se hacen con los botones del detalle de cada proyecto.',
+        '/createproject <nombre>\n/projects\n/tldr <id>\n/diff <id> <desde> <hasta>\n/change <id> <pedido>\n/changes <id>\n/doc <id>\n/ask <id> <pregunta>\n/archive <id>\n/help\n\nAprobar y rechazar se hacen con los botones del detalle de cada proyecto.',
       ),
     );
 
@@ -139,6 +141,32 @@ export class TelegramService {
         changes.length
           ? changes.map((change) => `${change.kind}: ${change.key}`).join('\n')
           : 'No hay cambios entre esas versiones.',
+      );
+    });
+
+    bot.command('change', async (ctx) => {
+      const [id, ...rest] = (ctx.match?.toString() || '').trim().split(/\s+/);
+      const request = rest.join(' ').trim();
+      if (!id || !request) return void ctx.reply('Uso: /change <id> <pedido>');
+      const user = await this.auth.telegramUser(String(ctx.from!.id));
+      const change = await this.changes.create(id, request, user.id);
+      await ctx.reply(`Pedido registrado como ${change.classification}: ${change.id}`);
+    });
+
+    bot.command('changes', async (ctx) => {
+      const id = ctx.match?.toString().trim();
+      if (!id) return void ctx.reply('Uso: /changes <id>');
+      const user = await this.auth.telegramUser(String(ctx.from!.id));
+      const changes = await this.changes.list(id, user);
+      await ctx.reply(
+        changes.length
+          ? changes
+              .map(
+                (change) =>
+                  `${change.id}: ${change.classification} (${change.status}) — ${change.request}`,
+              )
+              .join('\n')
+          : 'No hay pedidos de cambio.',
       );
     });
 
