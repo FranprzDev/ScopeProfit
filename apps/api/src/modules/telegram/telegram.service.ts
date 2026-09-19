@@ -76,6 +76,26 @@ export class TelegramService {
     return `${this.projectLine(project as any)}\n\nEstado: ${project.status}\nTLDR: ${(project.brief?.data as any)?.summary || 'Sin resumen todavía'}${doc ? `\nDocumento v${doc.version} (${doc.status})` : ''}`;
   }
 
+  private telegramAttachment(message: any) {
+    const fileId =
+      message.photo?.at(-1)?.file_id ||
+      message.document?.file_id ||
+      message.audio?.file_id ||
+      message.video?.file_id;
+    if (!fileId) return null;
+    const mime =
+      message.document?.mime_type ||
+      message.audio?.mime_type ||
+      message.video?.mime_type ||
+      'image/jpeg';
+    const name =
+      message.document?.file_name ||
+      message.audio?.file_name ||
+      message.video?.file_name ||
+      `${fileId}.jpg`;
+    return { fileId, mime, name };
+  }
+
   private register() {
     const bot = this.bot;
     bot.use(async (ctx, next) => {
@@ -256,48 +276,19 @@ export class TelegramService {
         return void ctx.reply(
           'Indicá primero a qué proyecto pertenece este archivo con /ask <id> <texto>, o abrí el proyecto con /projects.',
         );
-      const telegramMessage: any = ctx.message;
-      const fileId =
-        telegramMessage.photo?.at(-1)?.file_id ||
-        telegramMessage.document?.file_id ||
-        telegramMessage.audio?.file_id ||
-        telegramMessage.video?.file_id;
-      const mime =
-        telegramMessage.document?.mime_type ||
-        telegramMessage.audio?.mime_type ||
-        telegramMessage.video?.mime_type ||
-        'image/jpeg';
-      const name =
-        telegramMessage.document?.file_name ||
-        telegramMessage.audio?.file_name ||
-        telegramMessage.video?.file_name ||
-        `${fileId}${
-          mime === 'application/pdf'
-            ? '.pdf'
-            : mime.includes('wordprocessingml')
-              ? '.docx'
-              : mime === 'audio/mpeg'
-                ? '.mp3'
-                : mime === 'audio/ogg'
-                  ? '.ogg'
-                  : mime === 'audio/wav'
-                    ? '.wav'
-                    : mime === 'video/mp4'
-                      ? '.mp4'
-                      : mime === 'video/webm'
-                        ? '.webm'
-                        : '.jpg'
-        }`;
+      const attachment = this.telegramAttachment(ctx.message);
+      if (!attachment) return void ctx.reply('No se encontró un archivo válido.');
+      const { fileId, mime, name } = attachment;
       const telegramFile = await ctx.api.getFile(fileId);
       const response = await fetch(
         `https://api.telegram.org/file/bot${process.env.TELEGRAM_BOT_TOKEN}/${telegramFile.file_path}`,
       );
       const buffer = Buffer.from(await response.arrayBuffer());
-      const attachment = { buffer, mimetype: mime, originalname: name } as any;
+      const upload = { buffer, mimetype: mime, originalname: name } as any;
       const validated = await (
         mime.startsWith('image/')
-          ? this.storage.validateImage(attachment)
-          : this.storage.validateAttachment(attachment)
+          ? this.storage.validateImage(upload)
+          : this.storage.validateAttachment(upload)
       ).catch(() => null);
       if (!validated) return void ctx.reply('Archivo inválido o no soportado. Límite: 50 MB.');
       const written = await this.storage.write(`${projectId}/uploads/${randomUUID()}`, buffer);

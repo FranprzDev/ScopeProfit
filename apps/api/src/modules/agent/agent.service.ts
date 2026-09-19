@@ -15,6 +15,10 @@ const AgentState = Annotation.Root({
   projectId: Annotation<string>(),
   brief: Annotation<BriefData>(),
 });
+enum AgentContentType {
+  ImageUrl = 'image_url',
+  Media = 'media',
+}
 @Injectable()
 export class AgentService implements OnModuleInit, OnModuleDestroy {
   private timer?: NodeJS.Timeout;
@@ -252,10 +256,10 @@ export class AgentService implements OnModuleInit, OnModuleDestroy {
     for (const file of project.files.slice(-10)) {
       const data = (await this.storage.read(file.path)).toString('base64');
       if (file.mimeType.startsWith('image/'))
-        content.push({ type: 'image_url', image_url: `data:${file.mimeType};base64,${data}` });
+        content.push({ type: AgentContentType.ImageUrl, image_url: `data:${file.mimeType};base64,${data}` });
       else
         content.push({
-          type: 'media',
+          type: AgentContentType.Media,
           source_type: 'base64',
           data,
           mime_type: file.mimeType,
