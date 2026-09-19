@@ -7,6 +7,7 @@ import { encrypt, decrypt, hash, secureEqual, authorizedTelegramIds } from '../s
 import { validateBrief, validateSources } from '../src/modules/brief/brief.validation';
 import { validateEditor, markdown } from '../src/modules/documents/render';
 import { emptyBrief } from '@scopeprofit/contracts';
+import { diffBrief } from '../src/modules/brief/brief-diff';
 import { enforceClarificationQuestion, needsClarification } from '../src/modules/agent/jev-gate';
 
 test('Jev clarification threshold routes uncertain briefs to the LLM', () => {
@@ -147,4 +148,27 @@ test('markdown renders the fixed 7.1 sections', () => {
   ]) {
     assert.ok(text.includes(heading), `expected markdown to include "${heading}"`);
   }
+});
+
+test('diffBrief reports added, removed, and changed entries', () => {
+  const before = {
+    ...emptyBrief(),
+    summary: 'Antes',
+    included: ['login'],
+    excluded: ['mobile'],
+  };
+  const after = {
+    ...before,
+    summary: 'Después',
+    included: ['login', 'dashboard'],
+    excluded: [],
+  };
+  assert.deepEqual(
+    diffBrief(before, after).map(({ key, kind }) => ({ key, kind })),
+    [
+      { key: 'excluded.mobile', kind: 'removed' },
+      { key: 'included.dashboard', kind: 'added' },
+      { key: 'summary', kind: 'changed' },
+    ],
+  );
 });

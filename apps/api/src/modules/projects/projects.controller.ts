@@ -15,6 +15,8 @@ import { ProjectsService } from './projects.service';
 import { DocumentsService } from '../documents/documents.service';
 import { ok, SESSION_COOKIE } from '../../response';
 import { fail } from '../../security';
+import { ChangeRequestsService } from './change-requests.service';
+import { ChangeRequestStatus } from '@prisma/client';
 
 class CreateProjectDto {
   @IsString() @MaxLength(200) name!: string;
@@ -27,6 +29,12 @@ class LinkActionDto {
 class ApproveDto {
   @IsInt() @Min(0) version!: number;
 }
+class ChangeRequestDto {
+  @IsString() @MaxLength(10_000) request!: string;
+}
+class ChangeDecisionDto {
+  @IsIn([ChangeRequestStatus.accepted, ChangeRequestStatus.rejected]) status!: ChangeRequestStatus;
+}
 
 @Controller('projects')
 export class ProjectsController {
@@ -34,6 +42,7 @@ export class ProjectsController {
     private auth: AuthService,
     private projects: ProjectsService,
     private documents: DocumentsService,
+    private changes: ChangeRequestsService,
   ) {}
   private token(req: Request) {
     return (req.headers['x-project-token'] as string) || undefined;
@@ -87,6 +96,31 @@ export class ProjectsController {
   @Post(':id/archive') async archive(@Req() req: Request, @Param('id') id: string) {
     const user = await this.user(req);
     return ok(await this.projects.archive(id, user));
+  }
+
+  @Get(':id/change-requests') async changeRequests(@Req() req: Request, @Param('id') id: string) {
+    const user = await this.user(req);
+    return ok(await this.changes.list(id, user));
+  }
+
+  @Post(':id/change-requests') async createChangeRequest(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: ChangeRequestDto,
+  ) {
+    const user = await this.user(req);
+    await this.auth.project(user, id, this.token(req));
+    return ok(await this.changes.create(id, body.request, user.id));
+  }
+
+  @Patch(':id/change-requests/:changeId') async decideChangeRequest(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Param('changeId') changeId: string,
+    @Body() body: ChangeDecisionDto,
+  ) {
+    const user = await this.user(req);
+    return ok(await this.changes.decide(id, changeId, body.status, user));
   }
 
   @Patch(':id/link') async link(
