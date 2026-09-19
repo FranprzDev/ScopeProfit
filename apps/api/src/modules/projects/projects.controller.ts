@@ -17,6 +17,8 @@ import { ok, SESSION_COOKIE } from '../../response';
 import { fail } from '../../security';
 import { ChangeRequestsService } from './change-requests.service';
 import { ChangeRequestStatus } from '@prisma/client';
+import { TimeEntriesService } from './time-entries.service';
+import { TimeEntriesService } from './time-entries.service';
 
 class CreateProjectDto {
   @IsString() @MaxLength(200) name!: string;
@@ -35,6 +37,10 @@ class ChangeRequestDto {
 class ChangeDecisionDto {
   @IsIn([ChangeRequestStatus.accepted, ChangeRequestStatus.rejected]) status!: ChangeRequestStatus;
 }
+class TimeEntryDto {
+  @IsString() @MaxLength(200) description!: string;
+  @IsOptional() @IsString() changeRequestId?: string;
+}
 
 @Controller('projects')
 export class ProjectsController {
@@ -43,6 +49,7 @@ export class ProjectsController {
     private projects: ProjectsService,
     private documents: DocumentsService,
     private changes: ChangeRequestsService,
+    private time: TimeEntriesService,
   ) {}
   private token(req: Request) {
     return (req.headers['x-project-token'] as string) || undefined;
@@ -121,6 +128,29 @@ export class ProjectsController {
   ) {
     const user = await this.user(req);
     return ok(await this.changes.decide(id, changeId, body.status, user));
+  }
+
+  @Get(':id/time-entries') async timeEntries(@Req() req: Request, @Param('id') id: string) {
+    const user = await this.user(req);
+    return ok(await this.time.list(id, user));
+  }
+
+  @Post(':id/time-entries') async startTime(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: TimeEntryDto,
+  ) {
+    const user = await this.user(req);
+    return ok(await this.time.start(id, body.description, user, body.changeRequestId));
+  }
+
+  @Post(':id/time-entries/:entryId/stop') async stopTime(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Param('entryId') entryId: string,
+  ) {
+    const user = await this.user(req);
+    return ok(await this.time.stop(id, entryId, user));
   }
 
   @Patch(':id/link') async link(
