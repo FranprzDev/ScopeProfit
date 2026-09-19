@@ -40,16 +40,21 @@ export class StorageService {
   async validateAttachment(file: Express.Multer.File) {
     if (!file?.buffer?.length || file.buffer.length > 50 * 1024 * 1024)
       throw new HttpException({ code: 'INVALID_ATTACHMENT', message: 'Attachment limit is 50 MB' }, 400);
-    const allowed = new Set([
-      'application/pdf',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'audio/mpeg',
-      'audio/ogg',
-      'audio/wav',
-      'video/mp4',
-      'video/webm',
-    ]);
-    if (!allowed.has(file.mimetype) || !this.hasMagic(file.buffer, file.mimetype))
+    const extensions: Record<string, string[]> = {
+      'application/pdf': ['.pdf'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'audio/mpeg': ['.mp3'],
+      'audio/ogg': ['.ogg', '.oga'],
+      'audio/wav': ['.wav'],
+      'video/mp4': ['.mp4'],
+      'video/webm': ['.webm'],
+    };
+    const allowedExtensions = extensions[file.mimetype];
+    if (
+      !allowedExtensions ||
+      !allowedExtensions.includes(extname(file.originalname).toLowerCase()) ||
+      !this.hasMagic(file.buffer, file.mimetype)
+    )
       throw new HttpException({ code: 'INVALID_ATTACHMENT', message: 'Unsupported or invalid attachment' }, 400);
     return { mimeType: file.mimetype, size: file.buffer.length };
   }
@@ -61,6 +66,6 @@ export class StorageService {
     if (mimeType === 'audio/ogg') return buffer.subarray(0, 4).toString() === 'OggS';
     if (mimeType === 'audio/wav') return buffer.subarray(0, 4).toString() === 'RIFF' && buffer.subarray(8, 12).toString() === 'WAVE';
     if (mimeType === 'video/mp4') return buffer.subarray(4, 8).toString() === 'ftyp';
-    return buffer.subarray(0, 4).toString() === '\u001aE\u00df\u00a3';
+    return buffer.subarray(0, 4).equals(Buffer.from([0x1a, 0x45, 0xdf, 0xa3]));
   }
 }
