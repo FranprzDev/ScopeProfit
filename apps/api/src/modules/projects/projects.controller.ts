@@ -18,7 +18,6 @@ import { fail } from '../../security';
 import { ChangeRequestsService } from './change-requests.service';
 import { ChangeRequestStatus } from '@prisma/client';
 import { TimeEntriesService } from './time-entries.service';
-import { TimeEntriesService } from './time-entries.service';
 
 class CreateProjectDto {
   @IsString() @MaxLength(200) name!: string;
