@@ -262,16 +262,32 @@ export class TelegramService {
         telegramMessage.document?.file_id ||
         telegramMessage.audio?.file_id ||
         telegramMessage.video?.file_id;
-      const name =
-        telegramMessage.document?.file_name ||
-        telegramMessage.audio?.file_name ||
-        telegramMessage.video?.file_name ||
-        `${fileId}`;
       const mime =
         telegramMessage.document?.mime_type ||
         telegramMessage.audio?.mime_type ||
         telegramMessage.video?.mime_type ||
         'image/jpeg';
+      const name =
+        telegramMessage.document?.file_name ||
+        telegramMessage.audio?.file_name ||
+        telegramMessage.video?.file_name ||
+        `${fileId}${
+          mime === 'application/pdf'
+            ? '.pdf'
+            : mime.includes('wordprocessingml')
+              ? '.docx'
+              : mime === 'audio/mpeg'
+                ? '.mp3'
+                : mime === 'audio/ogg'
+                  ? '.ogg'
+                  : mime === 'audio/wav'
+                    ? '.wav'
+                    : mime === 'video/mp4'
+                      ? '.mp4'
+                      : mime === 'video/webm'
+                        ? '.webm'
+                        : '.jpg'
+        }`;
       const telegramFile = await ctx.api.getFile(fileId);
       const response = await fetch(
         `https://api.telegram.org/file/bot${process.env.TELEGRAM_BOT_TOKEN}/${telegramFile.file_path}`,
