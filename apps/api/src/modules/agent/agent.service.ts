@@ -256,7 +256,10 @@ export class AgentService implements OnModuleInit, OnModuleDestroy {
     for (const file of project.files.slice(-10)) {
       const data = (await this.storage.read(file.path)).toString('base64');
       if (file.mimeType.startsWith('image/'))
-        content.push({ type: AgentContentType.ImageUrl, image_url: `data:${file.mimeType};base64,${data}` });
+        content.push({
+          type: AgentContentType.ImageUrl,
+          image_url: `data:${file.mimeType};base64,${data}`,
+        });
       else
         content.push({
           type: AgentContentType.Media,
