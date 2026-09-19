@@ -25,10 +25,10 @@ export class ProfitabilityService {
 
   async get(projectId: string, user: any) {
     const project: any = await this.auth.project(user, projectId);
-    const entries = await this.db.timeEntry.findMany({
-      where: { projectId, endedAt: { not: null } },
-    });
-    const minutes = entries.reduce((total, entry) => total + (entry.durationMinutes ?? 0), 0);
+    let estimatedHours = 0;
+    for (const estimate of project.brief?.data?.estimates ?? [])
+      estimatedHours += (estimate.minHours + estimate.maxHours) / 2;
+    const minutes = Math.round(estimatedHours * 60);
     const laborCostCents = project.internalRateCents
       ? Math.round((minutes / 60) * project.internalRateCents)
       : null;
@@ -43,7 +43,7 @@ export class ProfitabilityService {
       priceCents: project.priceCents,
       externalCostCents: project.externalCostCents,
       internalRateCents: project.internalRateCents,
-      trackedMinutes: minutes,
+      estimatedMinutes: minutes,
       laborCostCents,
       totalCostCents,
       marginCents,
