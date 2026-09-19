@@ -18,6 +18,7 @@ import { fail } from '../../security';
 import { ChangeRequestsService } from './change-requests.service';
 import { ChangeRequestStatus } from '@prisma/client';
 import { ProfitabilityService } from './profitability.service';
+import { MetricsService } from './metrics.service';
 
 class CreateProjectDto {
   @IsString() @MaxLength(200) name!: string;
@@ -50,6 +51,7 @@ export class ProjectsController {
     private documents: DocumentsService,
     private changes: ChangeRequestsService,
     private profitability: ProfitabilityService,
+    private metricsService: MetricsService,
   ) {}
   private token(req: Request) {
     return (req.headers['x-project-token'] as string) || undefined;
@@ -142,6 +144,11 @@ export class ProjectsController {
   ) {
     const user = await this.user(req);
     return ok(await this.profitability.update(id, user, body));
+  }
+
+  @Get(':id/metrics') async metrics(@Req() req: Request, @Param('id') id: string) {
+    const user = await this.user(req);
+    return ok(await this.metricsService.get(id, user));
   }
 
   @Patch(':id/link') async link(
