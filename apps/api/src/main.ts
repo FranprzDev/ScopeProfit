@@ -14,7 +14,9 @@ async function bootstrap() {
   app.use(express.json({ limit: '2mb' }));
   app.use(express.urlencoded({ extended: true, limit: '2mb' }));
   app.setGlobalPrefix('api');
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+  app.useGlobalPipes(
+    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+  );
   app.useGlobalFilters(new ApiErrorHandler());
   app.enableCors({ origin: process.env.WEB_URL, credentials: true });
   await app.listen(process.env.PORT ?? 3001);

@@ -16,12 +16,15 @@
     "test": "pnpm -r --if-present run test",
     "db:migrate": "pnpm --filter @scopeprofit/api run db:migrate",
     "smoke": "bash scripts/smoke.sh",
-    "production:preflight": "node scripts/preflight.mjs"
+    "production:preflight": "node scripts/preflight.mjs",
+    "format": "prettier --write \"apps/**/*.{ts,tsx,mjs}\" \"packages/**/*.ts\"",
+    "format:check": "prettier --check \"apps/**/*.{ts,tsx,mjs}\" \"packages/**/*.ts\""
   },
   "overrides": {
     "deepmerge-ts": "^8.0.2"
   },
   "devDependencies": {
-    "playwright": "^1.63.0"
+    "playwright": "^1.63.0",
+    "prettier": "^3.9.8"
   }
 }

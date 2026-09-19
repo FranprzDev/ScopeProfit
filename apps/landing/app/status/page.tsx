@@ -2,16 +2,16 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { 
-  Code2, 
-  ArrowRight, 
-  CheckCircle2, 
-  MessageSquare, 
-  Cpu, 
-  FileText, 
-  Database, 
-  Globe, 
-  Clock
+import {
+  Code2,
+  ArrowRight,
+  CheckCircle2,
+  MessageSquare,
+  Cpu,
+  FileText,
+  Database,
+  Globe,
+  Clock,
 } from 'lucide-react';
 import s from '../landing.module.css';
 
@@ -31,15 +31,16 @@ const services: ServiceStatus[] = [
     icon: <MessageSquare size={20} color="#38bdf8" />,
     status: 'operational',
     uptime: '100%',
-    latency: '38ms'
+    latency: '38ms',
   },
   {
     name: 'Motor de Inteligencia de Alcance (Gemini BYOK)',
-    description: 'Detección activa de ambigüedades, zonas grises y redacción del Brief estructurado.',
+    description:
+      'Detección activa de ambigüedades, zonas grises y redacción del Brief estructurado.',
     icon: <Cpu size={20} color="#ea2845" />,
     status: 'operational',
     uptime: '99.97%',
-    latency: '310ms'
+    latency: '310ms',
   },
   {
     name: 'Compilador de Documentos (PDF & Word .docx)',
@@ -47,7 +48,7 @@ const services: ServiceStatus[] = [
     icon: <FileText size={20} color="#34d399" />,
     status: 'operational',
     uptime: '100%',
-    latency: '65ms'
+    latency: '65ms',
   },
   {
     name: 'Base de Datos y Cifrado de Credenciales',
@@ -55,7 +56,7 @@ const services: ServiceStatus[] = [
     icon: <Database size={20} color="#fbbf24" />,
     status: 'operational',
     uptime: '100%',
-    latency: '12ms'
+    latency: '12ms',
   },
   {
     name: 'Portal Web de Profesionales & Autenticación',
@@ -63,8 +64,8 @@ const services: ServiceStatus[] = [
     icon: <Globe size={20} color="#c084fc" />,
     status: 'operational',
     uptime: '99.99%',
-    latency: '24ms'
-  }
+    latency: '24ms',
+  },
 ];
 
 export default function StatusPage() {
@@ -80,11 +81,15 @@ export default function StatusPage() {
             <div className={s.brandLogo}>
               <Code2 />
             </div>
-            <span>Scope<span className={s.brandRed}>Profit</span></span>
+            <span>
+              Scope<span className={s.brandRed}>Profit</span>
+            </span>
           </Link>
 
           <div className={s.navActions}>
-            <Link href="/login" className={s.navLogin}>Iniciar sesión</Link>
+            <Link href="/login" className={s.navLogin}>
+              Iniciar sesión
+            </Link>
             <Link href="/login" className={s.navCta}>
               Empezar gratis
               <ArrowRight size={15} />
@@ -105,7 +110,8 @@ export default function StatusPage() {
           <span className={s.h1Red}>Todos los servicios operativos.</span>
         </h1>
         <p className={s.lead} style={{ maxWidth: '640px', margin: '0 auto 2.5rem' }}>
-          Monitoreo continuo de la disponibilidad del bot de Telegram, los motores de IA y los servicios de compilación de documentos.
+          Monitoreo continuo de la disponibilidad del bot de Telegram, los motores de IA y los
+          servicios de compilación de documentos.
         </p>
 
         {/* HERO STATUS BANNER */}
@@ -121,19 +127,45 @@ export default function StatusPage() {
           </div>
           <div style={{ display: 'flex', gap: '2rem', textAlign: 'right' }}>
             <div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-white)' }}>99.98%</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Uptime 90 días</div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-white)' }}>
+                99.98%
+              </div>
+              <div
+                style={{
+                  fontSize: '0.75rem',
+                  color: 'var(--text-muted)',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Uptime 90 días
+              </div>
             </div>
             <div>
               <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#4ade80' }}>42ms</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Latencia Media</div>
+              <div
+                style={{
+                  fontSize: '0.75rem',
+                  color: 'var(--text-muted)',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Latencia Media
+              </div>
             </div>
           </div>
         </div>
 
         {/* SERVICES BREAKDOWN */}
         <div style={{ textAlign: 'left', marginBottom: '3.5rem' }}>
-          <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-white)', marginBottom: '1rem', letterSpacing: '-0.01em' }}>
+          <h2
+            style={{
+              fontSize: '1.15rem',
+              fontWeight: 700,
+              color: 'var(--text-white)',
+              marginBottom: '1rem',
+              letterSpacing: '-0.01em',
+            }}
+          >
             Servicios y Componentes Principales
           </h2>
 
@@ -141,16 +173,18 @@ export default function StatusPage() {
             {services.map((srv, idx) => (
               <div key={idx} className={s.statusServiceRow}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-                  <div style={{ 
-                    width: '40px', 
-                    height: '40px', 
-                    borderRadius: '10px', 
-                    background: 'rgba(255,255,255,0.04)', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    flexShrink: 0
-                  }}>
+                  <div
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '10px',
+                      background: 'rgba(255,255,255,0.04)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
                     {srv.icon}
                   </div>
                   <div>
@@ -160,8 +194,19 @@ export default function StatusPage() {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                  <div style={{ textAlign: 'right', display: 'none', minWidth: '80px' }} className={s.statusMetaDesktop}>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-main)', fontFamily: 'ui-monospace, monospace' }}>{srv.latency}</div>
+                  <div
+                    style={{ textAlign: 'right', display: 'none', minWidth: '80px' }}
+                    className={s.statusMetaDesktop}
+                  >
+                    <div
+                      style={{
+                        fontSize: '0.8rem',
+                        color: 'var(--text-main)',
+                        fontFamily: 'ui-monospace, monospace',
+                      }}
+                    >
+                      {srv.latency}
+                    </div>
                     <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>latencia</div>
                   </div>
                   <span className={s.statusPillActive}>
@@ -175,24 +220,49 @@ export default function StatusPage() {
         </div>
 
         {/* INCIDENT HISTORY */}
-        <div style={{ 
-          textAlign: 'left',
-          background: 'var(--nest-dark-elevated)', 
-          border: '1px solid var(--nest-card-border)', 
-          borderRadius: '16px', 
-          padding: '2rem'
-        }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 750, color: 'var(--text-white)', margin: '0 0 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div
+          style={{
+            textAlign: 'left',
+            background: 'var(--nest-dark-elevated)',
+            border: '1px solid var(--nest-card-border)',
+            borderRadius: '16px',
+            padding: '2rem',
+          }}
+        >
+          <h3
+            style={{
+              fontSize: '1.1rem',
+              fontWeight: 750,
+              color: 'var(--text-white)',
+              margin: '0 0 1rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+            }}
+          >
             <Clock size={16} color="var(--nest-red)" />
             Historial de Mantenimientos & Incidentes
           </h3>
           <div style={{ padding: '1rem 0', borderTop: '1px solid var(--nest-card-border)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-              <strong style={{ fontSize: '0.92rem', color: 'var(--text-white)' }}>Actualización de Runtime y Conector de Telegram</strong>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontFamily: 'ui-monospace, monospace' }}>Completado con éxito</span>
+            <div
+              style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}
+            >
+              <strong style={{ fontSize: '0.92rem', color: 'var(--text-white)' }}>
+                Actualización de Runtime y Conector de Telegram
+              </strong>
+              <span
+                style={{
+                  fontSize: '0.8rem',
+                  color: 'var(--text-muted)',
+                  fontFamily: 'ui-monospace, monospace',
+                }}
+              >
+                Completado con éxito
+              </span>
             </div>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
-              Migración a Node 22 / pnpm sin degradación del servicio ni pérdida de mensajes en cola.
+              Migración a Node 22 / pnpm sin degradación del servicio ni pérdida de mensajes en
+              cola.
             </p>
           </div>
         </div>
@@ -206,7 +276,9 @@ export default function StatusPage() {
               <div className={s.brandLogo}>
                 <Code2 />
               </div>
-              <span>Scope<span className={s.brandRed}>Profit</span></span>
+              <span>
+                Scope<span className={s.brandRed}>Profit</span>
+              </span>
             </Link>
             <span className={s.footerCompactTagline}>
               Relevamiento de requerimientos y blindaje de alcance
@@ -214,9 +286,20 @@ export default function StatusPage() {
           </div>
 
           <nav className={s.footerCompactNav}>
-            <Link href="/" className={s.footerCompactLink}>Inicio</Link>
-            <Link href="/faq" className={s.footerCompactLink}>Preguntas Frecuentes</Link>
-            <a href="https://github.com/FranprzDev/ScopeProfit" target="_blank" rel="noreferrer" className={s.footerCompactLink}>GitHub</a>
+            <Link href="/" className={s.footerCompactLink}>
+              Inicio
+            </Link>
+            <Link href="/faq" className={s.footerCompactLink}>
+              Preguntas Frecuentes
+            </Link>
+            <a
+              href="https://github.com/FranprzDev/ScopeProfit"
+              target="_blank"
+              rel="noreferrer"
+              className={s.footerCompactLink}
+            >
+              GitHub
+            </a>
           </nav>
 
           <div className={s.footerStatusLink} style={{ cursor: 'default' }}>
@@ -226,10 +309,17 @@ export default function StatusPage() {
         </div>
 
         <div className={s.footerCompactBottom}>
-          <span>&copy; {new Date().getFullYear()} ScopeProfit. Construido para desarrolladores freelance y agencias.</span>
+          <span>
+            &copy; {new Date().getFullYear()} ScopeProfit. Construido para desarrolladores freelance
+            y agencias.
+          </span>
           <div style={{ display: 'flex', gap: '1.25rem' }}>
-            <Link href="/faq" style={{ color: 'inherit', textDecoration: 'none' }}>Ayuda & SLA</Link>
-            <Link href="/" style={{ color: 'inherit', textDecoration: 'none' }}>Volver al inicio ↑</Link>
+            <Link href="/faq" style={{ color: 'inherit', textDecoration: 'none' }}>
+              Ayuda & SLA
+            </Link>
+            <Link href="/" style={{ color: 'inherit', textDecoration: 'none' }}>
+              Volver al inicio ↑
+            </Link>
           </div>
         </div>
       </footer>

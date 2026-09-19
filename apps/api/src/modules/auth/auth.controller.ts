@@ -10,7 +10,9 @@ class MagicLinkRequestDto {
   @IsOptional() @IsString() @MaxLength(64) projectId?: string;
   @IsOptional() @IsString() @MaxLength(200) linkToken?: string;
 }
-class ApiKeyDto { @IsString() @MinLength(10) @MaxLength(512) apiKey!: string; }
+class ApiKeyDto {
+  @IsString() @MinLength(10) @MaxLength(512) apiKey!: string;
+}
 
 @Controller('auth')
 export class AuthController {

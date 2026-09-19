@@ -12,20 +12,35 @@ async function proxy(request: NextRequest, { params }: { params: Promise<{ path:
   }
   try {
     const upstream = await fetch(url, {
-      method: request.method, headers,
+      method: request.method,
+      headers,
       body: ['GET', 'HEAD'].includes(request.method) ? undefined : await request.arrayBuffer(),
-      redirect: 'manual', cache: 'no-store', signal: AbortSignal.timeout(120_000),
+      redirect: 'manual',
+      cache: 'no-store',
+      signal: AbortSignal.timeout(120_000),
     });
     const responseHeaders = new Headers();
     for (const key of ['content-type', 'content-disposition', 'location', 'retry-after']) {
       const value = upstream.headers.get(key);
       if (value) responseHeaders.set(key, value);
     }
-    for (const cookie of upstream.headers.getSetCookie()) responseHeaders.append('set-cookie', cookie);
+    for (const cookie of upstream.headers.getSetCookie())
+      responseHeaders.append('set-cookie', cookie);
     responseHeaders.set('cache-control', 'no-store');
     return new Response(upstream.body, { status: upstream.status, headers: responseHeaders });
   } catch {
-    return Response.json({ success: false, error: { code: 'API_UNAVAILABLE', message: 'El servicio no está disponible. Intentá nuevamente.', details: null, requestId: null } }, { status: 502 });
+    return Response.json(
+      {
+        success: false,
+        error: {
+          code: 'API_UNAVAILABLE',
+          message: 'El servicio no está disponible. Intentá nuevamente.',
+          details: null,
+          requestId: null,
+        },
+      },
+      { status: 502 },
+    );
   }
 }
 export { proxy as GET, proxy as POST, proxy as PATCH, proxy as PUT, proxy as DELETE };
