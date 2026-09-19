@@ -19,8 +19,6 @@ import { ChangeRequestsService } from './change-requests.service';
 import { ChangeRequestStatus } from '@prisma/client';
 import { TimeEntriesService } from './time-entries.service';
 import { ProfitabilityService } from './profitability.service';
-import { TimeEntriesService } from './time-entries.service';
-import { ProfitabilityService } from './profitability.service';
 import { MetricsService } from './metrics.service';
 
 class CreateProjectDto {
