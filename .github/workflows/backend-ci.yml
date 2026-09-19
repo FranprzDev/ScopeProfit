@@ -1,10 +1,34 @@
 name: Backend CI
 on:
   pull_request:
-    paths: ['apps/api/**', 'packages/contracts/**', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'docker-compose*.yml', 'scripts/**', '.github/workflows/backend-ci.yml', '.dockerignore']
+    paths:
+      [
+        'apps/api/**',
+        'packages/contracts/**',
+        'package.json',
+        '.prettierrc.json',
+        'pnpm-lock.yaml',
+        'pnpm-workspace.yaml',
+        'docker-compose*.yml',
+        'scripts/**',
+        '.github/workflows/backend-ci.yml',
+        '.dockerignore',
+      ]
   push:
     branches: [main]
-    paths: ['apps/api/**', 'packages/contracts/**', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'docker-compose*.yml', 'scripts/**', '.github/workflows/backend-ci.yml', '.dockerignore']
+    paths:
+      [
+        'apps/api/**',
+        'packages/contracts/**',
+        'package.json',
+        '.prettierrc.json',
+        'pnpm-lock.yaml',
+        'pnpm-workspace.yaml',
+        'docker-compose*.yml',
+        'scripts/**',
+        '.github/workflows/backend-ci.yml',
+        '.dockerignore',
+      ]
 permissions:
   contents: read
 concurrency:
@@ -37,6 +61,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm run format:check
       - run: pnpm --filter @scopeprofit/contracts run build
       - run: pnpm run db:migrate
       - run: pnpm --filter @scopeprofit/api run lint

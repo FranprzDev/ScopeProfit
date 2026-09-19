@@ -27,26 +27,63 @@ test('authorizedTelegramIds parses env list', () => {
 });
 
 test('validateBrief rejects an inconsistent estimate range', () => {
-  const brief = { ...emptyBrief(), estimates: [{ module: 'Auth', minHours: 10, maxHours: 5, uncertainty: 'n/a' }] };
+  const brief = {
+    ...emptyBrief(),
+    estimates: [{ module: 'Auth', minHours: 10, maxHours: 5, uncertainty: 'n/a' }],
+  };
   assert.throws(() => validateBrief(brief));
 });
 
 test('validateBrief accepts a well-formed brief', () => {
-  const brief = { ...emptyBrief(), summary: 'Resumen', estimates: [{ module: 'Auth', minHours: 5, maxHours: 10, uncertainty: 'SSO' }] };
+  const brief = {
+    ...emptyBrief(),
+    summary: 'Resumen',
+    estimates: [{ module: 'Auth', minHours: 5, maxHours: 10, uncertainty: 'SSO' }],
+  };
   const result = validateBrief(brief);
   assert.equal(result.summary, 'Resumen');
 });
 
 test('validateSources rejects a requirement without a matching citation', () => {
   const messageId = '11111111-1111-1111-1111-111111111111';
-  const brief = { ...emptyBrief(), requirements: [{ id: 'R1', description: 'x', type: 'functional' as const, priority: 'must' as const, source: 'no existe', sourceMessageId: messageId, systemNote: '' }] };
-  assert.throws(() => validateSources(brief, [{ id: messageId, content: 'el cliente dijo otra cosa' }]));
+  const brief = {
+    ...emptyBrief(),
+    requirements: [
+      {
+        id: 'R1',
+        description: 'x',
+        type: 'functional' as const,
+        priority: 'must' as const,
+        source: 'no existe',
+        sourceMessageId: messageId,
+        systemNote: '',
+      },
+    ],
+  };
+  assert.throws(() =>
+    validateSources(brief, [{ id: messageId, content: 'el cliente dijo otra cosa' }]),
+  );
 });
 
 test('validateSources accepts a requirement with an exact textual citation', () => {
   const messageId = '11111111-1111-1111-1111-111111111111';
-  const brief = { ...emptyBrief(), requirements: [{ id: 'R1', description: 'x', type: 'functional' as const, priority: 'must' as const, source: 'necesito un login', sourceMessageId: messageId, systemNote: '' }] };
-  assert.doesNotThrow(() => validateSources(brief, [{ id: messageId, content: 'hola, necesito un login para el sistema' }]));
+  const brief = {
+    ...emptyBrief(),
+    requirements: [
+      {
+        id: 'R1',
+        description: 'x',
+        type: 'functional' as const,
+        priority: 'must' as const,
+        source: 'necesito un login',
+        sourceMessageId: messageId,
+        systemNote: '',
+      },
+    ],
+  };
+  assert.doesNotThrow(() =>
+    validateSources(brief, [{ id: messageId, content: 'hola, necesito un login para el sistema' }]),
+  );
 });
 
 test('validateEditor rejects a disallowed node type', () => {
@@ -54,12 +91,33 @@ test('validateEditor rejects a disallowed node type', () => {
 });
 
 test('validateEditor accepts a minimal valid document', () => {
-  assert.doesNotThrow(() => validateEditor({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'hola' }] }] }));
+  assert.doesNotThrow(() =>
+    validateEditor({
+      type: 'doc',
+      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'hola' }] }],
+    }),
+  );
 });
 
 test('markdown renders the fixed 7.1 sections', () => {
-  const text = markdown({ projectName: 'Demo', clientName: 'Cliente', author: 'Autor', date: new Date().toISOString(), version: 1, brief: emptyBrief(), editorContent: null });
-  for (const heading of ['Resumen ejecutivo', 'Requerimientos identificados', 'Preguntas pendientes', 'Riesgos y ambigüedades', 'Alcance', 'Estimación', 'Próximos pasos']) {
+  const text = markdown({
+    projectName: 'Demo',
+    clientName: 'Cliente',
+    author: 'Autor',
+    date: new Date().toISOString(),
+    version: 1,
+    brief: emptyBrief(),
+    editorContent: null,
+  });
+  for (const heading of [
+    'Resumen ejecutivo',
+    'Requerimientos identificados',
+    'Preguntas pendientes',
+    'Riesgos y ambigüedades',
+    'Alcance',
+    'Estimación',
+    'Próximos pasos',
+  ]) {
     assert.ok(text.includes(heading), `expected markdown to include "${heading}"`);
   }
 });

@@ -7,7 +7,15 @@ import { AgentService } from './modules/agent/agent.service';
 import { DocumentsService } from './modules/documents/documents.service';
 import { StorageService } from './modules/storage/storage.service';
 
-const providers = [PrismaService, EmailService, AuthService, ProjectsService, AgentService, DocumentsService, StorageService];
+const providers = [
+  PrismaService,
+  EmailService,
+  AuthService,
+  ProjectsService,
+  AgentService,
+  DocumentsService,
+  StorageService,
+];
 
 @Global()
 @Module({ providers, exports: providers })

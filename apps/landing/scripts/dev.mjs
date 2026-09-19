@@ -56,7 +56,9 @@ async function handleExistingLock() {
     try {
       const data = JSON.parse(fs.readFileSync(lockFile, 'utf8'));
       if (data.pid && isPidAlive(data.pid)) {
-        console.log(`\n\x1b[33m⚠️  Instancia anterior de ScopeProfit activa (PID ${data.pid}) en puerto ${data.port}.\x1b[0m`);
+        console.log(
+          `\n\x1b[33m⚠️  Instancia anterior de ScopeProfit activa (PID ${data.pid}) en puerto ${data.port}.\x1b[0m`,
+        );
         console.log(`\x1b[90mReiniciando proceso para liberar puerto...\x1b[0m`);
         try {
           process.kill(data.pid, 'SIGTERM');
@@ -82,20 +84,20 @@ async function run() {
 
   if (selectedPort !== desiredPort) {
     console.log(`\n\x1b[33m⚡ Puerto ${desiredPort} ocupado por otra aplicación.\x1b[0m`);
-    console.log(`\x1b[32m✔  Asignando automáticamente puerto libre: http://localhost:${selectedPort}\x1b[0m\n`);
+    console.log(
+      `\x1b[32m✔  Asignando automáticamente puerto libre: http://localhost:${selectedPort}\x1b[0m\n`,
+    );
   } else {
-    console.log(`\n\x1b[32m✔  Puerto ${selectedPort} libre. Iniciando en http://localhost:${selectedPort}\x1b[0m\n`);
+    console.log(
+      `\n\x1b[32m✔  Puerto ${selectedPort} libre. Iniciando en http://localhost:${selectedPort}\x1b[0m\n`,
+    );
   }
 
-  const child = spawn(
-    'npx',
-    ['next', 'dev', '-p', String(selectedPort), '--hostname', '0.0.0.0'],
-    {
-      cwd: webDir,
-      stdio: 'inherit',
-      env: { ...process.env, PORT: String(selectedPort) }
-    }
-  );
+  const child = spawn('npx', ['next', 'dev', '-p', String(selectedPort), '--hostname', '0.0.0.0'], {
+    cwd: webDir,
+    stdio: 'inherit',
+    env: { ...process.env, PORT: String(selectedPort) },
+  });
 
   const forward = (sig) => {
     if (child.pid) child.kill(sig);

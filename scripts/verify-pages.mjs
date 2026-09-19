@@ -11,17 +11,17 @@ async function main() {
   console.log('🚀 Starting Comprehensive Playwright Verification...');
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
-    viewport: { width: 1440, height: 900 }
+    viewport: { width: 1440, height: 900 },
   });
 
   const page = await context.newPage();
   const consoleErrors = [];
-  page.on('console', msg => {
+  page.on('console', (msg) => {
     if (msg.type() === 'error') {
       consoleErrors.push(`[Console Error]: ${msg.text()}`);
     }
   });
-  page.on('pageerror', err => {
+  page.on('pageerror', (err) => {
     consoleErrors.push(`[Page Error]: ${err.message}`);
   });
 
@@ -69,7 +69,7 @@ async function main() {
   console.log('✓ Timeline scrolled and screenshot captured');
 
   const copyLinkBtn = page.locator('button:has-text("Copiar enlace")');
-  if (await copyLinkBtn.count() > 0) {
+  if ((await copyLinkBtn.count()) > 0) {
     await copyLinkBtn.click();
     await page.waitForTimeout(300);
     const copiedText = await page.locator('button:has-text("Copiado")').first().innerText();
@@ -146,7 +146,7 @@ async function main() {
   }
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('Fatal test runner error:', err);
   process.exit(1);
 });

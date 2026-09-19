@@ -1,10 +1,32 @@
 name: Frontend CI
 on:
   pull_request:
-    paths: ['apps/landing/**', 'apps/app/**', 'packages/contracts/**', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', '.github/workflows/frontend-ci.yml', '.dockerignore']
+    paths:
+      [
+        'apps/landing/**',
+        'apps/app/**',
+        'packages/contracts/**',
+        'package.json',
+        '.prettierrc.json',
+        'pnpm-lock.yaml',
+        'pnpm-workspace.yaml',
+        '.github/workflows/frontend-ci.yml',
+        '.dockerignore',
+      ]
   push:
     branches: [main]
-    paths: ['apps/landing/**', 'apps/app/**', 'packages/contracts/**', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', '.github/workflows/frontend-ci.yml', '.dockerignore']
+    paths:
+      [
+        'apps/landing/**',
+        'apps/app/**',
+        'packages/contracts/**',
+        'package.json',
+        '.prettierrc.json',
+        'pnpm-lock.yaml',
+        'pnpm-workspace.yaml',
+        '.github/workflows/frontend-ci.yml',
+        '.dockerignore',
+      ]
 permissions:
   contents: read
 concurrency:
@@ -23,6 +45,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm run format:check
       - run: pnpm --filter @scopeprofit/landing run lint
       - run: pnpm --filter @scopeprofit/landing run typecheck
       - run: pnpm --filter @scopeprofit/landing run build
@@ -40,6 +63,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm run format:check
       - run: pnpm --filter @scopeprofit/contracts run build
       - run: pnpm --filter @scopeprofit/app run lint
       - run: pnpm --filter @scopeprofit/app run typecheck

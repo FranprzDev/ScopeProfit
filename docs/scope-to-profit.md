@@ -1,7 +1,9 @@
 # SCOPE-TO-PROFIT
+
 ### El copiloto comercial y de rentabilidad para freelancers y agencias de software
+
 Documento de concepto, producto y estrategia inicial — 1 de septiembre de 2026
-*Fuente de verdad — foco en docs para proyecto nuevo, pricing liviano*
+_Fuente de verdad — foco en docs para proyecto nuevo, pricing liviano_
 
 > **Estado:** Draft v0.8 — fuente de verdad `scope-to-profit.md` | **Foco v1:** Cliente (Next.js) ↔ Backend (Agente IA) ↔ Vos (Telegram) → DB + filesystem persistente Brief → doc 7.1
 
@@ -33,11 +35,13 @@ No es otro generador de textos con IA. Es un **formalizer + diagnosticador**: or
 **Terminología v1:** `docs` = documento único del proyecto generado con plantilla 7.1. `Alcance` es la sección 5 dentro de ese doc. `Propuesta` es el PDF exportado del doc. Al aprobar, el cliente recibe automáticamente el PDF y un DOCX editable.
 
 Promesa principal:
+
 > "Traé el desorden del cliente, llevátelo formalizado y diagnosticado para entender qué sistema te piden realmente."
 
 ## 2. EL PROBLEMA
 
 Los freelancers y agencias suelen:
+
 - cotizar desde el entusiasmo y no desde datos
 - olvidar integraciones, migraciones, soporte y carga de datos
 - aceptar frases ambiguas como "es algo sencillo"
@@ -54,6 +58,7 @@ El costo no es solamente administrativo. Es margen perdido.
 Primer segmento recomendado: freelancers y agencias pequeñas de software que venden proyectos a medida, con equipos de 1 a 15 personas y entre 2 y 20 presupuestos mensuales.
 
 Perfil ideal:
+
 - ya tiene clientes
 - cotiza por proyecto o por alcance
 - usa WhatsApp, Telegram, email o documentos
@@ -67,47 +72,56 @@ No comenzar con grandes empresas.
 
 ## 4. FLUJO PRINCIPAL
 
-| Paso | Nombre | Qué hace | Estado v1 |
-|------|--------|----------|-----------|
-| 1 | **INGRESO** | **Cliente → Next.js chat** (texto, imagen, audio, video) tira ideas desordenadas · **Vos → Telegram** ves/creás proyectos y también mandás texto/imagen/audio/video | ✅ v1 — Telegram recibe todo tipo de media |
-| 2 | **RELEVAMIENTO SIN VOS** | **Agente IA en el medio:** filtra preguntas boludas de entrada, hace solo las necesarias (RF/RNF + dominio/contexto), va mejorando el TLDR en vivo para que el cliente defina qué quiere y qué le aporta valor — sin que tengas que estar presente | ✅ v1 |
-| 3 | **ANÁLISIS / DIAGNÓSTICO** | Formaliza y diagnostica cuestiones interesantes del sistema: RF, RNF, actores/permisos, integraciones, datos, pantallas, reglas, dominio, riesgos, supuestos | ✅ v1 |
-| 4 | **ALCANCE** | Genera versión editable: incluidos / excluidos / supuestos / criterios | ✅ **Core v1** |
-| 5 | **ESTIMACIÓN** | Rango por módulos (liviana, solo horas, sin precio/margen) | ✅ v1 liviana |
-| 6 | **DOC + BRIEF** | Genera doc único con plantilla 7.1 → exporta PDF/DOCX + guarda Brief actualizado en filesystem persistente (todo versionado) | ✅ v1 |
-| 7 | **CAMBIOS** | Compara nuevo pedido vs alcance → change request | ⏳ v1.1 |
-| 8 | **APRENDIZAJE** | Compara estimado vs real | ⏳ v1.1 |
-| 9 | **DOCS AVANZADOS (futuro)** | Diagramas flujo / secuencia / actividades / proceso (BPMN/UML) desde el Brief | 🔮 roadmap |
+| Paso | Nombre                      | Qué hace                                                                                                                                                                                                                                           | Estado v1                                  |
+| ---- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| 1    | **INGRESO**                 | **Cliente → Next.js chat** (texto, imagen, audio, video) tira ideas desordenadas · **Vos → Telegram** ves/creás proyectos y también mandás texto/imagen/audio/video                                                                                | ✅ v1 — Telegram recibe todo tipo de media |
+| 2    | **RELEVAMIENTO SIN VOS**    | **Agente IA en el medio:** filtra preguntas boludas de entrada, hace solo las necesarias (RF/RNF + dominio/contexto), va mejorando el TLDR en vivo para que el cliente defina qué quiere y qué le aporta valor — sin que tengas que estar presente | ✅ v1                                      |
+| 3    | **ANÁLISIS / DIAGNÓSTICO**  | Formaliza y diagnostica cuestiones interesantes del sistema: RF, RNF, actores/permisos, integraciones, datos, pantallas, reglas, dominio, riesgos, supuestos                                                                                       | ✅ v1                                      |
+| 4    | **ALCANCE**                 | Genera versión editable: incluidos / excluidos / supuestos / criterios                                                                                                                                                                             | ✅ **Core v1**                             |
+| 5    | **ESTIMACIÓN**              | Rango por módulos (liviana, solo horas, sin precio/margen)                                                                                                                                                                                         | ✅ v1 liviana                              |
+| 6    | **DOC + BRIEF**             | Genera doc único con plantilla 7.1 → exporta PDF/DOCX + guarda Brief actualizado en filesystem persistente (todo versionado)                                                                                                                       | ✅ v1                                      |
+| 7    | **CAMBIOS**                 | Compara nuevo pedido vs alcance → change request                                                                                                                                                                                                   | ⏳ v1.1                                    |
+| 8    | **APRENDIZAJE**             | Compara estimado vs real                                                                                                                                                                                                                           | ⏳ v1.1                                    |
+| 9    | **DOCS AVANZADOS (futuro)** | Diagramas flujo / secuencia / actividades / proceso (BPMN/UML) desde el Brief                                                                                                                                                                      | 🔮 roadmap                                 |
 
 ## 5. FUNCIONES DIFERENCIALES
 
 ### 5.1 Detector de alcance oculto — CORE DIFERENCIADOR v1
-No es un prompt genérico. Es base de conocimiento por tipo de proyecto: "panel admin" → checklist de 8 preguntas (roles, permisos, ABM, reportes, exports, logs, etc.). Cada requerimiento vago dispara preguntas específicas. *No copiable con un prompt.*
+
+No es un prompt genérico. Es base de conocimiento por tipo de proyecto: "panel admin" → checklist de 8 preguntas (roles, permisos, ABM, reportes, exports, logs, etc.). Cada requerimiento vago dispara preguntas específicas. _No copiable con un prompt._
+
 > Diferenciador: checklist curada + trazabilidad a cita textual. Si no hay cita, no se marca como incluido.
 
 ### 5.2 Trazabilidad con cita textual — DIFERENCIADOR v1
+
 Cada fila de requerimientos (7.1 §2) exige fuente: "dijo: ...". Si la IA no encuentra cita, genera pregunta en §3 en vez de inventar. Esto evita alucinación y es auditable por el cliente.
 
 ### 5.3 Semáforo de riesgo accionable — DIFERENCIADOR v1
+
 No es solo color. Cada 🔴/🟡 bloquea explícitamente la estimación (§3 ¿Bloquea estimación? = Sí) y sugiere supuesto para desbloquear. El doc no se puede marcar "aprobado" con 🔴 sin supuesto.
 
 ### 5.4 Versionado y diff de alcance — DIFERENCIADOR v1.1
+
 Cada cambio genera diff de incluidos/excluidos. El cliente ve qué salió y qué entró. Base para cobrar cambios sin discutir.
 
 ### 5.5 Detector de scope creep — v1.1
+
 Compara nuevo pedido vs alcance aprobado (5.4) y genera change request con impacto en horas.
 
 ### 5.6 Memoria personal de estimación — POST-MVP
+
 Aprende de proyectos cerrados del profesional, no de promedios genéricos. Requiere historial.
 
 ### 5.7 Rentabilidad real — POST-MVP
+
 Compara precio cobrado, horas, costos externos, retrabajo, reuniones, soporte y cambios no cobrados.
 
-*Sacado de v1: recomendación de precio mínimo y tres alternativas comerciales → roadmap futuro, no diferenciador de docs.*
+_Sacado de v1: recomendación de precio mínimo y tres alternativas comerciales → roadmap futuro, no diferenciador de docs._
 
 ## 6. QUÉ HACE LA IA Y QUÉ NO
 
 La IA puede (v1) — **agente que vive en el Backend** y trabaja sin vos presente:
+
 - lee mensajes/archivos que llegan vía Backend desde Next.js (cliente) y Telegram (vos) — texto, imágenes, audios, videos, docs
 - saca preguntas boludas de entrada / filtra ruido y repeticiones
 - elicia RF + RNF + contexto/dominio relevante para el proyecto
@@ -118,11 +132,13 @@ La IA puede (v1) — **agente que vive en el Backend** y trabaja sin vos present
 - redacta doc con secciones 1-7 y explica riesgos con semáforo
 
 La IA NO hace en v1:
+
 - no inventa requisitos sin cita o archivo (deja vacío y genera pregunta)
 - no calcula precio/margen/impuestos
 - conversa con el cliente, hace preguntas y actualiza el borrador sin tu presencia; no confirma ni entrega el alcance final sin tu aprobación desde Telegram
 
 El sistema controla de forma determinística (v1) — todo en Backend:
+
 - Backend es el único que habla con DB y filesystem: cada mensaje/archivo de Telegram y Next.js entra por `POST /api/telegram/webhook` y `POST /api/chat` y se guarda en DB + archivo en filesystem persistente, Brief versionado
 - versionado del doc (v0.1, v0.2...)
 - estados del proyecto (`draft` → `in_review` → `changes_requested` → `approved` → `delivered` → `archived`)
@@ -139,20 +155,21 @@ La IA propone. El profesional decide.
 
 **v1 — Solo docs del proyecto nuevo:**
 
-| # | Feature | Nota |
-|---|---------|------|
-| 1 | Login del cliente | Email con magic link; la sesión identifica al cliente y no requiere contraseña |
-| 2 | Crear proyecto | Se crea desde Telegram, genera link Next.js para el cliente |
-| 3 | **Frontend Next.js — chat cliente** | Cliente chatea desordenado, sin fricción |
-| 4 | **Telegram — tu interfaz** | Vos gestionás todos tus proyectos desde Telegram. `/projects` devuelve **un botón por proyecto** (InlineKeyboard) |
-| 5 | Pegar conversación / audio / doc (alt) | Por si ya tenés el WhatsApp y no usó el chat |
-| 6 | **Agente IA intermedio** | Saca preguntas estúpidas, filtra, y va mejorando el TLDR en vivo |
-| 7 | Formalización: requerimientos + riesgos/preguntas | Con trazabilidad a cita textual |
-| 8 | Alcance editable | incluidos / excluidos / supuestos / criterios |
-| 9 | Estimación por módulos | *rango liviano, sin margen complejo* |
-| 10 | Generación de doc con plantilla 7.1 → PDF/DOCX | Listo para decirle al cliente / enviar |
+| #   | Feature                                           | Nota                                                                                                              |
+| --- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| 1   | Login del cliente                                 | Email con magic link; la sesión identifica al cliente y no requiere contraseña                                    |
+| 2   | Crear proyecto                                    | Se crea desde Telegram, genera link Next.js para el cliente                                                       |
+| 3   | **Frontend Next.js — chat cliente**               | Cliente chatea desordenado, sin fricción                                                                          |
+| 4   | **Telegram — tu interfaz**                        | Vos gestionás todos tus proyectos desde Telegram. `/projects` devuelve **un botón por proyecto** (InlineKeyboard) |
+| 5   | Pegar conversación / audio / doc (alt)            | Por si ya tenés el WhatsApp y no usó el chat                                                                      |
+| 6   | **Agente IA intermedio**                          | Saca preguntas estúpidas, filtra, y va mejorando el TLDR en vivo                                                  |
+| 7   | Formalización: requerimientos + riesgos/preguntas | Con trazabilidad a cita textual                                                                                   |
+| 8   | Alcance editable                                  | incluidos / excluidos / supuestos / criterios                                                                     |
+| 9   | Estimación por módulos                            | _rango liviano, sin margen complejo_                                                                              |
+| 10  | Generación de doc con plantilla 7.1 → PDF/DOCX    | Listo para decirle al cliente / enviar                                                                            |
 
 **→ v1.1:**
+
 - [ ] Registro de horas estimadas y reales
 - [ ] Comparación final estimado/real
 - [ ] Docs avanzados: diagramas flujo/secuencia/actividades/BPMN desde Brief + filesystem persistente
@@ -161,6 +178,7 @@ La IA propone. El profesional decide.
 `Jira/Trello/Slack` · `facturación/pagos` · `marketplace` · `múltiples modelos complejos` · `automatización total` · `3 alternativas comerciales`
 
 **Arquitectura v1 (3 apps que conviven — Telegram nunca toca DB directo):**
+
 - `Telegram Bot` → tu interfaz, recibe texto/imagen/audio/video, comandos, botones por proyecto → **solo habla con Backend API** (`POST /api/telegram/webhook`)
 - `Next.js Frontend` → chat cliente por link `/p/<uuid>`, también texto/imagen/audio/video → **solo habla con Backend API** (`POST /api/chat`)
 - `Backend API (donde vive el agente IA) + DB + filesystem persistente` → único con acceso a DB y filesystem, guarda todo, mantiene Brief y docs versionados por proyecto, alimenta a ambos UIs; el Brief es la fuente de verdad enriquecida (texto plano + imágenes + RF/RNF + dominio). La ruta raíz del filesystem debe ser configurable y estar montada en almacenamiento persistente en producción; no se puede usar un disco efímero.
@@ -185,42 +203,49 @@ La IA propone. El profesional decide.
 **Portada:** Proyecto / Cliente / Fecha / Versión 0.1 / Autor
 
 **1. Resumen ejecutivo (5 líneas máximo)**
+
 - Objetivo del cliente en 1 frase
 - Problema principal a resolver
 - Solución propuesta en 2 líneas
 - Qué se entrega y qué no (1 línea)
 
 **2. Requerimientos identificados (formalización de ideas)**
-| ID | Descripción formalizada | Tipo | Prioridad | Fuente (cita textual desordenada) | Cuestión interesante del sistema |
-|----|-------------------------|------|-----------|-----------------------------------|----------------------------------|
-| R1 | ... | Funcional / Regla / Dato / Integración | Must / Should | "cliente dijo: ..." | Ej: implica permisos por rol |
+
+| ID  | Descripción formalizada | Tipo                                   | Prioridad     | Fuente (cita textual desordenada) | Cuestión interesante del sistema |
+| --- | ----------------------- | -------------------------------------- | ------------- | --------------------------------- | -------------------------------- |
+| R1  | ...                     | Funcional / Regla / Dato / Integración | Must / Should | "cliente dijo: ..."               | Ej: implica permisos por rol     |
 
 **3. Preguntas pendientes (para desbloquear alcance)**
-| # | Pregunta | Por qué importa | ¿Bloquea estimación? |
-|---|----------|----------------|---------------------|
-| P1 | ¿Quién carga los datos iniciales? | Define migración | Sí |
+
+| #   | Pregunta                          | Por qué importa  | ¿Bloquea estimación? |
+| --- | --------------------------------- | ---------------- | -------------------- |
+| P1  | ¿Quién carga los datos iniciales? | Define migración | Sí                   |
 
 **4. Riesgos y ambigüedades + Semáforo**
-| # | Riesgo / Ambigüedad | Impacto | Mitigación / Supuesto | Semáforo |
-|---|---------------------|---------|----------------------|----------|
-| R1 | "panel admin" sin definir roles | Alto | Suponer 2 roles hasta validar | 🔴 |
+
+| #   | Riesgo / Ambigüedad             | Impacto | Mitigación / Supuesto         | Semáforo |
+| --- | ------------------------------- | ------- | ----------------------------- | -------- |
+| R1  | "panel admin" sin definir roles | Alto    | Suponer 2 roles hasta validar | 🔴       |
 
 **5. Alcance editable (core)**
+
 - **Incluidos:** lista bullet chequeable
 - **Excluidos:** lista bullet explícita (ej: carga de datos, soporte post-lanzamiento)
 - **Supuestos:** lista (ej: cliente provee diseño, hosting a cargo del cliente)
 - **Criterios de aceptación:** por módulo (ej: "login funciona con email+pass y recupera contraseña")
 
 **6. Estimación rango liviana**
-| Módulo | Horas min | Horas max | Qué puede mover el rango |
-|--------|-----------|-----------|--------------------------|
-| Auth | 8 | 14 | Si pide SSO |
-| ... | ... | ... | ... |
-| **Total** | **X** | **Y** | + buffer incertidumbre |
+
+| Módulo    | Horas min | Horas max | Qué puede mover el rango |
+| --------- | --------- | --------- | ------------------------ |
+| Auth      | 8         | 14        | Si pide SSO              |
+| ...       | ...       | ...       | ...                      |
+| **Total** | **X**     | **Y**     | + buffer incertidumbre   |
 
 Sin cálculo de margen/impuestos en v1. Solo total horas rango.
 
 **7. Próximos pasos**
+
 - [ ] Validar preguntas P1-P3
 - [ ] Aprobar alcance v0.1
 - [ ] Confirmar fecha y entregables
@@ -324,9 +349,11 @@ El cliente no ve información interna del profesional, como margen, rentabilidad
 ## 8. PRODUCTO DE ENTRADA
 
 Para venderlo rápidamente no conviene empezar con una suscripción abstracta. Oferta inicial:
+
 > "Subí una conversación con tu cliente y recibí el doc del proyecto con alcance, riesgos y preguntas — listo para enviar."
 
 Resultado entregado (v1 — un único doc con plantilla 7.1):
+
 - resumen ejecutivo
 - requerimientos con fuente (cita)
 - preguntas pendientes bloqueantes
@@ -344,7 +371,7 @@ Esto permite cobrar desde el principio y aprender con casos reales del proyecto 
 - Plan individual: para freelancers
 - Plan equipo: para agencias pequeñas
 
-*Sacado de v1: Configuración inicial (importación tarifas/plantillas) y Servicio premium (revisión presupuestos). Pasan a roadmap.*
+_Sacado de v1: Configuración inicial (importación tarifas/plantillas) y Servicio premium (revisión presupuestos). Pasan a roadmap._
 
 La ventaja no está en cobrar por generar un PDF. Está en convertirse en el historial de alcance y docs del negocio.
 
@@ -353,6 +380,7 @@ La ventaja no está en cobrar por generar un PDF. Está en convertirse en el his
 Posicionamiento: "No pierdas plata por aceptar proyectos mal definidos."
 
 Mensajes de contenido (alineados a docs, no a pricing):
+
 - "El cliente pidió una web sencilla. Mirá todo lo que faltaba definir."
 - "5 frases que esconden alcance no cotizado."
 - "La checklist de 12 exclusiones que te salva de regalar trabajo."
@@ -370,6 +398,7 @@ Canales iniciales: LinkedIn, comunidades de freelancers, grupos de agencias, con
 No vender a todo el mundo. Contactar profesionales que ya hayan publicado o comentado sobre problemas de clientes, presupuestos o alcance.
 
 Mensaje:
+
 > "Estoy probando una herramienta que analiza conversaciones con clientes y detecta alcance oculto para armar los docs del proyecto. ¿Te puedo analizar gratis un proyecto que hayas cotizado recientemente?"
 
 La conversación busca descubrir: cómo cotiza hoy, qué errores repite, cuánto tarda, cuánto trabajo no cobra, qué ocurre cuando el cliente cambia el alcance.
@@ -379,6 +408,7 @@ Objetivo de validación: 10 entrevistas, 5 análisis reales, 3 usuarios recurren
 ## 12. MÉTRICAS IMPORTANTES
 
 No medir solamente registros. Medir:
+
 - tiempo para crear doc con plantilla 7.1 (minutos desde conversación pegada hasta PDF)
 - cantidad de preguntas detectadas por doc
 - cantidad de riesgos con semáforo por doc
@@ -386,6 +416,7 @@ No medir solamente registros. Medir:
 - docs enviados / aprobados por cliente
 
 Medir desde v1.1 (no v1):
+
 - diferencia entre horas estimadas y reales
 - cambios de alcance detectados (scope creep)
 - margen por proyecto
@@ -413,6 +444,7 @@ Días 27–30: cerrar primer piloto pago y documentar el caso con doc antes/desp
 ## 15. VISIÓN
 
 Scope-to-Profit puede convertirse en el sistema operativo comercial de una agencia pequeña:
+
 - entiende pedidos
 - evita proyectos mal definidos
 - protege el alcance

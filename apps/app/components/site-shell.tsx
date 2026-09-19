@@ -10,7 +10,10 @@ export function SiteHeader() {
   return (
     <header className="site-header">
       <Link className="brand" href="/dashboard" aria-label="ScopeProfit Panel">
-        <span className="brand-icon">s<span>p</span></span>Scope<span>Profit</span>
+        <span className="brand-icon">
+          s<span>p</span>
+        </span>
+        Scope<span>Profit</span>
       </Link>
       <nav aria-label="Principal">
         <Link href="/dashboard">Proyectos</Link>

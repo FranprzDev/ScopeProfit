@@ -39,16 +39,16 @@ El proyecto usa un monorepo. Frontend y Backend mantienen pipelines independient
 
 ## 4. Módulos del Backend
 
-| Módulo | Responsabilidad |
-|---|---|
-| `AuthModule` | Magic link del cliente y sesiones profesionales/clientes |
-| `ProjectsModule` | Crear, consultar y archivar proyectos |
-| `ChatModule` | Mensajes, adjuntos y actualización del chat |
-| `BriefModule` | Brief estructurado, preguntas, riesgos, alcance y versiones |
-| `AgentModule` | LangGraph, prompts, herramientas y gateway de modelos |
-| `DocumentsModule` | Markdown, PDF, DOCX y versiones aprobadas |
-| `TelegramModule` | Webhook, comandos, callbacks y autorizados |
-| `StorageModule` | Archivos recibidos y artefactos en filesystem |
+| Módulo            | Responsabilidad                                             |
+| ----------------- | ----------------------------------------------------------- |
+| `AuthModule`      | Magic link del cliente y sesiones profesionales/clientes    |
+| `ProjectsModule`  | Crear, consultar y archivar proyectos                       |
+| `ChatModule`      | Mensajes, adjuntos y actualización del chat                 |
+| `BriefModule`     | Brief estructurado, preguntas, riesgos, alcance y versiones |
+| `AgentModule`     | LangGraph, prompts, herramientas y gateway de modelos       |
+| `DocumentsModule` | Markdown, PDF, DOCX y versiones aprobadas                   |
+| `TelegramModule`  | Webhook, comandos, callbacks y autorizados                  |
+| `StorageModule`   | Archivos recibidos y artefactos en filesystem               |
 
 `AuthModule` usa Brevo para emails transaccionales de magic link. El remitente y dominio deben verificarse.
 

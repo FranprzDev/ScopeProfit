@@ -10,6 +10,13 @@ import { DocumentsController } from './modules/documents/documents.controller';
 
 @Module({
   imports: [CoreModule, TelegramModule],
-  controllers: [HealthController, AuthController, ProjectsController, ChatController, BriefController, DocumentsController],
+  controllers: [
+    HealthController,
+    AuthController,
+    ProjectsController,
+    ChatController,
+    BriefController,
+    DocumentsController,
+  ],
 })
 export class AppModule {}
