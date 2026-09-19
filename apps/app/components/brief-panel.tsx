@@ -35,6 +35,7 @@ export function BriefPanel({
   const [editorContent, setEditorContent] = useState<TiptapNode | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [diff, setDiff] = useState<Array<{ key: string; kind: string }>>([]);
   function edit() {
     if (!brief) return;
     setDraft(structuredClone(brief.data));
@@ -72,6 +73,19 @@ export function BriefPanel({
       setBusy(false);
     }
   }
+  async function showDiff() {
+    if (!brief || brief.version < 2) return;
+    try {
+      const result = await api<{ changes: Array<{ key: string; kind: string }> }>(
+        `/projects/${projectId}/brief/diff?from=${brief.version - 1}&to=${brief.version}`,
+        {},
+        token,
+      );
+      setDiff(result.changes);
+    } catch (e) {
+      setError(errorMessage(e));
+    }
+  }
   const data = brief?.data;
   return (
     <section className="brief-panel">
@@ -82,6 +96,28 @@ export function BriefPanel({
         </div>
         <span className="tag">v{brief?.version ?? 0}</span>
       </div>
+      {brief && brief.version > 1 && (
+        <button className="button secondary" onClick={showDiff}>
+          Ver cambios de v{brief.version - 1} a v{brief.version}
+        </button>
+      )}
+      {diff.length > 0 && (
+        <div className="notice" aria-live="polite">
+          <strong>Cambios de alcance</strong>
+          <ul>
+            {diff.map((change) => (
+              <li key={`${change.kind}-${change.key}`}>
+                {change.kind === 'added'
+                  ? 'Agregado'
+                  : change.kind === 'removed'
+                    ? 'Quitado'
+                    : 'Modificado'}
+                : {change.key}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <p className="small muted">
         Borrador de trabajo. La aprobación final corresponde al profesional.
       </p>

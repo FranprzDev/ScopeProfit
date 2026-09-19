@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Req } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Query, Req } from '@nestjs/common';
 import { IsInt, IsObject, Min } from 'class-validator';
 import type { Request } from 'express';
 import { Prisma } from '@prisma/client';
@@ -6,6 +6,7 @@ import { AuthService } from '../auth/auth.service';
 import { AgentService } from '../agent/agent.service';
 import { PrismaService } from '../../prisma.service';
 import { validateBrief } from './brief.validation';
+import { diffBrief } from './brief-diff';
 import { ok, SESSION_COOKIE } from '../../response';
 import { fail } from '../../security';
 
@@ -36,6 +37,27 @@ export class BriefController {
       version: project.brief.version,
       data: project.brief.data,
       updatedAt: project.brief.updatedAt.toISOString(),
+    });
+  }
+
+  @Get('diff') async diff(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Query('from') from: string,
+    @Query('to') to: string,
+  ) {
+    const user = await this.user(req);
+    await this.auth.project(user, id, this.token(req));
+    const versions = await this.db.briefVersion.findMany({
+      where: { projectId: id, version: { in: [Number(from), Number(to)] } },
+    });
+    const before = versions.find((version) => version.version === Number(from));
+    const after = versions.find((version) => version.version === Number(to));
+    if (!before || !after) fail('BRIEF_VERSION_NOT_FOUND', 404);
+    return ok({
+      from: { version: before.version, source: before.source, actorId: before.actorId },
+      to: { version: after.version, source: after.source, actorId: after.actorId },
+      changes: diffBrief(before.data as any, after.data as any),
     });
   }
 
