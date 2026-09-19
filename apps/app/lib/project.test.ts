@@ -6,6 +6,7 @@ import {
   documentText,
   textDocument,
   validateImage,
+  validateAttachment,
 } from './project';
 import { api, ApiError } from './api';
 test('polling only operates while pending and stops at time/error limits', () => {
@@ -24,6 +25,13 @@ test('image limits reject unsupported files and oversized uploads', () => {
   assert.equal(validateImage({ type: 'image/png', size: 1024 }), null);
   assert.ok(validateImage({ type: 'application/pdf', size: 1024 }));
   assert.ok(validateImage({ type: 'image/jpeg', size: 10 * 1024 * 1024 + 1 }));
+});
+test('attachment limits allow supported rich inputs', () => {
+  assert.equal(validateAttachment({ type: 'application/pdf', size: 1024 }), null);
+  assert.equal(validateAttachment({ type: 'audio/mpeg', size: 1024 }), null);
+  assert.equal(validateAttachment({ type: 'video/mp4', size: 1024 }), null);
+  assert.ok(validateAttachment({ type: 'application/zip', size: 1024 }));
+  assert.ok(validateAttachment({ type: 'video/mp4', size: 50 * 1024 * 1024 + 1 }));
 });
 test('API forwards project access and surfaces structured failures', async () => {
   const original = globalThis.fetch;

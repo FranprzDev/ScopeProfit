@@ -36,4 +36,31 @@ export class StorageService {
       return {mimeType:format.mime,size:file.buffer.length};
     } catch { throw new HttpException({code:'INVALID_IMAGE',message:'Invalid JPEG, PNG or WebP image'},400); }
   }
+
+  async validateAttachment(file: Express.Multer.File) {
+    if (!file?.buffer?.length || file.buffer.length > 50 * 1024 * 1024)
+      throw new HttpException({ code: 'INVALID_ATTACHMENT', message: 'Attachment limit is 50 MB' }, 400);
+    const allowed = new Set([
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'audio/mpeg',
+      'audio/ogg',
+      'audio/wav',
+      'video/mp4',
+      'video/webm',
+    ]);
+    if (!allowed.has(file.mimetype) || !this.hasMagic(file.buffer, file.mimetype))
+      throw new HttpException({ code: 'INVALID_ATTACHMENT', message: 'Unsupported or invalid attachment' }, 400);
+    return { mimeType: file.mimetype, size: file.buffer.length };
+  }
+
+  private hasMagic(buffer: Buffer, mimeType: string) {
+    if (mimeType === 'application/pdf') return buffer.subarray(0, 5).toString() === '%PDF-';
+    if (mimeType.includes('wordprocessingml')) return buffer.subarray(0, 2).toString() === 'PK';
+    if (mimeType === 'audio/mpeg') return buffer.subarray(0, 3).toString() === 'ID3' || buffer[0] === 0xff;
+    if (mimeType === 'audio/ogg') return buffer.subarray(0, 4).toString() === 'OggS';
+    if (mimeType === 'audio/wav') return buffer.subarray(0, 4).toString() === 'RIFF' && buffer.subarray(8, 12).toString() === 'WAVE';
+    if (mimeType === 'video/mp4') return buffer.subarray(4, 8).toString() === 'ftyp';
+    return buffer.subarray(0, 4).toString() === '\u001aE\u00df\u00a3';
+  }
 }

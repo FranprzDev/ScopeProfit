@@ -89,7 +89,7 @@ export class ChatController {
   }
 
   @Post('files')
-  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } }))
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 50 * 1024 * 1024 } }))
   async upload(
     @Req() req: Request,
     @Param('id') id: string,
@@ -99,8 +99,14 @@ export class ChatController {
     const project = await this.auth.project(user, id, this.token(req));
     if (['approved', 'delivered', 'archived'].includes(project.status)) fail('PROJECT_LOCKED');
     if (!file)
-      throw new BadRequestException({ code: 'INVALID_IMAGE', message: 'Image file is required' });
-    const { mimeType, size } = await this.storage.validateImage(file);
+      throw new BadRequestException({
+        code: 'INVALID_ATTACHMENT',
+        message: 'Attachment file is required',
+      });
+    const image = file.mimetype.startsWith('image/');
+    const { mimeType, size } = image
+      ? await this.storage.validateImage(file)
+      : await this.storage.validateAttachment(file);
     const path = `${id}/uploads/${randomUUID()}${extname(file.originalname).toLowerCase()}`;
     const written = await this.storage.write(path, file.buffer);
     const message = await this.db.message.create({
@@ -109,7 +115,7 @@ export class ChatController {
         threadId: id,
         authorId: user.id,
         authorRole: user.role,
-        content: '[imagen]',
+        content: image ? '[imagen]' : '[archivo]',
       },
     });
     const saved = await this.db.file.create({
