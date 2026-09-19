@@ -18,6 +18,7 @@ import { fail } from '../../security';
 import { ChangeRequestsService } from './change-requests.service';
 import { ChangeRequestStatus } from '@prisma/client';
 import { TimeEntriesService } from './time-entries.service';
+import { ProfitabilityService } from './profitability.service';
 
 class CreateProjectDto {
   @IsString() @MaxLength(200) name!: string;
@@ -40,6 +41,11 @@ class TimeEntryDto {
   @IsString() @MaxLength(200) description!: string;
   @IsOptional() @IsString() changeRequestId?: string;
 }
+class ProfitabilityDto {
+  @IsOptional() @IsInt() @Min(0) priceCents?: number;
+  @IsOptional() @IsInt() @Min(0) externalCostCents?: number;
+  @IsOptional() @IsInt() @Min(0) internalRateCents?: number;
+}
 
 @Controller('projects')
 export class ProjectsController {
@@ -49,6 +55,7 @@ export class ProjectsController {
     private documents: DocumentsService,
     private changes: ChangeRequestsService,
     private time: TimeEntriesService,
+    private profitability: ProfitabilityService,
   ) {}
   private token(req: Request) {
     return (req.headers['x-project-token'] as string) || undefined;
@@ -150,6 +157,20 @@ export class ProjectsController {
   ) {
     const user = await this.user(req);
     return ok(await this.time.stop(id, entryId, user));
+  }
+
+  @Get(':id/profitability') async profitabilityView(@Req() req: Request, @Param('id') id: string) {
+    const user = await this.user(req);
+    return ok(await this.profitability.get(id, user));
+  }
+
+  @Patch(':id/profitability') async updateProfitability(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: ProfitabilityDto,
+  ) {
+    const user = await this.user(req);
+    return ok(await this.profitability.update(id, user, body));
   }
 
   @Patch(':id/link') async link(
