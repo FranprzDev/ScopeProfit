@@ -11,7 +11,7 @@ export class MetricsService {
 
   async get(projectId: string, user: any) {
     const project: any = await this.auth.project(user, projectId);
-    const [messages, document, changes, entries] = await Promise.all([
+    const [messages, document, changes] = await Promise.all([
       this.db.message.findMany({
         where: { projectId },
         orderBy: { createdAt: 'asc' },
@@ -25,10 +25,6 @@ export class MetricsService {
         by: ['classification', 'status'],
         where: { projectId },
         _count: { _all: true },
-      }),
-      this.db.timeEntry.aggregate({
-        where: { projectId },
-        _sum: { durationMinutes: true },
       }),
     ]);
     const brief = project.brief?.data ?? {};
@@ -67,7 +63,6 @@ export class MetricsService {
         delivered: deliveredDocuments,
       },
       changeRequests,
-      trackedMinutes: entries._sum.durationMinutes ?? 0,
     };
   }
 }

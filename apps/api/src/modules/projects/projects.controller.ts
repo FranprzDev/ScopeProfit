@@ -17,7 +17,6 @@ import { ok, SESSION_COOKIE } from '../../response';
 import { fail } from '../../security';
 import { ChangeRequestsService } from './change-requests.service';
 import { ChangeRequestStatus } from '@prisma/client';
-import { TimeEntriesService } from './time-entries.service';
 import { ProfitabilityService } from './profitability.service';
 import { MetricsService } from './metrics.service';
 
