@@ -247,7 +247,7 @@ export class TelegramService {
       await ctx.reply('Observación registrada. El agente va a revisar el alcance completo.');
     });
 
-    bot.on(['message:photo', 'message:document'], async (ctx) => {
+    bot.on(['message:photo', 'message:document', 'message:audio', 'message:video'], async (ctx) => {
       const state = await this.db.telegramState.findUnique({
         where: { userId: String(ctx.from!.id) },
       });
@@ -256,36 +256,49 @@ export class TelegramService {
         return void ctx.reply(
           'Indicá primero a qué proyecto pertenece este archivo con /ask <id> <texto>, o abrí el proyecto con /projects.',
         );
-      const fileId = ctx.message.photo
-        ? ctx.message.photo.at(-1)!.file_id
-        : ctx.message.document!.file_id;
-      const name = ctx.message.document?.file_name || `${fileId}.jpg`;
-      const mime = ctx.message.document?.mime_type || 'image/jpeg';
-      const file = await ctx.api.getFile(fileId);
+      const telegramMessage: any = ctx.message;
+      const fileId =
+        telegramMessage.photo?.at(-1)?.file_id ||
+        telegramMessage.document?.file_id ||
+        telegramMessage.audio?.file_id ||
+        telegramMessage.video?.file_id;
+      const name =
+        telegramMessage.document?.file_name ||
+        telegramMessage.audio?.file_name ||
+        telegramMessage.video?.file_name ||
+        `${fileId}`;
+      const mime =
+        telegramMessage.document?.mime_type ||
+        telegramMessage.audio?.mime_type ||
+        telegramMessage.video?.mime_type ||
+        'image/jpeg';
+      const telegramFile = await ctx.api.getFile(fileId);
       const response = await fetch(
-        `https://api.telegram.org/file/bot${process.env.TELEGRAM_BOT_TOKEN}/${file.file_path}`,
+        `https://api.telegram.org/file/bot${process.env.TELEGRAM_BOT_TOKEN}/${telegramFile.file_path}`,
       );
       const buffer = Buffer.from(await response.arrayBuffer());
-      const validated = await this.storage
-        .validateImage({ buffer, mimetype: mime, originalname: name } as any)
-        .catch(() => null);
-      if (!validated)
-        return void ctx.reply('Solo se aceptan imágenes JPG, PNG o WebP de hasta 10 MB.');
+      const attachment = { buffer, mimetype: mime, originalname: name } as any;
+      const validated = await (
+        mime.startsWith('image/')
+          ? this.storage.validateImage(attachment)
+          : this.storage.validateAttachment(attachment)
+      ).catch(() => null);
+      if (!validated) return void ctx.reply('Archivo inválido o no soportado. Límite: 50 MB.');
       const written = await this.storage.write(`${projectId}/uploads/${randomUUID()}`, buffer);
       const user = await this.auth.telegramUser(String(ctx.from!.id));
-      const message = await this.db.message.create({
+      const savedMessage = await this.db.message.create({
         data: {
           projectId,
           threadId: projectId,
           authorId: user.id,
           authorRole: 'professional',
-          content: '[imagen]',
+          content: mime.startsWith('image/') ? '[imagen]' : '[archivo]',
         },
       });
       await this.db.file.create({
         data: {
           projectId,
-          messageId: message.id,
+          messageId: savedMessage.id,
           name,
           mimeType: validated.mimeType,
           size: validated.size,
@@ -294,7 +307,7 @@ export class TelegramService {
         },
       });
       await this.agent.enqueue(projectId);
-      await ctx.reply('Imagen guardada en el proyecto.');
+      await ctx.reply('Archivo guardado en el proyecto.');
     });
 
     bot.on('callback_query:data', async (ctx) => {

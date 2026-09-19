@@ -41,3 +41,20 @@ export function validateImage(file: { size: number; type: string }): string | nu
   if (file.size > 10 * 1024 * 1024) return 'Cada imagen puede pesar hasta 10 MB.';
   return null;
 }
+export function validateAttachment(file: { size: number; type: string }): string | null {
+  const allowed = [
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'audio/mpeg',
+    'audio/ogg',
+    'audio/wav',
+    'video/mp4',
+    'video/webm',
+  ];
+  if (!allowed.includes(file.type)) return 'Tipo de archivo no soportado.';
+  if (file.size > 50 * 1024 * 1024) return 'Cada archivo puede pesar hasta 50 MB.';
+  return null;
+}

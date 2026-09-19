@@ -17,7 +17,7 @@ import {
   shouldPoll,
   POLL_INTERVAL,
   POLL_MAX_DURATION,
-  validateImage,
+  validateAttachment,
 } from '@/lib/project';
 import { BriefPanel } from './brief-panel';
 export function ProjectWorkspace({ projectId }: { projectId: string }) {
@@ -381,16 +381,16 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
               )}
               <div className="composer-actions">
                 <label className="attach-button">
-                  ＋ Imagen
+                  ＋ Archivo
                   <input
                     ref={fileInput}
                     type="file"
-                    accept="image/jpeg,image/png,image/webp"
+                    accept="image/jpeg,image/png,image/webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,audio/mpeg,audio/ogg,audio/wav,video/mp4,video/webm"
                     disabled={busy}
                     onChange={(e) => {
                       const selected = e.target.files?.[0];
                       if (selected) {
-                        const issue = validateImage(selected);
+                        const issue = validateAttachment(selected);
                         if (issue) {
                           setError(issue);
                           e.target.value = '';
@@ -404,7 +404,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
                 </button>
               </div>
               <p className="small muted">
-                JPG, PNG o WebP · Hasta 10 MB. No compartas contraseñas ni claves.
+                Imágenes, audio, video, PDF o DOCX · Hasta 50 MB. No compartas claves.
               </p>
             </form>
           )}
