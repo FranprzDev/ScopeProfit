@@ -56,6 +56,9 @@ importers:
       docx:
         specifier: ^9.5.1
         version: 9.7.1
+      express:
+        specifier: ^5.2.1
+        version: 5.2.1
       grammy:
         specifier: ^1.30.0
         version: 1.46.0
