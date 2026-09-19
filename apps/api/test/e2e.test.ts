@@ -178,3 +178,93 @@ test(
     assert.ok(persisted, 'expected the generated document version to be persisted');
   },
 );
+
+test(
+  'approving a complete brief persists artifacts and delivers PDF and DOCX once',
+  { skip: skip ? 'DATABASE_URL not set' : false },
+  async () => {
+    const owner = await db.user.create({
+      data: {
+        email: `owner-${Date.now()}@example.com`,
+        telegramId: `e2e-approval-owner-${Date.now()}`,
+        role: 'professional',
+      },
+    });
+    const project = await db.project.create({
+      data: {
+        name: 'E2E approval project',
+        ownerId: owner.id,
+        clientEmail: `client-${Date.now()}@example.com`,
+        brief: { create: { data: emptyBrief() as any } },
+        document: { create: {} },
+      },
+    });
+    const message = await db.message.create({
+      data: {
+        projectId: project.id,
+        threadId: project.id,
+        authorRole: 'client',
+        content: 'Necesito un portal de clientes',
+      },
+    });
+    await db.brief.update({
+      where: { projectId: project.id },
+      data: {
+        version: 1,
+        data: {
+          ...emptyBrief(),
+          summary: 'Portal de clientes para gestionar solicitudes.',
+          requirements: [
+            {
+              id: 'R1',
+              description: 'Portal de clientes',
+              type: 'functional',
+              priority: 'must',
+              source: 'Necesito un portal de clientes',
+              sourceMessageId: message.id,
+              systemNote: '',
+            },
+          ],
+          included: ['Portal web'],
+          excluded: ['Aplicación móvil'],
+          assumptions: ['El cliente entrega el contenido'],
+          acceptanceCriteria: ['El cliente puede iniciar sesión'],
+          estimates: [{ module: 'Portal', minHours: 20, maxHours: 30, uncertainty: 'Contenido' }],
+          nextSteps: ['Validar alcance con el cliente'],
+        } as any,
+      },
+    });
+
+    const documents = app.get(DocumentsService);
+    const generated = await documents.generate(project.id, owner.id);
+    const originalFetch = globalThis.fetch;
+    let deliveryRequest: { to: string; attachments: unknown[] } | undefined;
+    globalThis.fetch = (async (input: any, init?: any) => {
+      if (typeof input === 'string' && input.includes('api.brevo.com')) {
+        const body = JSON.parse(init.body);
+        deliveryRequest = { to: body.to[0].email, attachments: body.attachment };
+        return new Response(JSON.stringify({ messageId: 'e2e-delivery' }), { status: 201 });
+      }
+      return originalFetch(input, init);
+    }) as typeof fetch;
+
+    try {
+      const delivered = await documents.approve(project.id, owner.id, generated.version);
+      const persisted = await db.documentVersion.findUniqueOrThrow({
+        where: { id: delivered!.id },
+      });
+      const pdf = await documents.download(project.id, generated.version, 'pdf');
+      const docx = await documents.download(project.id, generated.version, 'docx');
+      const current = await db.project.findUniqueOrThrow({ where: { id: project.id } });
+
+      assert.equal(current.status, 'delivered');
+      assert.equal(persisted.status, 'delivered');
+      assert.equal(deliveryRequest?.to, project.clientEmail);
+      assert.equal(deliveryRequest?.attachments.length, 2);
+      assert.ok(pdf.buffer.length > 0);
+      assert.ok(docx.buffer.length > 0);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  },
+);
