@@ -4,6 +4,7 @@ import {
   IsIn,
   IsInt,
   IsISO8601,
+  IsObject,
   IsOptional,
   IsString,
   Min,
@@ -35,6 +36,10 @@ class ChangeRequestDto {
 }
 class ChangeDecisionDto {
   @IsIn([ChangeRequestStatus.accepted, ChangeRequestStatus.rejected]) status!: ChangeRequestStatus;
+}
+class ChangeProposalDto {
+  @IsInt() @Min(0) baseBriefVersion!: number;
+  @IsObject() patch!: Record<string, unknown>;
 }
 
 @Controller('projects')
@@ -104,6 +109,16 @@ export class ProjectsController {
   @Get(':id/change-requests') async changeRequests(@Req() req: Request, @Param('id') id: string) {
     const user = await this.user(req);
     return ok(await this.changes.list(id, user));
+  }
+
+  @Patch(':id/change-requests/:changeId/proposal') async proposeChangeRequestPatch(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Param('changeId') changeId: string,
+    @Body() body: ChangeProposalDto,
+  ) {
+    const user = await this.user(req);
+    return ok(await this.changes.setPatch(id, changeId, body.baseBriefVersion, body.patch, user));
   }
 
   @Post(':id/change-requests') async createChangeRequest(

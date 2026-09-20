@@ -172,4 +172,10 @@ test('diffBrief reports added, removed, and changed entries', () => {
       { key: 'summary', kind: 'changed' },
     ],
   );
+  assert.deepEqual(
+    diffBrief(before, after)
+      .filter((change) => change.kind === 'changed')
+      .map(({ key, before: previous, after: current }) => ({ key, previous, current })),
+    [{ key: 'summary', previous: 'Antes', current: 'Después' }],
+  );
 });

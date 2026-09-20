@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { User, Prisma } from '@prisma/client';
+import { ChangeRequestStatus, ProjectStatus, User, Prisma } from '@prisma/client';
 import { emptyBrief } from '@scopeprofit/contracts';
 import { PrismaService } from '../../prisma.service';
 import { AuthService } from '../auth/auth.service';
@@ -96,10 +96,29 @@ export class ProjectsService {
   }
   async archive(id: string, user: User) {
     this.auth.professional(user);
-    await this.db.project.update({ where: { id }, data: { status: 'archived' } });
-    await this.db.auditEvent.create({
-      data: { projectId: id, actorId: user.id, action: 'project_archived', result: 'success' },
-    });
+    await this.db.$transaction(
+      async (tx) => {
+        const project = await tx.project.findUnique({ where: { id }, select: { id: true } });
+        if (!project) fail('PROJECT_NOT_FOUND', 404);
+        const applying = await tx.changeRequest.findFirst({
+          where: { projectId: id, status: ChangeRequestStatus.applying },
+          select: { id: true },
+        });
+        if (applying) fail('CHANGE_REQUEST_APPLYING', 409);
+        const archived = await tx.project.updateMany({
+          where: {
+            id,
+            changeRequests: { none: { status: ChangeRequestStatus.applying } },
+          },
+          data: { status: ProjectStatus.archived },
+        });
+        if (!archived.count) fail('CHANGE_REQUEST_APPLYING', 409);
+        await tx.auditEvent.create({
+          data: { projectId: id, actorId: user.id, action: 'project_archived', result: 'success' },
+        });
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
     return { archived: true };
   }
 }
