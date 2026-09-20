@@ -3,7 +3,7 @@ import { Annotation, StateGraph, START, END } from '@langchain/langgraph';
 import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
-import { Prisma } from '@prisma/client';
+import { Prisma, ProjectStatus } from '@prisma/client';
 import { BriefData } from '@scopeprofit/contracts';
 import { PrismaService } from '../../prisma.service';
 import { decrypt } from '../../security';
@@ -19,7 +19,7 @@ const AgentState = Annotation.Root({
 export class AgentService implements OnModuleInit, OnModuleDestroy {
   private timer?: NodeJS.Timeout;
   private saver?: PostgresSaver;
-  private graph: any;
+  private graph: unknown;
   private ticking = false;
   constructor(
     private db: PrismaService,
@@ -47,7 +47,9 @@ export class AgentService implements OnModuleInit, OnModuleDestroy {
     await this.db.project.updateMany({
       where: {
         id,
-        status: { notIn: ['approved', 'delivered', 'archived'] },
+        status: {
+          notIn: [ProjectStatus.approved, ProjectStatus.delivered, ProjectStatus.archived],
+        },
         agentStatus: { not: 'running' },
       },
       data: { agentStatus: 'pending', agentError: null },
@@ -114,7 +116,11 @@ export class AgentService implements OnModuleInit, OnModuleDestroy {
         where: { projectId: id },
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       });
-      const result = await this.graph.invoke(
+      if (!this.graph || typeof this.graph !== 'object' || !('invoke' in this.graph))
+        throw new Error('AGENT_GRAPH_UNAVAILABLE');
+      const result = await (
+        this.graph.invoke as (input: unknown, options: unknown) => Promise<{ brief: unknown }>
+      )(
         { projectId: id },
         {
           configurable: { thread_id: id },
@@ -234,7 +240,9 @@ export class AgentService implements OnModuleInit, OnModuleDestroy {
       temperature: 0.2,
       maxRetries: 1,
     });
-    const content: any[] = [
+    const content: Array<
+      { type: 'text'; text: string } | { type: 'image_url'; image_url: string }
+    > = [
       {
         type: 'text',
         text: JSON.stringify({

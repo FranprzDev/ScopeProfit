@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Bot, InlineKeyboard } from 'grammy';
+import type { Update } from 'grammy/types';
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../prisma.service';
 import { AuthService } from '../auth/auth.service';
@@ -11,8 +12,12 @@ import { markdown } from '../documents/render';
 import { authorizedTelegramIds } from '../../security';
 import { diffBrief } from '../brief/brief-diff';
 import { ChangeRequestsService } from '../projects/change-requests.service';
+import { Prisma } from '@prisma/client';
+import type { BriefData, TiptapNode } from '@scopeprofit/contracts';
+import { validateBrief } from '../brief/brief.validation';
 
 const short = (id: string) => id.replace(/-/g, '').slice(0, 12);
+const briefData = (data: Prisma.JsonValue): BriefData => validateBrief(data);
 
 @Injectable()
 export class TelegramService {
@@ -43,9 +48,11 @@ export class TelegramService {
     status: string;
     agentStatus: string;
     name: string;
-    brief: { data: any } | null;
+    brief: { data: Prisma.JsonValue } | null;
   }) {
-    const pending = (p.brief?.data?.questions ?? []).filter((q: any) => q.blocksEstimate).length;
+    const pending = (p.brief ? briefData(p.brief.data).questions : []).filter(
+      (question) => question.blocksEstimate,
+    ).length;
     const dot =
       p.status === 'approved' || p.status === 'delivered' ? '🟢' : pending > 0 ? '🟡' : '⚪️';
     return `${dot} ${p.name}${pending ? ` — ${pending} preguntas pendientes` : ''}`;
@@ -73,7 +80,8 @@ export class TelegramService {
       },
     });
     const doc = project.document?.versions[0];
-    return `${this.projectLine(project as any)}\n\nEstado: ${project.status}\nTLDR: ${(project.brief?.data as any)?.summary || 'Sin resumen todavía'}${doc ? `\nDocumento v${doc.version} (${doc.status})` : ''}`;
+    const summary = project.brief ? briefData(project.brief.data).summary : 'Sin resumen todavía';
+    return `${this.projectLine(project)}\n\nEstado: ${project.status}\nTLDR: ${summary}${doc ? `\nDocumento v${doc.version} (${doc.status})` : ''}`;
   }
 
   private register() {
@@ -114,8 +122,7 @@ export class TelegramService {
         include: { brief: true },
       });
       const keyboard = new InlineKeyboard();
-      for (const p of full)
-        keyboard.text(this.projectLine(p as any), `project:open:${short(p.id)}`).row();
+      for (const p of full) keyboard.text(this.projectLine(p), `project:open:${short(p.id)}`).row();
       await ctx.reply('Tus proyectos:', { reply_markup: keyboard });
     });
 
@@ -124,7 +131,9 @@ export class TelegramService {
       const project =
         id && (await this.db.project.findUnique({ where: { id }, include: { brief: true } }));
       if (!project) return void ctx.reply('Uso: /tldr <id>');
-      await ctx.reply((project.brief?.data as any)?.summary || 'Sin resumen todavía.');
+      await ctx.reply(
+        project.brief ? briefData(project.brief.data).summary : 'Sin resumen todavía.',
+      );
     });
 
     bot.command('diff', async (ctx) => {
@@ -136,7 +145,7 @@ export class TelegramService {
       const before = versions.find((version) => version.version === Number(from));
       const after = versions.find((version) => version.version === Number(to));
       if (!before || !after) return void ctx.reply('No se encontraron esas versiones.');
-      const changes = diffBrief(before.data as any, after.data as any);
+      const changes = diffBrief(briefData(before.data), briefData(after.data));
       await ctx.reply(
         changes.length
           ? changes.map((change) => `${change.kind}: ${change.key}`).join('\n')
@@ -182,8 +191,8 @@ export class TelegramService {
         author: 'Profesional',
         date: new Date().toISOString(),
         version: latest?.version || 0,
-        brief: project.brief.data as any,
-        editorContent: (latest?.editorContent as any) ?? null,
+        brief: briefData(project.brief.data),
+        editorContent: (latest?.editorContent as unknown as TiptapNode | null) ?? null,
       });
       await ctx.reply(text.slice(0, 3900));
     });
@@ -267,7 +276,7 @@ export class TelegramService {
       );
       const buffer = Buffer.from(await response.arrayBuffer());
       const validated = await this.storage
-        .validateImage({ buffer, mimetype: mime, originalname: name } as any)
+        .validateImage({ buffer, mimetype: mime, originalname: name } as Express.Multer.File)
         .catch(() => null);
       if (!validated)
         return void ctx.reply('Solo se aceptan imágenes JPG, PNG o WebP de hasta 10 MB.');
@@ -419,6 +428,6 @@ export class TelegramService {
   }
 
   async handleUpdate(update: unknown) {
-    await this.bot.handleUpdate(update as any);
+    await this.bot.handleUpdate(update as Update);
   }
 }

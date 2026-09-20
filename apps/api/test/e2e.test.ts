@@ -17,6 +17,7 @@ import { ApiErrorHandler } from '../src/api-error-handler';
 import { PrismaService } from '../src/prisma.service';
 import { DocumentsService } from '../src/modules/documents/documents.service';
 import { emptyBrief } from '@scopeprofit/contracts';
+import { Prisma } from '@prisma/client';
 
 const skip = !process.env.DATABASE_URL;
 let app: INestApplication;
@@ -81,9 +82,10 @@ test(
     // application logic: magic-link creation, hashing, expiry and single-use consumption all run for real.
     const originalFetch = globalThis.fetch;
     let capturedHtml = '';
-    globalThis.fetch = (async (input: any, init?: any) => {
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
       if (typeof input === 'string' && input.includes('api.brevo.com')) {
-        capturedHtml = JSON.parse(init.body).htmlContent;
+        const body = JSON.parse(String(init?.body)) as { htmlContent: string };
+        capturedHtml = body.htmlContent;
         return new Response(JSON.stringify({ messageId: 'stub' }), { status: 201 });
       }
       return originalFetch(input, init);
@@ -141,7 +143,7 @@ test(
       data: {
         name: 'E2E project',
         ownerId: owner.id,
-        brief: { create: { data: emptyBrief() as any } },
+        brief: { create: { data: emptyBrief() as unknown as Prisma.InputJsonValue } },
         document: { create: {} },
       },
     });
@@ -165,7 +167,7 @@ test(
       data: {
         name: 'E2E document project',
         ownerId: owner.id,
-        brief: { create: { data: emptyBrief() as any } },
+        brief: { create: { data: emptyBrief() as unknown as Prisma.InputJsonValue } },
         document: { create: {} },
       },
     });

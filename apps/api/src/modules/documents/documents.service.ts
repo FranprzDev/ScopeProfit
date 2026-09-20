@@ -6,6 +6,7 @@ import { PrismaService } from '../../prisma.service';
 import { EmailService } from '../../email.service';
 import { StorageService } from '../storage/storage.service';
 import { render, validateEditor } from './render';
+import { ProjectStatus } from '@prisma/client';
 
 type Artifact = { path: string; checksum: string; size: number };
 type Artifacts = Record<'md' | 'pdf' | 'docx', Artifact>;
@@ -30,13 +31,15 @@ export class DocumentsService {
   async generate(
     projectId: string,
     actorId: string,
-    editorContent?: TiptapNode,
+    editorContent?: unknown,
     expectedVersion?: number,
   ) {
+    let validatedEditorContent: TiptapNode | undefined;
     if (editorContent) {
       try {
-        validateEditor(editorContent);
-        if (editorContent.type !== 'doc') throw new Error();
+        validatedEditorContent = editorContent as TiptapNode;
+        validateEditor(validatedEditorContent);
+        if (validatedEditorContent.type !== 'doc') throw new Error();
       } catch {
         fail('INVALID_EDITOR_CONTENT', 'Invalid document editor content', 400);
       }
@@ -50,7 +53,11 @@ export class DocumentsService {
       },
     });
     if (!project?.brief) return fail('BRIEF_NOT_FOUND', 'Brief not found', 404);
-    if (['approved', 'delivered', 'archived'].includes(project.status))
+    if (
+      project.status === ProjectStatus.approved ||
+      project.status === ProjectStatus.delivered ||
+      project.status === ProjectStatus.archived
+    )
       return fail('PROJECT_LOCKED', 'Project is not editable');
     const previous = project.document?.versions[0];
     const current = project.document?.currentVersion || 0;
@@ -64,7 +71,8 @@ export class DocumentsService {
       date: new Date().toISOString(),
       version,
       brief: project.brief.data as unknown as BriefData,
-      editorContent: editorContent || (previous?.editorContent as unknown as TiptapNode) || null,
+      editorContent:
+        validatedEditorContent || (previous?.editorContent as unknown as TiptapNode) || null,
     };
     const buffers = await render(data);
     const artifacts = {} as Artifacts;
@@ -83,7 +91,9 @@ export class DocumentsService {
         if (
           !live ||
           live.brief?.version !== project.brief!.version ||
-          ['approved', 'delivered', 'archived'].includes(live.status)
+          live.status === ProjectStatus.approved ||
+          live.status === ProjectStatus.delivered ||
+          live.status === ProjectStatus.archived
         )
           return fail('VERSION_CONFLICT', 'Project changed during generation');
         const document = await tx.document.upsert({
@@ -112,7 +122,7 @@ export class DocumentsService {
           data: {
             projectId,
             actorId,
-            action: editorContent ? 'document.edited' : 'document.generated',
+            action: validatedEditorContent ? 'document.edited' : 'document.generated',
             result: 'success',
             metadata: { version, briefVersion: project.brief!.version },
           },

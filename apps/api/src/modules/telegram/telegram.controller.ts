@@ -13,10 +13,14 @@ export class TelegramController {
 
   @Post('webhook')
   @HttpCode(200)
-  async webhook(@Headers('x-telegram-bot-api-secret-token') secret: string, @Body() update: any) {
+  async webhook(
+    @Headers('x-telegram-bot-api-secret-token') secret: string,
+    @Body() update: unknown,
+  ) {
     if (!secret || !secureEqual(secret, process.env.TELEGRAM_WEBHOOK_SECRET || ''))
       fail('FORBIDDEN', 403);
-    const updateId = String(update?.update_id ?? '');
+    const updateId =
+      update && typeof update === 'object' && 'update_id' in update ? String(update.update_id) : '';
     if (!updateId) fail('INVALID_UPDATE');
     const claimed = await this.db.telegramUpdate
       .createMany({ data: [{ id: updateId, status: 'processing' }] })
