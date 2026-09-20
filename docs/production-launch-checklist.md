@@ -1,10 +1,11 @@
 # Checklist de lanzamiento a producción
 
-La aplicación está funcionalmente completa e implementada según `README.md`, `docs/scope-to-profit.md` y `docs/technical-plan.md` (PR #3). Lo único que queda pendiente son credenciales y configuración específicas del entorno real, que no pueden generarse de forma autónoma. Completa esta lista con tus propios valores y el producto queda operativo en producción.
+La implementación vigente de v1 y v2 está mergeada. Lo único que queda pendiente para el primer uso real son credenciales y configuración específicas del entorno, que no pueden generarse de forma autónoma. Completa esta lista y ejecuta el smoke test final antes de declarar producción.
 
 ## 1. Cuentas y credenciales reales
 
 - [ ] **Brevo**: crear cuenta, verificar dominio/remitente, generar `BREVO_API_KEY`, definir `BREVO_SENDER_EMAIL` verificado.
+- [ ] **Vercel AI Gateway**: configurar `AI_GATEWAY_API_KEY`; el agente lo usa para evaluar si hace falta pedir aclaraciones.
 - [ ] **Gemini**: cada usuario final carga su propia `GEMINI_API_KEY` desde `/settings` (ya implementado con cifrado AES-256-GCM). No requiere key global del operador.
 - [ ] **Telegram**: crear bot con @BotFather, obtener `TELEGRAM_BOT_TOKEN`, definir `TELEGRAM_AUTHORIZED_USER_IDS` (IDs numéricos autorizados), generar `TELEGRAM_WEBHOOK_SECRET` propio.
 
@@ -22,12 +23,12 @@ La aplicación está funcionalmente completa e implementada según `README.md`, 
 ## 4. Validación previa al primer despliegue
 
 - [ ] Ejecutar `pnpm run production:preflight` en el entorno real con las variables reales cargadas.
-- [ ] Confirmar CI en verde en el PR #3 (`backend-ci.yml`, `frontend-ci.yml`).
+- [ ] Confirmar CI en verde en el último PR de la implementación (`backend-ci.yml`, `frontend-ci.yml`).
 - [ ] Configurar el webhook de Telegram apuntando a `WEB_URL` una vez desplegado.
 
 ## 5. Go-live
 
-- [ ] Mergear PR #3 a `main`.
+- [ ] Confirmar que la implementación vigente está mergeada en `main`.
 - [ ] Desplegar con `docker-compose.yml` (o el orquestador elegido) en el entorno de producción.
 - [ ] Dar de alta al primer usuario y ejecutar un flujo completo real (Telegram → chat → brief → documento) como smoke test manual final.
 

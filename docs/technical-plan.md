@@ -1,10 +1,10 @@
-# Plan técnico v1
+# Plan técnico vigente
 
-Estado: propuesta para revisión antes de implementar.
+Estado: implementado para v1 y v2; la checklist de producción es el siguiente hito.
 
 ## 1. Objetivo
 
-Construir el vertical slice que permite crear un proyecto desde Telegram, abrir un chat cliente en Next.js, transformar mensajes en un Brief versionado y aprobar desde Telegram la entrega automática de PDF y DOCX.
+Mantener el vertical slice que permite crear un proyecto desde Telegram, abrir un chat cliente en Next.js, transformar mensajes en un Brief versionado, registrar cambios de alcance y aprobar desde Telegram la entrega automática de PDF y DOCX.
 
 ## 2. Arquitectura
 
@@ -131,8 +131,6 @@ Variables técnicas iniciales:
 
 El agente devuelve datos estructurados para Brief, preguntas, riesgos, alcance y estimación. La validación de campos, estados, versiones y sumas queda en código determinístico.
 
-No se incorpora RAG, pgvector ni vector database en v1.
-
 El logging inicial es estructurado y sirve para mejorar el agente: `requestId`, `projectId`, `threadId`, etapa, duración, proveedor/modelo, resultado, error code y conteos. No registra tokens, secretos, URLs firmadas, teléfonos completos ni contenido sensible sin sanitizar.
 
 ## 9. Generación de documentos
@@ -159,12 +157,12 @@ El logging inicial es estructurado y sirve para mejorar el agente: `requestId`, 
 
 - `web` y `api` tienen Dockerfiles multi-stage.
 - PostgreSQL usa volumen persistente.
-- `STORAGE_ROOT` apunta a un volumen persistente para multimedia, Markdown, PDF y DOCX.
+- `STORAGE_ROOT` apunta a un volumen persistente para imágenes, Markdown, PDF y DOCX.
 - Secretos solo por variables de entorno.
 - El smoke test real debe crear un proyecto, procesar un mensaje y comprobar DB, archivo y documento generado; `/health` solo comprueba disponibilidad.
 - PostgreSQL corre como contenedor propio con volumen persistente.
 - No se agregan todavía Redis, colas, observabilidad externa ni object storage.
-- Solo se aceptan archivos de imagen y texto. No se aceptan audio, video, PDF, DOCX ni otros formatos como entrada v1.
+- Solo se aceptan imágenes y texto como entrada.
 - Las imágenes se almacenan en filesystem persistente; el texto se guarda en PostgreSQL.
 - Se validan MIME type real, extensión, tamaño máximo y contenido antes de persistir.
 - El límite inicial es 10 MB por imagen y 1 MB por mensaje de texto.
@@ -201,9 +199,11 @@ Visual minimalista: una pantalla de chat y un panel de Brief/documento, responsi
 
 Un caso real puede recorrer: crear proyecto → cliente inicia sesión → envía información → agente actualiza Brief → se genera documento → profesional revisa y aprueba en Telegram → cliente recibe PDF y DOCX; todo sobre datos y archivos persistentes.
 
-## 16. Fuera de v1
+## 16. Estado de entrega
 
-Pagos, pricing/margen, Jira/Trello/Slack, audio/video/PDF/DOCX como entrada, múltiples plantillas, diagramas, RAG, vector DB, múltiples proveedores simultáneos, WebSockets/SSE y automatización comercial avanzada.
+- v1: vertical slice completo de autenticación, proyectos, chat, agente, Brief, documentos, aprobación y entrega.
+- v2: diff del Brief, registro manual y clasificación básica de solicitudes de cambio, y endurecimiento de tipos y estados.
+- Siguiente hito: configuración de producción y validación del flujo real.
 
 ## 17. Decisiones cerradas de implementación
 
