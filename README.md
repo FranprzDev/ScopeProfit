@@ -1,12 +1,12 @@
 # Scope-to-Profit
 
-**Copiloto comercial para freelancers y agencias.** Transforma ideas desordenadas que trae un cliente en un doc formal diagnosticado — sin que tengas que estar en la primera ronda de preguntas boludas.
+**Copiloto de alcance para freelancers y agencias.** Transforma las ideas desordenadas de un cliente en un documento formal y diagnosticado.
 
-> **Fuente de verdad:** `docs/scope-to-profit.md` (v0.8) — visión, MVP, plantilla manual 7.1 y arquitectura.
+> **Fuente de verdad:** `docs/scope-to-profit.md` — alcance vigente de las versiones v1 y v2.
 
 ## Qué resuelve
 
-Un cliente llega con audios, imágenes, videos, textos sueltos y frases tipo "quiero algo simple pero que...". Scope-to-Profit formaliza ese caos en:
+Un cliente llega con imágenes, textos sueltos y frases tipo "quiero algo simple pero que...". Scope-to-Profit formaliza ese caos en:
 
 - requerimientos (RF/RNF) con cita textual
 - preguntas pendientes que bloquean el alcance
@@ -15,7 +15,7 @@ Un cliente llega con audios, imágenes, videos, textos sueltos y frases tipo "qu
 - estimación en rango (horas, sin precio en v1)
 - próximos pasos
 
-Objetivo: **filtrar y aclarar ideas** para que el presupuesto/cliente final sea acorde y no se regale trabajo. Después escala a diagramas de flujo, secuencia, actividades y BPMN desde el Brief.
+Objetivo: **filtrar y aclarar ideas** para que el cliente y el equipo entiendan el alcance antes de construir.
 
 ## Arquitectura v1 — 3 apps que conviven
 
@@ -25,7 +25,6 @@ Cliente (Next.js chat)  →  Backend API (agente IA)  ←  Vos (Telegram)
                            DB + filesystem persistente (Brief versionado + docs)
 ```
 
-- **Telegram Bot** — tu interfaz. Creás proyectos, ves TLDR, gestionás docs. Recibe texto/imagen/audio/video/docs. **No toca DB directo**, habla solo con `POST /api/telegram/webhook`.
 - **Telegram Bot** — tu interfaz. Creás proyectos, ves TLDR, gestionás docs mediante botones inline. `callback_query` controla ver, editar, aprobar, rechazar, archivar y gestionar links; la edición abre una URL HTTPS firmada solo para el profesional. **No toca DB directo**, habla solo con `POST /api/telegram/webhook`.
 - **Next.js Frontend** — chat colaborativo para el cliente por link `https://tu-app.com/p/<uuid>`. Muestra la conversación y el borrador 7.1 actualizado en vivo. El cliente puede editar partes habilitadas o proponer cambios por chat; el agente reprocesa el documento completo y detecta preguntas pendientes. Requiere cuenta iniciada para identificar al cliente. El link no vence por defecto y se revoca o vence desde Telegram. Habla solo con `POST /api/chat`.
 - **Backend API** — **donde vive el agente IA**. Único con acceso a DB y filesystem persistente. Guarda todo, mantiene el Brief enriquecido versionado por proyecto, genera el doc con plantilla 7.1 y alimenta a ambas UIs.
@@ -35,7 +34,7 @@ El **Brief en PostgreSQL** es la fuente de verdad enriquecida (RF/RNF + dominio 
 ## Flujo v1
 
 1. Vos: `/createproject <nombre>` en Telegram → Backend crea proyecto y devuelve link Next.js para el cliente
-2. Cliente: chatea desordenado en Next.js (o vos pegás un WhatsApp en Telegram)
+2. Cliente: comparte su idea por texto e imágenes en el chat Next.js; el profesional puede enviar preguntas desde Telegram con `/ask`.
 3. Agente en Backend: filtra preguntas boludas, elicia RF/RNF + contexto, mejora el TLDR en vivo
 4. Backend: formaliza → genera doc con **plantilla manual 7.1** (única, fija en v1) → exporta PDF/DOCX + guarda Brief en PostgreSQL
 5. Cliente y agente: revisan y mejoran el borrador en vivo; el cliente puede editar partes habilitadas o pedir cambios por chat
@@ -51,7 +50,7 @@ El **Brief en PostgreSQL** es la fuente de verdad enriquecida (RF/RNF + dominio 
 - `/archive <id>` — archiva
 - `/help` — comandos, botones y flujo de revisión/aprobación
 
-Todo mensaje/archivo (imagen, audio, video, doc) se guarda en DB + filesystem persistente vía Backend.
+Todo mensaje e imagen se guarda en DB + filesystem persistente vía Backend.
 
 ## Plantilla Manual 7.1 (v1)
 
@@ -78,14 +77,14 @@ Ver detalle completo en `docs/scope-to-profit.md:155`.
 - **Repositorio:** monorepo con pipelines independientes para Frontend y Backend
 - **Entrada:** texto e imágenes; edición integrada con Tiptap
 - **Actualización:** polling cada 10 segundos mientras el agente procesa
-- **RAG/vector DB:** fuera de v1; no se incorpora pgvector
 - **Email:** Brevo para magic links, usando su plan gratuito
 - **Modelo inicial:** Gemini 3.8 Flash con API key propia de cada usuario
 
-## Estado
+## Estado de versiones
 
-- `v0.8` — arquitectura y flujo documentados, sin código aún. Repo: `github.com/FranprzDev/ScopeProfit`
-- Próximo paso: revisar y aprobar el plan técnico documentado en `docs/technical-plan.md`; luego implementar el vertical slice. La plantilla 7.1 se valida durante ese vertical slice con 5 conversaciones reales.
+- **v1 — entregada:** autenticación, proyectos, chat cliente, Telegram, Brief estructurado y versionado, agente IA, documento 7.1, PDF/DOCX, aprobación y entrega.
+- **v2 — entregada:** diff del Brief, registro y clasificación básica de solicitudes de cambio, y endurecimiento de tipos y estados.
+- **Pendiente antes de una nueva versión:** configuración de producción, preflight, webhook real y smoke test completo.
 
 ## Docs
 
