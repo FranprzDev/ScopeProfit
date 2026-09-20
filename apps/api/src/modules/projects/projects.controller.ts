@@ -17,6 +17,7 @@ import { ok, SESSION_COOKIE } from '../../response';
 import { fail } from '../../security';
 import { ChangeRequestsService } from './change-requests.service';
 import { ChangeRequestStatus } from '@prisma/client';
+import { validateBrief } from '../brief/brief.validation';
 
 class CreateProjectDto {
   @IsString() @MaxLength(200) name!: string;
@@ -79,10 +80,12 @@ export class ProjectsController {
 
   @Get(':id/state') async state(@Req() req: Request, @Param('id') id: string) {
     const user = await this.user(req);
-    const project: any = await this.auth.project(user, id, this.token(req));
+    const project = await this.auth.project(user, id, this.token(req));
     const brief = project.brief;
     const document = project.document?.versions?.[0];
-    const pendingQuestions = (brief?.data?.questions ?? []).filter((q: any) => q.blocksEstimate);
+    const pendingQuestions = (brief ? validateBrief(brief.data).questions : []).filter(
+      (question) => question.blocksEstimate,
+    );
     return ok({
       briefVersion: brief?.version ?? 0,
       documentVersion: document?.version ?? 0,
@@ -150,7 +153,7 @@ export class ProjectsController {
     return ok(await this.documents.approve(id, user.id, body.version));
   }
 
-  private async view(project: any) {
+  private async view(project: Awaited<ReturnType<AuthService['project']>>) {
     const document = project.document?.versions?.[0];
     return {
       id: project.id,

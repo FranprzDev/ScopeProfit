@@ -4,6 +4,7 @@ import type { Request, Response } from 'express';
 import { AuthService } from '../auth/auth.service';
 import { DocumentsService } from './documents.service';
 import { PrismaService } from '../../prisma.service';
+import type { Prisma } from '@prisma/client';
 import { ok, SESSION_COOKIE } from '../../response';
 
 class SaveEditorDto {
@@ -70,7 +71,7 @@ export class DocumentsController {
     await this.auth.project(user, id, this.token(req));
     return ok(
       this.view(
-        await this.documents.generate(id, user.id, body.editorContent as any, body.expectedVersion),
+        await this.documents.generate(id, user.id, body.editorContent, body.expectedVersion),
       ),
     );
   }
@@ -90,7 +91,7 @@ export class DocumentsController {
     res.send(buffer);
   }
 
-  private view(v: any) {
+  private view(v: Prisma.DocumentVersionGetPayload<object>) {
     return {
       id: v.id,
       version: v.version,

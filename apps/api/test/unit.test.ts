@@ -9,6 +9,7 @@ import { validateEditor, markdown } from '../src/modules/documents/render';
 import { emptyBrief } from '@scopeprofit/contracts';
 import { diffBrief } from '../src/modules/brief/brief-diff';
 import { enforceClarificationQuestion, needsClarification } from '../src/modules/agent/jev-gate';
+import type { TiptapNode } from '@scopeprofit/contracts';
 
 test('Jev clarification threshold routes uncertain briefs to the LLM', () => {
   assert.equal(needsClarification(0.5), true);
@@ -115,7 +116,7 @@ test('validateSources accepts a requirement with an exact textual citation', () 
 });
 
 test('validateEditor rejects a disallowed node type', () => {
-  assert.throws(() => validateEditor({ type: 'script' } as any));
+  assert.throws(() => validateEditor({ type: 'script' } as TiptapNode));
 });
 
 test('validateEditor accepts a minimal valid document', () => {

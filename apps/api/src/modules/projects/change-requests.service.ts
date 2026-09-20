@@ -2,7 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
 import { AuthService } from '../auth/auth.service';
 import { fail } from '../../security';
-import { ChangeClassification, ChangeRequestStatus } from '@prisma/client';
+import { ChangeClassification, ChangeRequestStatus, User } from '@prisma/client';
+import { validateBrief } from '../brief/brief.validation';
 
 @Injectable()
 export class ChangeRequestsService {
@@ -12,22 +13,24 @@ export class ChangeRequestsService {
   ) {}
 
   async create(projectId: string, request: string, actorId: string) {
-    const project: any = await this.db.project.findUnique({
+    const project = await this.db.project.findUnique({
       where: { id: projectId },
       include: { brief: true },
     });
     if (!project?.brief) fail('BRIEF_NOT_FOUND', 404);
+    const brief = validateBrief(project.brief.data);
+    const baseBriefVersion = project.brief.version;
     const text = request.trim().toLowerCase();
     if (!text) fail('INVALID_CHANGE_REQUEST', 400);
-    const included = project.brief.data.included as string[];
-    const excluded = project.brief.data.excluded as string[];
+    const included = brief.included;
+    const excluded = brief.excluded;
     const classification = this.classify(text, included, excluded);
     return this.db.$transaction(async (tx) => {
       const change = await tx.changeRequest.create({
         data: {
           projectId,
           actorId,
-          baseBriefVersion: project.brief.version,
+          baseBriefVersion,
           request: request.trim(),
           classification,
         },
@@ -45,12 +48,12 @@ export class ChangeRequestsService {
     });
   }
 
-  async list(projectId: string, user: any) {
+  async list(projectId: string, user: User) {
     await this.auth.project(user, projectId);
     return this.db.changeRequest.findMany({ where: { projectId }, orderBy: { createdAt: 'desc' } });
   }
 
-  async decide(projectId: string, id: string, status: ChangeRequestStatus, user: any) {
+  async decide(projectId: string, id: string, status: ChangeRequestStatus, user: User) {
     this.auth.professional(user);
     await this.auth.project(user, projectId);
     const updated = await this.db.changeRequest.updateMany({

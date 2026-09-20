@@ -80,39 +80,46 @@ export function validateEditor(node: unknown): TiptapNode {
     'text',
     'hardBreak',
   ]);
-  function walk(value: any, depth: number) {
+  function walk(value: unknown, depth: number) {
+    if (!value || typeof value !== 'object') fail('INVALID_EDITOR_CONTENT');
+    const current = value as Record<string, unknown>;
     if (
       ++count > 10000 ||
       depth > 20 ||
-      !value ||
-      typeof value !== 'object' ||
-      !allowed.has(value.type)
+      typeof current.type !== 'string' ||
+      !allowed.has(current.type)
     )
       fail('INVALID_EDITOR_CONTENT');
     if (
-      value.text !== undefined &&
-      (value.type !== 'text' || typeof value.text !== 'string' || value.text.length > 10000)
+      current.text !== undefined &&
+      (current.type !== 'text' || typeof current.text !== 'string' || current.text.length > 10000)
     )
       fail('INVALID_EDITOR_CONTENT');
-    if (value.attrs) {
-      const attrs = Object.keys(value.attrs);
+    if (current.attrs) {
+      if (typeof current.attrs !== 'object' || current.attrs === null)
+        fail('INVALID_EDITOR_CONTENT');
+      const attrs = Object.keys(current.attrs);
       if (attrs.some((k) => !['level', 'colspan', 'rowspan', 'colwidth'].includes(k)))
         fail('INVALID_EDITOR_CONTENT');
-      if (value.attrs.level && ![1, 2, 3].includes(value.attrs.level))
-        fail('INVALID_EDITOR_CONTENT');
+      const level = (current.attrs as Record<string, unknown>).level;
+      if (level && ![1, 2, 3].includes(level as number)) fail('INVALID_EDITOR_CONTENT');
     }
     if (
-      value.marks &&
-      (!Array.isArray(value.marks) ||
-        value.marks.some(
-          (m: any) =>
-            !['bold', 'italic', 'strike', 'code', 'underline'].includes(m.type) || m.attrs,
-        ))
+      current.marks &&
+      (!Array.isArray(current.marks) ||
+        current.marks.some((mark: unknown) => {
+          if (!mark || typeof mark !== 'object') return true;
+          const value = mark as Record<string, unknown>;
+          return (
+            !['bold', 'italic', 'strike', 'code', 'underline'].includes(value.type as string) ||
+            value.attrs
+          );
+        }))
     )
       fail('INVALID_EDITOR_CONTENT');
-    if (value.content) {
-      if (!Array.isArray(value.content)) fail('INVALID_EDITOR_CONTENT');
-      value.content.forEach((child: any) => walk(child, depth + 1));
+    if (current.content) {
+      if (!Array.isArray(current.content)) fail('INVALID_EDITOR_CONTENT');
+      current.content.forEach((child) => walk(child, depth + 1));
     }
   }
   walk(node, 0);

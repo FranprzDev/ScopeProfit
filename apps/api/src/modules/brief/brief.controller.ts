@@ -9,6 +9,7 @@ import { validateBrief } from './brief.validation';
 import { diffBrief } from './brief-diff';
 import { ok, SESSION_COOKIE } from '../../response';
 import { fail } from '../../security';
+import { ProjectStatus } from '@prisma/client';
 
 class UpdateBriefDto {
   @IsInt() @Min(0) expectedVersion!: number;
@@ -31,7 +32,7 @@ export class BriefController {
 
   @Get() async get(@Req() req: Request, @Param('id') id: string) {
     const user = await this.user(req);
-    const project: any = await this.auth.project(user, id, this.token(req));
+    const project = await this.auth.project(user, id, this.token(req));
     if (!project.brief) fail('BRIEF_NOT_FOUND', 404);
     return ok({
       version: project.brief.version,
@@ -57,7 +58,7 @@ export class BriefController {
     return ok({
       from: { version: before.version, source: before.source, actorId: before.actorId },
       to: { version: after.version, source: after.source, actorId: after.actorId },
-      changes: diffBrief(before.data as any, after.data as any),
+      changes: diffBrief(validateBrief(before.data), validateBrief(after.data)),
     });
   }
 
@@ -68,7 +69,12 @@ export class BriefController {
   ) {
     const user = await this.user(req);
     const project = await this.auth.project(user, id, this.token(req));
-    if (['approved', 'delivered', 'archived'].includes(project.status)) fail('PROJECT_LOCKED');
+    if (
+      project.status === ProjectStatus.approved ||
+      project.status === ProjectStatus.delivered ||
+      project.status === ProjectStatus.archived
+    )
+      fail('PROJECT_LOCKED');
     const brief = validateBrief(body.data);
     const saved = await this.db.$transaction(async (tx) => {
       const updated = await tx.brief.updateMany({

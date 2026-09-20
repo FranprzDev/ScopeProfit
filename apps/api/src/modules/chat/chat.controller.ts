@@ -21,6 +21,8 @@ import { StorageService } from '../storage/storage.service';
 import { PrismaService } from '../../prisma.service';
 import { ok, SESSION_COOKIE } from '../../response';
 import { fail } from '../../security';
+import { ProjectStatus } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 
 class MessageDto {
   @IsString() @MaxLength(1_000_000) content!: string;
@@ -48,7 +50,12 @@ export class ChatController {
   ) {
     const user = await this.user(req);
     const project = await this.auth.project(user, id, this.token(req));
-    if (['approved', 'delivered', 'archived'].includes(project.status)) fail('PROJECT_LOCKED');
+    if (
+      project.status === ProjectStatus.approved ||
+      project.status === ProjectStatus.delivered ||
+      project.status === ProjectStatus.archived
+    )
+      fail('PROJECT_LOCKED');
     if (!body.content.trim() || Buffer.byteLength(body.content, 'utf8') > 1024 * 1024)
       fail('INVALID_TEXT');
     const message = await this.db.message.create({
@@ -97,7 +104,12 @@ export class ChatController {
   ) {
     const user = await this.user(req);
     const project = await this.auth.project(user, id, this.token(req));
-    if (['approved', 'delivered', 'archived'].includes(project.status)) fail('PROJECT_LOCKED');
+    if (
+      project.status === ProjectStatus.approved ||
+      project.status === ProjectStatus.delivered ||
+      project.status === ProjectStatus.archived
+    )
+      fail('PROJECT_LOCKED');
     if (!file)
       throw new BadRequestException({ code: 'INVALID_IMAGE', message: 'Image file is required' });
     const { mimeType, size } = await this.storage.validateImage(file);
@@ -130,14 +142,14 @@ export class ChatController {
     });
   }
 
-  private view(m: any) {
+  private view(m: Prisma.MessageGetPayload<object> & { files?: Prisma.FileGetPayload<object>[] }) {
     return {
       id: m.id,
       projectId: m.projectId,
       authorRole: m.authorRole,
       content: m.content,
       createdAt: m.createdAt.toISOString(),
-      files: (m.files ?? []).map((f: any) => ({
+      files: (m.files ?? []).map((f) => ({
         id: f.id,
         name: f.name,
         mimeType: f.mimeType,

@@ -13,6 +13,14 @@ import {
   secureEqual,
   token,
 } from '../../security';
+
+type AdminClaim = {
+  userId: string;
+  projectId: string;
+  permission: 'edit';
+  exp: number;
+  nonce: string;
+};
 @Injectable()
 export class AuthService {
   constructor(
@@ -168,9 +176,20 @@ export class AuthService {
       )
     )
       fail('INVALID_ADMIN_LINK', 401);
-    let data: any;
+    let data: AdminClaim;
     try {
-      data = JSON.parse(Buffer.from(payload, 'base64url').toString());
+      const parsed: unknown = JSON.parse(Buffer.from(payload, 'base64url').toString());
+      if (!parsed || typeof parsed !== 'object') fail('INVALID_ADMIN_LINK', 401);
+      const claim = parsed as Record<string, unknown>;
+      if (
+        typeof claim.userId !== 'string' ||
+        typeof claim.projectId !== 'string' ||
+        claim.permission !== 'edit' ||
+        typeof claim.exp !== 'number' ||
+        typeof claim.nonce !== 'string'
+      )
+        fail('INVALID_ADMIN_LINK', 401);
+      data = claim as unknown as AdminClaim;
     } catch {
       fail('INVALID_ADMIN_LINK', 401);
     }

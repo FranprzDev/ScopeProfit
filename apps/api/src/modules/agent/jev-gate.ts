@@ -1,4 +1,5 @@
 import { experimental_evaluate as evaluate } from 'ai';
+import type { Prisma } from '@prisma/client';
 import { BriefData } from '@scopeprofit/contracts';
 
 export const JEV_MODEL = 'typesafe-ai/jev';
@@ -34,7 +35,10 @@ export function enforceClarificationQuestion(
   return brief;
 }
 
-export async function evaluateBriefCompleteness(state: any): Promise<JevDecision> {
+export async function evaluateBriefCompleteness(state: {
+  brief: Prisma.JsonValue | null | undefined;
+  messages: { role: string; content: string }[];
+}): Promise<JevDecision> {
   const result = await evaluate({
     model: JEV_MODEL,
     state,
