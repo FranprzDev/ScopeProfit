@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Post, Put, Query, Req, Res } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { IsEmail, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
@@ -18,7 +19,9 @@ class ApiKeyDto {
 export class AuthController {
   constructor(private auth: AuthService) {}
 
-  @Post('magic-link/request') async request(@Body() body: MagicLinkRequestDto) {
+  @Post('magic-link/request')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  async request(@Body() body: MagicLinkRequestDto) {
     return ok(await this.auth.request(body.email, body.projectId, body.linkToken));
   }
 

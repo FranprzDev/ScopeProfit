@@ -23,6 +23,7 @@
     "@nestjs/common": "^11.1.6",
     "@nestjs/core": "^11.1.6",
     "@nestjs/platform-express": "^11.1.6",
+    "@nestjs/throttler": "^6.7.1",
     "@prisma/client": "^6.19.0",
     "@scopeprofit/contracts": "workspace:*",
     "ai": "^7.0.106",

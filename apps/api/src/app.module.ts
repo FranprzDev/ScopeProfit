@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { CoreModule } from './core.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
 import { HealthController } from './health.controller';
@@ -9,7 +11,11 @@ import { BriefController } from './modules/brief/brief.controller';
 import { DocumentsController } from './modules/documents/documents.controller';
 
 @Module({
-  imports: [CoreModule, TelegramModule],
+  imports: [
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 30 }]),
+    CoreModule,
+    TelegramModule,
+  ],
   controllers: [
     HealthController,
     AuthController,
@@ -18,5 +24,6 @@ import { DocumentsController } from './modules/documents/documents.controller';
     BriefController,
     DocumentsController,
   ],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}
