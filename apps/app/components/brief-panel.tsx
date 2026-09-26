@@ -1,9 +1,39 @@
 'use client';
-import { useState } from 'react';
-import type { Brief, BriefData, DocumentVersion, TiptapNode } from '@scopeprofit/contracts';
+import { useCallback, useEffect, useState } from 'react';
+import type { Brief, BriefData, DocumentVersion, TiptapNode, DiffKind } from '@scopeprofit/contracts';
 import { api, errorMessage } from '@/lib/api';
 import { documentText, textDocument } from '@/lib/project';
 import { RichEditor } from './rich-editor';
+
+type ChangeRequestHistory = {
+  action: string;
+  result: string;
+  actorId: string | null;
+  actorEmail: string | null;
+  createdAt: string;
+};
+
+type ChangeRequest = {
+  id: string;
+  request: string;
+  classification: 'in_scope' | 'out_of_scope' | 'ambiguous';
+  status: 'proposed' | 'applying' | 'accepted' | 'rejected';
+  baseBriefVersion: number;
+  patch: Partial<BriefData> | null;
+  decisionBy: string | null;
+  decisionAt: string | null;
+  appliedBriefVersion: number | null;
+  documentVersion: number | null;
+  lastError: string | null;
+  history: ChangeRequestHistory[];
+};
+
+type DiffEntry = {
+  key: string;
+  kind: DiffKind;
+  before?: unknown;
+  after?: unknown;
+};
 const editableSections = [
   ['summary', 'Resumen ejecutivo'],
   ['included', 'Incluidos'],
@@ -35,7 +65,35 @@ export function BriefPanel({
   const [editorContent, setEditorContent] = useState<TiptapNode | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [diff, setDiff] = useState<Array<{ key: string; kind: string }>>([]);
+  const [diff, setDiff] = useState<DiffEntry[]>([]);
+  const [requests, setRequests] = useState<ChangeRequest[]>([]);
+  const [editingRequest, setEditingRequest] = useState<string | null>(null);
+  const [patchText, setPatchText] = useState('{}');
+  const [requestBusy, setRequestBusy] = useState(false);
+  const loadChangeRequests = useCallback(async () => {
+    try {
+      const result = await api<ChangeRequest[]>(`/projects/${projectId}/change-requests`);
+      setRequests(result);
+    } catch (e) {
+      setError(errorMessage(e));
+    }
+  }, [projectId]);
+  useEffect(() => {
+    if (!professional) return;
+    let active = true;
+    async function load() {
+      try {
+        const result = await api<ChangeRequest[]>(`/projects/${projectId}/change-requests`);
+        if (active) setRequests(result);
+      } catch (e: unknown) {
+        if (active) setError(errorMessage(e));
+      }
+    }
+    void load();
+    return () => {
+      active = false;
+    };
+  }, [projectId, professional]);
   function edit() {
     if (!brief) return;
     setDraft(structuredClone(brief.data));
@@ -76,7 +134,7 @@ export function BriefPanel({
   async function showDiff() {
     if (!brief || brief.version < 2) return;
     try {
-      const result = await api<{ changes: Array<{ key: string; kind: string }> }>(
+      const result = await api<{ changes: DiffEntry[] }>(
         `/projects/${projectId}/brief/diff?from=${brief.version - 1}&to=${brief.version}`,
         {},
         token,
@@ -84,6 +142,41 @@ export function BriefPanel({
       setDiff(result.changes);
     } catch (e) {
       setError(errorMessage(e));
+    }
+  }
+  async function savePatch(change: ChangeRequest) {
+    setRequestBusy(true);
+    setError('');
+    try {
+      const patch: unknown = JSON.parse(patchText);
+      if (!patch || Array.isArray(patch))
+        throw new Error('El patch debe ser un objeto JSON con campos del Brief.');
+      await api(`/projects/${projectId}/change-requests/${change.id}/proposal`, {
+        method: 'PATCH',
+        body: JSON.stringify({ baseBriefVersion: change.baseBriefVersion, patch }),
+      });
+      setEditingRequest(null);
+      await loadChangeRequests();
+    } catch (e) {
+      setError(e instanceof SyntaxError ? 'El patch no es JSON válido.' : errorMessage(e));
+    } finally {
+      setRequestBusy(false);
+    }
+  }
+  async function decide(change: ChangeRequest, status: 'accepted' | 'rejected') {
+    setRequestBusy(true);
+    setError('');
+    try {
+      await api(`/projects/${projectId}/change-requests/${change.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      });
+      await Promise.all([loadChangeRequests(), onSaved()]);
+    } catch (e) {
+      setError(errorMessage(e));
+      await loadChangeRequests();
+    } finally {
+      setRequestBusy(false);
     }
   }
   const data = brief?.data;
@@ -107,16 +200,170 @@ export function BriefPanel({
           <ul>
             {diff.map((change) => (
               <li key={`${change.kind}-${change.key}`}>
-                {change.kind === 'added'
-                  ? 'Agregado'
-                  : change.kind === 'removed'
-                    ? 'Quitado'
-                    : 'Modificado'}
+                <strong>
+                  {change.kind === ('added' satisfies DiffKind)
+                    ? 'Agregado'
+                    : change.kind === ('removed' satisfies DiffKind)
+                      ? 'Quitado'
+                      : 'Modificado'}
+                </strong>
                 : {change.key}
+                {change.kind !== ('added' satisfies DiffKind) && (
+                  <div className="diff-value">
+                    <span>Antes</span>
+                    <pre>{formatValue(change.before)}</pre>
+                  </div>
+                )}
+                {change.kind !== ('removed' satisfies DiffKind) && (
+                  <div className="diff-value">
+                    <span>Después</span>
+                    <pre>{formatValue(change.after)}</pre>
+                  </div>
+                )}
               </li>
             ))}
           </ul>
         </div>
+      )}
+      {professional && (
+        <section className="change-requests" aria-labelledby="change-requests-title">
+          <h3 id="change-requests-title">Solicitudes de cambio</h3>
+          {requests.length ? (
+            requests.map((change) => (
+              <article className="change-request" key={change.id}>
+                <div className="panel-heading">
+                  <strong>{change.request}</strong>
+                  <span className={`tag ${change.status === 'applying' ? 'amber' : ''}`}>
+                    {statusLabel(change.status)}
+                  </span>
+                </div>
+                <p className="small muted">
+                  Clasificación: {classificationLabel(change.classification)} · Brief base v
+                  {change.baseBriefVersion}
+                  {change.appliedBriefVersion
+                    ? ` · Brief aplicado v${change.appliedBriefVersion}`
+                    : ''}
+                  {change.documentVersion ? ` · Documento v${change.documentVersion}` : ''}
+                </p>
+                {change.lastError && (
+                  <p className="notice" role="status">
+                    No se confirmó la aplicación ({change.lastError}). El cambio quedó guardado;
+                    reintentá aceptar para completar la generación del documento.
+                  </p>
+                )}
+                {change.patch && (
+                  <div className="patch-preview">
+                    <strong>Patch revisado</strong>
+                    <ul>
+                      {Object.entries(change.patch).map(([key, value]) => (
+                        <li key={key}>
+                          <strong>{key}</strong>
+                          <div className="diff-value">
+                            <span>Antes · v{change.baseBriefVersion}</span>
+                            <pre>{formatValue(brief?.data[key as keyof BriefData])}</pre>
+                          </div>
+                          <div className="diff-value">
+                            <span>Propuesta</span>
+                            <pre>{formatValue(value)}</pre>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {change.status === 'proposed' && (
+                  <div className="actions change-actions">
+                    <button
+                      className="button secondary"
+                      onClick={() => {
+                        setEditingRequest(editingRequest === change.id ? null : change.id);
+                        setPatchText(JSON.stringify(change.patch ?? {}, null, 2));
+                        setError('');
+                      }}
+                    >
+                      {change.patch ? 'Revisar patch' : 'Preparar patch'}
+                    </button>
+                    <button
+                      className="button"
+                      disabled={requestBusy || !change.patch}
+                      onClick={() => void decide(change, 'accepted')}
+                    >
+                      Aceptar y aplicar
+                    </button>
+                    <button
+                      className="button secondary"
+                      disabled={requestBusy}
+                      onClick={() => void decide(change, 'rejected')}
+                    >
+                      Rechazar
+                    </button>
+                  </div>
+                )}
+                {change.status === 'applying' && (
+                  <button
+                    className="button"
+                    disabled={requestBusy}
+                    onClick={() => void decide(change, 'accepted')}
+                  >
+                    Reintentar aceptación
+                  </button>
+                )}
+                {editingRequest === change.id && change.status === 'proposed' && (
+                  <div className="patch-editor">
+                    <label htmlFor={`patch-${change.id}`}>
+                      Patch JSON explícito — solo campos del Brief; las listas reemplazan la lista
+                      completa.
+                    </label>
+                    <textarea
+                      id={`patch-${change.id}`}
+                      rows={8}
+                      spellCheck={false}
+                      value={patchText}
+                      onChange={(event) => setPatchText(event.target.value)}
+                    />
+                    <div className="actions">
+                      <button
+                        className="button"
+                        disabled={requestBusy}
+                        onClick={() => void savePatch(change)}
+                      >
+                        Guardar patch para revisión
+                      </button>
+                      <button
+                        className="button secondary"
+                        disabled={requestBusy}
+                        onClick={() => setEditingRequest(null)}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <details className="change-history">
+                  <summary>Historial de decisiones ({change.history.length})</summary>
+                  <ol>
+                    {change.history.map((event, index) => (
+                      <li key={`${event.action}-${event.createdAt}-${index}`}>
+                        {historyLabel(event.action)} ·{' '}
+                        {event.result === 'failed' ? 'falló' : 'registrado'} ·{' '}
+                        {event.actorEmail ?? event.actorId ?? 'Sistema'} ·{' '}
+                        {new Date(event.createdAt).toLocaleString('es-AR')}
+                      </li>
+                    ))}
+                  </ol>
+                  {change.decisionAt && (
+                    <p className="small muted">
+                      Decisión actual por {change.decisionBy ?? 'profesional'} ·{' '}
+                      {new Date(change.decisionAt).toLocaleString('es-AR')}
+                    </p>
+                  )}
+                </details>
+              </article>
+            ))
+          ) : (
+            <p className="small muted">Todavía no hay solicitudes de cambio.</p>
+          )}
+        </section>
       )}
       <p className="small muted">
         Borrador de trabajo. La aprobación final corresponde al profesional.
@@ -332,5 +579,38 @@ function List({ items }: { items: string[] }) {
     </ul>
   ) : (
     <p className="muted">Por definir.</p>
+  );
+}
+function formatValue(value: unknown) {
+  if (value === undefined) return '—';
+  return typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+}
+function statusLabel(status: ChangeRequest['status']) {
+  return (
+    {
+      proposed: 'Pendiente',
+      applying: 'Aplicando · requiere verificación',
+      accepted: 'Aceptada',
+      rejected: 'Rechazada',
+    }[status] ?? status
+  );
+}
+function classificationLabel(classification: ChangeRequest['classification']) {
+  return (
+    {
+      in_scope: 'Dentro del alcance',
+      out_of_scope: 'Fuera del alcance',
+      ambiguous: 'Ambigua',
+    }[classification] ?? classification
+  );
+}
+function historyLabel(action: string) {
+  return (
+    {
+      'change_request.created': 'Solicitud registrada',
+      'change_request.accepting': 'Aplicación / intento de aceptación',
+      'change_request.accepted': 'Aceptación completada',
+      'change_request.rejected': 'Solicitud rechazada',
+    }[action] ?? action
   );
 }

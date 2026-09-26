@@ -7,6 +7,7 @@ import { encrypt, decrypt, hash, secureEqual, authorizedTelegramIds } from '../s
 import { validateBrief, validateSources } from '../src/modules/brief/brief.validation';
 import { validateEditor, markdown } from '../src/modules/documents/render';
 import { emptyBrief } from '@scopeprofit/contracts';
+import type { DiffKind } from '@scopeprofit/contracts';
 import { diffBrief } from '../src/modules/brief/brief-diff';
 import { enforceClarificationQuestion, needsClarification } from '../src/modules/agent/jev-gate';
 import type { TiptapNode } from '@scopeprofit/contracts';
@@ -167,9 +168,15 @@ test('diffBrief reports added, removed, and changed entries', () => {
   assert.deepEqual(
     diffBrief(before, after).map(({ key, kind }) => ({ key, kind })),
     [
-      { key: 'excluded.mobile', kind: 'removed' },
-      { key: 'included.dashboard', kind: 'added' },
-      { key: 'summary', kind: 'changed' },
+      { key: 'excluded.mobile', kind: 'removed' satisfies DiffKind },
+      { key: 'included.dashboard', kind: 'added' satisfies DiffKind },
+      { key: 'summary', kind: 'changed' satisfies DiffKind },
     ],
+  );
+  assert.deepEqual(
+    diffBrief(before, after)
+      .filter((change) => change.kind === ('changed' satisfies DiffKind))
+      .map(({ key, before: previous, after: current }) => ({ key, previous, current })),
+    [{ key: 'summary', previous: 'Antes', current: 'Después' }],
   );
 });

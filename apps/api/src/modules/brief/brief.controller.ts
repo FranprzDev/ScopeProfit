@@ -9,7 +9,7 @@ import { validateBrief } from './brief.validation';
 import { diffBrief } from './brief-diff';
 import { ok, SESSION_COOKIE } from '../../response';
 import { fail } from '../../security';
-import { ProjectStatus } from '@prisma/client';
+import { ChangeRequestStatus, ProjectStatus } from '@prisma/client';
 
 class UpdateBriefDto {
   @IsInt() @Min(0) expectedVersion!: number;
@@ -77,6 +77,22 @@ export class BriefController {
       fail('PROJECT_LOCKED');
     const brief = validateBrief(body.data);
     const saved = await this.db.$transaction(async (tx) => {
+      const liveProject = await tx.project.findUnique({
+        where: { id },
+        select: { status: true },
+      });
+      if (
+        !liveProject ||
+        liveProject.status === ProjectStatus.approved ||
+        liveProject.status === ProjectStatus.delivered ||
+        liveProject.status === ProjectStatus.archived
+      )
+        fail('PROJECT_LOCKED');
+      const applying = await tx.changeRequest.findFirst({
+        where: { projectId: id, status: ChangeRequestStatus.applying },
+        select: { id: true },
+      });
+      if (applying) fail('CHANGE_REQUEST_APPLYING', 409);
       const updated = await tx.brief.updateMany({
         where: { projectId: id, version: body.expectedVersion },
         data: { version: { increment: 1 }, data: brief as unknown as Prisma.InputJsonValue },

@@ -39,6 +39,12 @@ export function errorMessage(error: unknown): string {
       LINK_EXPIRED: 'Este enlace venció. Pedile uno nuevo al profesional.',
       AI_CONFIGURATION_REQUIRED: 'El profesional debe configurar su clave de IA para continuar.',
       RATE_LIMITED: 'Demasiados intentos. Esperá un momento antes de volver a intentar.',
+      DOCUMENT_GENERATION_FAILED:
+        'El Brief se actualizó, pero no se pudo generar el documento. La solicitud quedó pendiente; reintentá la aceptación.',
+      CHANGE_REQUEST_PATCH_REQUIRED:
+        'Prepará y guardá un patch explícito del Brief antes de aceptar la solicitud.',
+      CHANGE_REQUEST_DECISION_CONFLICT:
+        'La solicitud ya recibió una decisión incompatible. Actualizá la vista para ver su estado.',
     };
     return messages[error.code] ?? error.message;
   }

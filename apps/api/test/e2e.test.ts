@@ -18,6 +18,8 @@ import { PrismaService } from '../src/prisma.service';
 import { DocumentsService } from '../src/modules/documents/documents.service';
 import { emptyBrief } from '@scopeprofit/contracts';
 import { Prisma } from '@prisma/client';
+import { randomBytes } from 'node:crypto';
+import { hash } from '../src/security';
 
 const skip = !process.env.DATABASE_URL;
 let app: INestApplication;
@@ -70,6 +72,79 @@ test(
     assert.equal(body.success, false);
     assert.equal(body.error.code, 'UNAUTHENTICATED');
     assert.ok(body.error.requestId);
+  },
+);
+
+test(
+  'a client session and project token cannot read, prepare, or decide a change request',
+  { skip: skip ? 'DATABASE_URL not set' : false },
+  async () => {
+    const owner = await db.user.upsert({
+      where: { telegramId: '111' },
+      create: { telegramId: '111', role: 'professional' },
+      update: {},
+    });
+    const client = await db.user.create({
+      data: { email: `change-route-${Date.now()}@example.com` },
+    });
+    const rawSession = randomBytes(32).toString('base64url');
+    const rawProjectToken = randomBytes(32).toString('base64url');
+    await db.session.create({
+      data: {
+        userId: client.id,
+        tokenHash: hash(rawSession),
+        expiresAt: new Date(Date.now() + 60_000),
+      },
+    });
+    const project = await db.project.create({
+      data: {
+        name: 'Change authorization test',
+        ownerId: owner.id,
+        brief: { create: { data: emptyBrief() as unknown as Prisma.InputJsonValue } },
+        document: { create: {} },
+        links: {
+          create: { tokenHash: hash(rawProjectToken), encryptedToken: 'test-only' },
+        },
+      },
+    });
+    const change = await db.changeRequest.create({
+      data: {
+        projectId: project.id,
+        actorId: client.id,
+        baseBriefVersion: 0,
+        request: 'Add a new section',
+        classification: 'ambiguous',
+      },
+    });
+    const headers = {
+      cookie: `sp_session=${rawSession}`,
+      'x-project-token': rawProjectToken,
+      'content-type': 'application/json',
+    };
+    const read = await fetch(`${baseUrl}/api/projects/${project.id}/change-requests`, { headers });
+    const prepare = await fetch(
+      `${baseUrl}/api/projects/${project.id}/change-requests/${change.id}/proposal`,
+      {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ baseBriefVersion: 0, patch: { summary: 'No autorizado' } }),
+      },
+    );
+    const decide = await fetch(
+      `${baseUrl}/api/projects/${project.id}/change-requests/${change.id}`,
+      {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ status: 'rejected' }),
+      },
+    );
+    assert.equal(read.status, 403);
+    assert.equal(prepare.status, 403);
+    assert.equal(decide.status, 403);
+    assert.equal(
+      (await db.changeRequest.findUniqueOrThrow({ where: { id: change.id } })).status,
+      'proposed',
+    );
   },
 );
 

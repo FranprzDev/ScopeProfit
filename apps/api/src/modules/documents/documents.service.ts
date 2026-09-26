@@ -33,6 +33,7 @@ export class DocumentsService {
     actorId: string,
     editorContent?: unknown,
     expectedVersion?: number,
+    sourceBriefVersion?: number,
   ) {
     let validatedEditorContent: TiptapNode | undefined;
     if (editorContent) {
@@ -53,6 +54,13 @@ export class DocumentsService {
       },
     });
     if (!project?.brief) return fail('BRIEF_NOT_FOUND', 'Brief not found', 404);
+    const sourceBrief =
+      sourceBriefVersion !== undefined
+        ? await this.prisma.briefVersion.findUnique({
+            where: { projectId_version: { projectId, version: sourceBriefVersion } },
+          })
+        : project.brief;
+    if (!sourceBrief) return fail('BRIEF_VERSION_NOT_FOUND', 'Brief version not found', 404);
     if (
       project.status === ProjectStatus.approved ||
       project.status === ProjectStatus.delivered ||
@@ -70,7 +78,7 @@ export class DocumentsService {
       author: project.owner.email || 'Profesional',
       date: new Date().toISOString(),
       version,
-      brief: project.brief.data as unknown as BriefData,
+      brief: sourceBrief.data as unknown as BriefData,
       editorContent:
         validatedEditorContent || (previous?.editorContent as unknown as TiptapNode) || null,
     };
@@ -90,7 +98,7 @@ export class DocumentsService {
         });
         if (
           !live ||
-          live.brief?.version !== project.brief!.version ||
+          (sourceBriefVersion === undefined && live.brief?.version !== sourceBrief.version) ||
           live.status === ProjectStatus.approved ||
           live.status === ProjectStatus.delivered ||
           live.status === ProjectStatus.archived
@@ -111,7 +119,7 @@ export class DocumentsService {
           data: {
             documentId: document.id,
             version,
-            briefVersion: project.brief!.version,
+            briefVersion: sourceBrief.version,
             data: json(data),
             editorContent: data.editorContent ? json(data.editorContent) : Prisma.JsonNull,
             artifacts: json(artifacts),
@@ -124,7 +132,7 @@ export class DocumentsService {
             actorId,
             action: validatedEditorContent ? 'document.edited' : 'document.generated',
             result: 'success',
-            metadata: { version, briefVersion: project.brief!.version },
+            metadata: { version, briefVersion: sourceBrief.version },
           },
         });
         return saved;

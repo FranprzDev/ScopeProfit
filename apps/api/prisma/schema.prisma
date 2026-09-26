@@ -31,6 +31,7 @@ enum ChangeClassification {
 }
 enum ChangeRequestStatus {
  proposed
+ applying
  accepted
  rejected
 }
@@ -110,6 +111,12 @@ model ChangeRequest {
  request String
  classification ChangeClassification
  status ChangeRequestStatus @default(proposed)
+ patch Json?
+ decisionBy String? @map("decision_by")
+ decisionAt DateTime? @map("decision_at")
+ appliedBriefVersion Int? @map("applied_brief_version")
+ documentVersion Int? @map("document_version")
+ lastError String? @map("last_error")
  minHours Int? @map("min_hours")
  maxHours Int? @map("max_hours")
  createdAt DateTime @default(now()) @map("created_at")

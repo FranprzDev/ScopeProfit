@@ -3,7 +3,7 @@ import { Annotation, StateGraph, START, END } from '@langchain/langgraph';
 import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
-import { Prisma, ProjectStatus } from '@prisma/client';
+import { ChangeRequestStatus, Prisma, ProjectStatus } from '@prisma/client';
 import { BriefData } from '@scopeprofit/contracts';
 import { PrismaService } from '../../prisma.service';
 import { decrypt } from '../../security';
@@ -67,7 +67,10 @@ export class AgentService implements OnModuleInit, OnModuleDestroy {
         data: { agentStatus: 'pending' },
       });
       const pending = await this.db.project.findMany({
-        where: { agentStatus: 'pending' },
+        where: {
+          agentStatus: 'pending',
+          changeRequests: { none: { status: ChangeRequestStatus.applying } },
+        },
         take: 5,
         orderBy: { updatedAt: 'asc' },
       });
@@ -85,7 +88,11 @@ export class AgentService implements OnModuleInit, OnModuleDestroy {
   }
   async process(id: string) {
     const claimed = await this.db.project.updateMany({
-      where: { id, agentStatus: 'pending' },
+      where: {
+        id,
+        agentStatus: 'pending',
+        changeRequests: { none: { status: ChangeRequestStatus.applying } },
+      },
       data: { agentStatus: 'running', agentStartedAt: new Date() },
     });
     if (!claimed.count) return;
@@ -129,6 +136,11 @@ export class AgentService implements OnModuleInit, OnModuleDestroy {
       );
       const brief = validateBrief(result.brief);
       const saved = await this.db.$transaction(async (tx) => {
+        const applying = await tx.changeRequest.findFirst({
+          where: { projectId: id, status: ChangeRequestStatus.applying },
+          select: { id: true },
+        });
+        if (applying) return false;
         const updated = await tx.brief.updateMany({
           where: { projectId: id, version: project.brief!.version },
           data: {
