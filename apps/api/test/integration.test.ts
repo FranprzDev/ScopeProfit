@@ -31,6 +31,7 @@ let auth: AuthService;
 let projects: ProjectsService;
 let documents: DocumentsService;
 let changes: ChangeRequestsService;
+let storage: StorageService;
 let storageRoot: string;
 
 before(async () => {
@@ -41,7 +42,8 @@ before(async () => {
   projects = new ProjectsService(db, auth);
   storageRoot = await mkdtemp(join(tmpdir(), 'scopeprofit-changes-'));
   process.env.STORAGE_ROOT = storageRoot;
-  documents = new DocumentsService(db, new StorageService(), new EmailService());
+  storage = new StorageService();
+  documents = new DocumentsService(db, storage, new EmailService());
   changes = new ChangeRequestsService(db, auth, documents);
 });
 

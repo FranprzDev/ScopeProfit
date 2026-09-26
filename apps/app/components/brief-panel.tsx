@@ -1,28 +1,38 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
-import type { Brief, BriefData, DocumentVersion, TiptapNode } from '@scopeprofit/contracts';
+import type { Brief, BriefData, DocumentVersion, TiptapNode, DiffKind } from '@scopeprofit/contracts';
 import { api, errorMessage } from '@/lib/api';
 import { documentText, textDocument } from '@/lib/project';
 import { RichEditor } from './rich-editor';
+
+type ChangeRequestHistory = {
+  action: string;
+  result: string;
+  actorId: string | null;
+  actorEmail: string | null;
+  createdAt: string;
+};
+
 type ChangeRequest = {
   id: string;
   request: string;
-  classification: string;
-  status: string;
+  classification: 'in_scope' | 'out_of_scope' | 'ambiguous';
+  status: 'proposed' | 'applying' | 'accepted' | 'rejected';
   baseBriefVersion: number;
-  patch: Record<string, unknown> | null;
+  patch: Partial<BriefData> | null;
   decisionBy: string | null;
   decisionAt: string | null;
   appliedBriefVersion: number | null;
   documentVersion: number | null;
   lastError: string | null;
-  history: Array<{
-    action: string;
-    result: string;
-    actorId: string | null;
-    actorEmail: string | null;
-    createdAt: string;
-  }>;
+  history: ChangeRequestHistory[];
+};
+
+type DiffEntry = {
+  key: string;
+  kind: DiffKind;
+  before?: unknown;
+  after?: unknown;
 };
 const editableSections = [
   ['summary', 'Resumen ejecutivo'],
@@ -55,9 +65,7 @@ export function BriefPanel({
   const [editorContent, setEditorContent] = useState<TiptapNode | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [diff, setDiff] = useState<
-    Array<{ key: string; kind: string; before?: unknown; after?: unknown }>
-  >([]);
+  const [diff, setDiff] = useState<DiffEntry[]>([]);
   const [requests, setRequests] = useState<ChangeRequest[]>([]);
   const [editingRequest, setEditingRequest] = useState<string | null>(null);
   const [patchText, setPatchText] = useState('{}');
@@ -73,13 +81,15 @@ export function BriefPanel({
   useEffect(() => {
     if (!professional) return;
     let active = true;
-    api<ChangeRequest[]>(`/projects/${projectId}/change-requests`)
-      .then((result) => {
+    async function load() {
+      try {
+        const result = await api<ChangeRequest[]>(`/projects/${projectId}/change-requests`);
         if (active) setRequests(result);
-      })
-      .catch((e: unknown) => {
+      } catch (e: unknown) {
         if (active) setError(errorMessage(e));
-      });
+      }
+    }
+    void load();
     return () => {
       active = false;
     };
@@ -124,9 +134,7 @@ export function BriefPanel({
   async function showDiff() {
     if (!brief || brief.version < 2) return;
     try {
-      const result = await api<{
-        changes: Array<{ key: string; kind: string; before?: unknown; after?: unknown }>;
-      }>(
+      const result = await api<{ changes: DiffEntry[] }>(
         `/projects/${projectId}/brief/diff?from=${brief.version - 1}&to=${brief.version}`,
         {},
         token,
@@ -141,7 +149,7 @@ export function BriefPanel({
     setError('');
     try {
       const patch: unknown = JSON.parse(patchText);
-      if (!patch || typeof patch !== 'object' || Array.isArray(patch))
+      if (!patch || Array.isArray(patch))
         throw new Error('El patch debe ser un objeto JSON con campos del Brief.');
       await api(`/projects/${projectId}/change-requests/${change.id}/proposal`, {
         method: 'PATCH',
@@ -193,20 +201,20 @@ export function BriefPanel({
             {diff.map((change) => (
               <li key={`${change.kind}-${change.key}`}>
                 <strong>
-                  {change.kind === 'added'
+                  {change.kind === ('added' satisfies DiffKind)
                     ? 'Agregado'
-                    : change.kind === 'removed'
+                    : change.kind === ('removed' satisfies DiffKind)
                       ? 'Quitado'
                       : 'Modificado'}
                 </strong>
                 : {change.key}
-                {change.kind !== 'added' && (
+                {change.kind !== ('added' satisfies DiffKind) && (
                   <div className="diff-value">
                     <span>Antes</span>
                     <pre>{formatValue(change.before)}</pre>
                   </div>
                 )}
-                {change.kind !== 'removed' && (
+                {change.kind !== ('removed' satisfies DiffKind) && (
                   <div className="diff-value">
                     <span>Después</span>
                     <pre>{formatValue(change.after)}</pre>
@@ -577,7 +585,7 @@ function formatValue(value: unknown) {
   if (value === undefined) return '—';
   return typeof value === 'string' ? value : JSON.stringify(value, null, 2);
 }
-function statusLabel(status: string) {
+function statusLabel(status: ChangeRequest['status']) {
   return (
     {
       proposed: 'Pendiente',
@@ -587,7 +595,7 @@ function statusLabel(status: string) {
     }[status] ?? status
   );
 }
-function classificationLabel(classification: string) {
+function classificationLabel(classification: ChangeRequest['classification']) {
   return (
     {
       in_scope: 'Dentro del alcance',
