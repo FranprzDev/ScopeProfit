@@ -32,8 +32,7 @@ export const metadata: Metadata = {
     title: TITLE,
     description: DESCRIPTION,
   },
-  alternates: { canonical: SITE_URL },
-  robots: { index: true, follow: true },
+  robots: { index: false, follow: false },
 };
 
 const jsonLd = {
