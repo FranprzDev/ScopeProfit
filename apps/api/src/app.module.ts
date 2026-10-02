@@ -11,11 +11,7 @@ import { BriefController } from './modules/brief/brief.controller';
 import { DocumentsController } from './modules/documents/documents.controller';
 
 @Module({
-  imports: [
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 30 }]),
-    CoreModule,
-    TelegramModule,
-  ],
+  imports: [ThrottlerModule.forRoot([{ ttl: 60_000, limit: 30 }]), CoreModule, TelegramModule],
   controllers: [
     HealthController,
     AuthController,
