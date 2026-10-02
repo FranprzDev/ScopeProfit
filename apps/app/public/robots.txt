@@ -1,4 +1,8 @@
 User-agent: *
-Allow: /
+Allow: /checklist
+Disallow: /dashboard
+Disallow: /settings
+Disallow: /p/
+Disallow: /api/
 
 Sitemap: https://scopeprofit.app/sitemap.xml

@@ -1,4 +1,16 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
+
+const SITE_URL = 'https://scopeprofit.app';
+
+export const metadata: Metadata = {
+  title: 'Checklist de 20 preguntas para tu propuesta',
+  description:
+    'Las 20 preguntas esenciales que debés responder antes de enviar una propuesta comercial de software. Descubrí qué falta en tu relevamiento.',
+  alternates: { canonical: `${SITE_URL}/checklist` },
+  robots: { index: true, follow: true },
+};
+
 const questions = [
   '¿Qué problema concreto debe resolver el proyecto?',
   '¿Cómo se medirá que el resultado funciona?',
