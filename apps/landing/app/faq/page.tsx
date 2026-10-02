@@ -111,7 +111,7 @@ export default function FaqPage() {
     <div className={s.page}>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, '\\u003c') }}
       />
       <div className={s.bgGrid} />
       <div className={s.bgGlow} />
