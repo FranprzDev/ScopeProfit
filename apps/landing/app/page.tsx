@@ -269,6 +269,7 @@ export default function Home() {
         </div>
       </header>
 
+      <main>
       {/* HERO SECTION */}
       <section className={s.hero}>
         <div className={s.heroContent}>
@@ -305,7 +306,7 @@ export default function Home() {
               <FileCheck size={24} />
             </div>
             <div className={s.explainerText}>
-              <h3>En 30 segundos: ¿Qué hace ScopeProfit exactamente?</h3>
+              <h2>En 30 segundos: ¿Qué hace ScopeProfit exactamente?</h2>
               <p>
                 Le compartís a tu cliente un enlace a un bot de <strong>Telegram</strong>. Tu
                 cliente manda audios, capturas y textos contando su idea. Un agente de IA
@@ -441,7 +442,7 @@ export default function Home() {
                 </div>
 
                 <div>
-                  <h3
+                  <h2
                     style={{
                       fontSize: '1.15rem',
                       color: 'var(--text-white)',
@@ -450,7 +451,7 @@ export default function Home() {
                     }}
                   >
                     Creás el proyecto en 10 segundos y compartís el enlace seguro
-                  </h3>
+                  </h2>
                   <p
                     style={{
                       fontSize: '0.88rem',
@@ -839,7 +840,7 @@ export default function Home() {
                       AMBIGÜEDAD [ALTA]
                     </span>
                     <div className={s.engineDetails}>
-                      <h4>&quot;Panel de métricas estándar&quot;</h4>
+                      <h3>&quot;Panel de métricas estándar&quot;</h3>
                       <p>
                         Detectada falta de granularidad. Sin métricas explícitas definidas, el
                         cliente suele asumir exportación automática en PDF/Excel y gráficos en
@@ -850,7 +851,7 @@ export default function Home() {
                   <div className={s.engineRow}>
                     <span className={`${s.engineBadge} ${s.badgeRisk}`}>ZONA GRIS CONTRACTUAL</span>
                     <div className={s.engineDetails}>
-                      <h4>Sincronización con ERP externo</h4>
+                      <h3>Sincronización con ERP externo</h3>
                       <p>
                         Si el cliente no provee API documentada o credenciales en fecha acordada, el
                         desarrollo se detiene. Se genera cláusula de mitigación y dependencia
@@ -863,7 +864,7 @@ export default function Home() {
                       REQUERIMIENTO ESTRUCTURADO
                     </span>
                     <div className={s.engineDetails}>
-                      <h4>Módulo de Pedidos con Aprobación en 2 Pasos</h4>
+                      <h3>Módulo de Pedidos con Aprobación en 2 Pasos</h3>
                       <p>
                         Criterios de aceptación estipulados: Roles &apos;Distribuidor&apos; y
                         &apos;Administrador&apos;. Notificaciones por email incluidas, integración
@@ -1176,7 +1177,7 @@ export default function Home() {
 
                   <div className={s.specGrid}>
                     <div className={s.specCard}>
-                      <h5>INCLUYE (IN-SCOPE)</h5>
+                      <h4>INCLUYE (IN-SCOPE)</h4>
                       <ul>
                         <li>Autenticación por Magic Link para distribuidores y admin</li>
                         <li>Catálogo con filtro por categorías y lista de precios personalizada</li>
@@ -1186,7 +1187,7 @@ export default function Home() {
                     </div>
 
                     <div className={s.specCard}>
-                      <h5 style={{ color: '#ff5f56' }}>NO INCLUYE (OUT-OF-SCOPE)</h5>
+                      <h4 style={{ color: '#ff5f56' }}>NO INCLUYE (OUT-OF-SCOPE)</h4>
                       <ul>
                         <li>
                           Pasarela de cobro online con tarjeta (se acuerda factura fuera de sistema)
@@ -1727,7 +1728,7 @@ export default function Home() {
                 <MessageSquareQuote size={22} />
               </div>
             </div>
-            <h4 className={s.anatomyTitle}>Requerimientos con Cita Textual</h4>
+            <h3 className={s.anatomyTitle}>Requerimientos con Cita Textual</h3>
             <p className={s.anatomyText}>
               Cada funcionalidad queda respaldada con lo que el cliente dijo textualmente. Se
               terminan los debates de &quot;yo nunca te pedí eso&quot;.
@@ -1751,7 +1752,7 @@ export default function Home() {
                 <ShieldAlert size={22} />
               </div>
             </div>
-            <h4 className={s.anatomyTitle}>Límites Claros: Lo que NO incluye</h4>
+            <h3 className={s.anatomyTitle}>Límites Claros: Lo que NO incluye</h3>
             <p className={s.anatomyText}>
               Una lista explícita de lo que queda afuera. Si más adelante el cliente lo quiere
               sumar, se cobra como una ampliación formal de presupuesto.
@@ -1774,7 +1775,7 @@ export default function Home() {
                 <BadgeCheck size={22} />
               </div>
             </div>
-            <h4 className={s.anatomyTitle}>Criterios de Entrega Comprobables</h4>
+            <h3 className={s.anatomyTitle}>Criterios de Entrega Comprobables</h3>
             <p className={s.anatomyText}>
               Condiciones claras y objetivas para considerar terminado cada módulo, evitando que te
               retengan pagos por apreciaciones subjetivas.
@@ -1798,7 +1799,7 @@ export default function Home() {
                 <HelpCircle size={22} />
               </div>
             </div>
-            <h4 className={s.anatomyTitle}>Zonas Grises y Dudas Abiertas</h4>
+            <h3 className={s.anatomyTitle}>Zonas Grises y Dudas Abiertas</h3>
             <p className={s.anatomyText}>
               Puntos ciegos que el cliente todavía debe definir. Si alguna duda traba el
               presupuesto, queda anotada por escrito antes de cotizar.
@@ -1821,7 +1822,7 @@ export default function Home() {
                 <AlertTriangle size={22} />
               </div>
             </div>
-            <h4 className={s.anatomyTitle}>Riesgos y Dependencias Externas</h4>
+            <h3 className={s.anatomyTitle}>Riesgos y Dependencias Externas</h3>
             <p className={s.anatomyText}>
               Si el avance depende de que un tercero te entregue algo (APIs, cuentas bancarias,
               diseño), queda registrado para proteger tus tiempos.
@@ -1845,7 +1846,7 @@ export default function Home() {
                 <Timer size={22} />
               </div>
             </div>
-            <h4 className={s.anatomyTitle}>Estimación de Horas por Módulo</h4>
+            <h3 className={s.anatomyTitle}>Estimación de Horas por Módulo</h3>
             <p className={s.anatomyText}>
               Rango de tiempo estimado para cada parte del proyecto, permitiéndote presupuestar con
               margen de seguridad y sin sorpresas.
@@ -2115,6 +2116,8 @@ export default function Home() {
           </Link>
         </div>
       </section>
+
+      </main>
 
       {/* COMPACT MODERN FOOTER */}
       <footer className={s.footerCompact}>

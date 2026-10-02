@@ -92,8 +92,27 @@ export default function FaqPage() {
     setOpenMap((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const faqJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqGroups.flatMap((group) =>
+      group.items.map((item) => ({
+        '@type': 'Question',
+        name: item.q,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: item.a,
+        },
+      })),
+    ),
+  };
+
   return (
     <div className={s.page}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
       <div className={s.bgGrid} />
       <div className={s.bgGlow} />
 

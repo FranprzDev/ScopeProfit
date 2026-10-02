@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { SiteHeader, SiteFooter } from '@/components/site-shell';
 import './globals.css';
 
@@ -6,6 +6,11 @@ const SITE_URL = 'https://scopeprofit.app';
 const TITLE = 'ScopeProfit — Cerrá el alcance antes de cotizar, no después';
 const DESCRIPTION =
   'Chateá con tu cliente por Telegram y salí con un alcance de proyecto claro: requerimientos, riesgos y zonas grises detectadas antes de que te exploten en medio del desarrollo. PDF y Word listos para firmar.';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -43,6 +48,17 @@ const jsonLd = {
   applicationCategory: 'BusinessApplication',
   operatingSystem: 'Web',
   description: DESCRIPTION,
+  url: SITE_URL,
+  offers: {
+    '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'USD',
+  },
+  publisher: {
+    '@type': 'Organization',
+    name: 'ScopeProfit',
+    url: SITE_URL,
+  },
 };
 
 export default function Layout({ children }: Readonly<{ children: React.ReactNode }>) {
