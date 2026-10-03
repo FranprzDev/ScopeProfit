@@ -4,3 +4,4 @@ apps/api/src/modules/agent/.interview-pitch.md.swp
 **/dist/
 **/.next/
 **/.e2e/
+apps/app/next-env.d.ts
