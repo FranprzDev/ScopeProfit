@@ -1,4 +1,4 @@
-import type { AgentStatus, ProjectStatus, TiptapNode } from '@scopeprofit/contracts';
+import type { AgentStatus, ProjectStatus, QuoteStatus, TiptapNode } from '@scopeprofit/contracts';
 export const statusLabels: Record<ProjectStatus, string> = {
   draft: 'Borrador',
   in_review: 'En revisión',
@@ -6,6 +6,18 @@ export const statusLabels: Record<ProjectStatus, string> = {
   approved: 'Aprobado',
   delivered: 'Entregado',
   archived: 'Archivado',
+};
+export const quoteStatusLabels: Record<QuoteStatus, string> = {
+  draft: 'Borrador',
+  sent: 'Enviada',
+  accepted: 'Aceptada',
+  rejected: 'Rechazada',
+};
+export const quoteStatusTone: Record<QuoteStatus, string> = {
+  draft: '',
+  sent: 'amber',
+  accepted: 'success',
+  rejected: 'danger',
 };
 export const agentLabels: Record<AgentStatus, string> = {
   idle: 'Al día',
@@ -40,4 +52,19 @@ export function validateImage(file: { size: number; type: string }): string | nu
     return 'Solo se permiten imágenes JPG, PNG o WebP.';
   if (file.size > 10 * 1024 * 1024) return 'Cada imagen puede pesar hasta 10 MB.';
   return null;
+}
+export function money(value: number, currency: string): string {
+  const code = currency.toUpperCase();
+  try {
+    return new Intl.NumberFormat('es-AR', { style: 'currency', currency: code }).format(value);
+  } catch {
+    return `${value} ${code}`;
+  }
+}
+export function shortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('es-AR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
 }

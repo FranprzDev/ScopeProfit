@@ -2,9 +2,9 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import type { Page, Project, User } from '@scopeprofit/contracts';
+import type { Page, Project, QuoteSummary, User } from '@scopeprofit/contracts';
 import { api, ApiError, errorMessage } from '@/lib/api';
-import { statusLabels } from '@/lib/project';
+import { money, quoteStatusLabels, quoteStatusTone, shortDate, statusLabels } from '@/lib/project';
 export default function Dashboard() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -12,6 +12,8 @@ export default function Dashboard() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [cursor, setCursor] = useState<string | null>(null);
+  const [quotes, setQuotes] = useState<QuoteSummary[] | null>(null);
+  const [quotesError, setQuotesError] = useState('');
   useEffect(() => {
     let active = true;
     Promise.all([api<User>('/auth/me'), api<Page<Project>>('/projects')])
@@ -33,6 +35,22 @@ export default function Dashboard() {
       active = false;
     };
   }, [router]);
+  useEffect(() => {
+    if (user?.role !== 'professional') return;
+    let active = true;
+    api<{ quotes: QuoteSummary[] }>('/me/quotes')
+      .then((result) => {
+        if (active) setQuotes(result.quotes);
+      })
+      .catch((e) => {
+        if (!active || (e instanceof ApiError && e.status === 401)) return;
+        setQuotes([]);
+        setQuotesError(errorMessage(e));
+      });
+    return () => {
+      active = false;
+    };
+  }, [user]);
   async function more() {
     try {
       const page = await api<Page<Project>>(`/projects?cursor=${encodeURIComponent(cursor!)}`);
@@ -116,6 +134,47 @@ export default function Dashboard() {
             <button className="button secondary" onClick={more}>
               Cargar más proyectos
             </button>
+          )}
+          {user?.role === 'professional' && (
+            <section className="panel space-top" aria-label="Cotizaciones">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">PROPUESTAS</p>
+                  <h2>Cotizaciones</h2>
+                </div>
+              </div>
+              {quotesError && (
+                <p role="alert" className="error">
+                  {quotesError}
+                </p>
+              )}
+              {quotes === null ? (
+                <p role="status">Cargando cotizaciones…</p>
+              ) : quotes.length === 0 && !quotesError ? (
+                <p className="muted">
+                  Todavía no hay cotizaciones. Abrí un proyecto con Brief cargado y generá la
+                  propuesta desde su panel de Cotización.
+                </p>
+              ) : (
+                <ul className="quote-list">
+                  {quotes.map((quote) => (
+                    <li key={quote.id}>
+                      <Link className="quote-row" href={`/p/${quote.projectId}`}>
+                        <span className={`tag ${quoteStatusTone[quote.status]}`}>
+                          {quoteStatusLabels[quote.status]}
+                        </span>
+                        <strong>{quote.projectName}</strong>
+                        <span className="small muted">{shortDate(quote.updatedAt)}</span>
+                        <span className="quote-total">
+                          {money(quote.totalMin, quote.currency)} –{' '}
+                          {money(quote.totalMax, quote.currency)}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
           )}
         </>
       )}

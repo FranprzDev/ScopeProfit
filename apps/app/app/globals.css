@@ -213,6 +213,28 @@ th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid var(--borde
 .document-version { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.6rem 0; border-bottom: 1px solid var(--border); }
 .document-version .actions { display: flex; gap: 0.5rem; }
 
+/* Quotes */
+.quote-section { margin-top: 1.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.25rem; }
+.quote-body { display: flex; flex-direction: column; gap: 1rem; }
+.quote-body > .error, .quote-body > .notice, .quote-body > .success { margin-bottom: 0; }
+.quote-meta { display: flex; gap: 1rem; flex-wrap: wrap; }
+.quote-actions { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+.quote-milestones ul { list-style: none; padding: 0; margin: 0; }
+.quote-milestones li { display: flex; justify-content: space-between; gap: 1rem; padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
+.quote-editor table input { width: 100%; margin-bottom: 0; }
+.quote-editor select { padding: 0.55rem 0.7rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font: inherit; }
+.milestone-row { display: flex; gap: 0.5rem; align-items: center; }
+.milestone-row input { margin-bottom: 0.5rem; }
+.milestone-row input:first-child { flex: 1; min-width: 0; }
+.milestone-row input:not(:first-child) { width: 8rem; }
+.quote-list { list-style: none; padding: 0; margin: 0; }
+.quote-row { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; padding: 0.7rem 0; border-bottom: 1px solid var(--border); text-decoration: none; color: inherit; }
+.quote-row:hover { background: var(--bg); }
+.quote-row .quote-total { margin-left: auto; font-weight: 600; }
+.quote-list li:last-child .quote-row { border-bottom: none; }
+.tag.success { background: var(--success-bg); color: var(--success); }
+.tag.danger { background: var(--danger-bg); color: var(--danger); }
+
 .rich-editor { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
 .editor-toolbar { display: flex; gap: 0.25rem; padding: 0.4rem; border-bottom: 1px solid var(--border); background: var(--bg); flex-wrap: wrap; }
 .editor-toolbar button { border: 1px solid var(--border); background: var(--surface); border-radius: 6px; padding: 0.3rem 0.55rem; cursor: pointer; }
@@ -225,8 +247,9 @@ th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid var(--borde
   .hero { grid-template-columns: 1fr; }
   .workspace-columns { grid-template-columns: 1fr; }
   .mobile-tabs { display: flex; }
-  .chat-panel, .document-panel { display: none; }
+  .chat-panel, .document-panel, .quote-section { display: none; }
   .chat-panel.mobile-active, .document-panel.mobile-active { display: flex; }
+  .quote-section.mobile-active { display: block; }
 }
 
 @media (prefers-color-scheme: dark) {
