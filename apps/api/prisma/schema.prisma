@@ -34,6 +34,17 @@ enum ChangeRequestStatus {
  accepted
  rejected
 }
+enum QuoteStatus {
+ draft
+ sent
+ accepted
+ rejected
+}
+enum MaintenanceStatus {
+ active
+ paused
+ ended
+}
 model User {
  id String @id @default(uuid()) @db.Uuid
  email String? @unique
@@ -44,6 +55,7 @@ model User {
  sessions Session[]
  projects Project[]
  changeRequests ChangeRequest[]
+ rateCards RateCard[]
  @@map("users")
 }
 model Session {
@@ -95,6 +107,8 @@ model Project {
  briefVersions BriefVersion[]
  document Document?
  changeRequests ChangeRequest[]
+ quote Quote?
+ maintenance MaintenanceAgreement?
  @@index([ownerId])
  @@index([clientEmail])
  @@index([status])
@@ -112,6 +126,7 @@ model ChangeRequest {
  status ChangeRequestStatus @default(proposed)
  minHours Int? @map("min_hours")
  maxHours Int? @map("max_hours")
+ maintenanceEntries MaintenanceEntry[]
  createdAt DateTime @default(now()) @map("created_at")
  updatedAt DateTime @updatedAt @map("updated_at")
  @@index([projectId,createdAt])
@@ -227,4 +242,97 @@ model TelegramState {
  action String
  expiresAt DateTime @map("expires_at")
  @@map("telegram_states")
+}
+model RateCard {
+ id String @id @default(uuid()) @db.Uuid
+ ownerId String @db.Uuid @map("owner_id")
+ owner User @relation(fields:[ownerId],references:[id])
+ label String
+ hourlyRate Decimal @map("hourly_rate") @db.Decimal(12,2)
+ currency String @default("USD")
+ marginPercent Int @default(0) @map("margin_percent")
+ isDefault Boolean @default(false) @map("is_default")
+ active Boolean @default(true)
+ createdAt DateTime @default(now()) @map("created_at")
+ updatedAt DateTime @updatedAt @map("updated_at")
+ @@index([ownerId])
+ @@map("rate_cards")
+}
+model Quote {
+ id String @id @default(uuid()) @db.Uuid
+ projectId String @unique @db.Uuid @map("project_id")
+ project Project @relation(fields:[projectId],references:[id],onDelete:Cascade)
+ status QuoteStatus @default(draft)
+ currency String @default("USD")
+ subtotalMin Decimal @map("subtotal_min") @db.Decimal(12,2)
+ subtotalMax Decimal @map("subtotal_max") @db.Decimal(12,2)
+ totalMin Decimal @map("total_min") @db.Decimal(12,2)
+ totalMax Decimal @map("total_max") @db.Decimal(12,2)
+ validUntil DateTime? @map("valid_until")
+ terms String?
+ rateCardSnapshot Json? @map("rate_card_snapshot")
+ sentAt DateTime? @map("sent_at")
+ decidedAt DateTime? @map("decided_at")
+ createdAt DateTime @default(now()) @map("created_at")
+ updatedAt DateTime @updatedAt @map("updated_at")
+ lines QuoteLine[]
+ milestones QuoteMilestone[]
+ @@index([status])
+ @@map("quotes")
+}
+model QuoteLine {
+ id String @id @default(uuid()) @db.Uuid
+ quoteId String @db.Uuid @map("quote_id")
+ quote Quote @relation(fields:[quoteId],references:[id],onDelete:Cascade)
+ module String
+ minHours Int @map("min_hours")
+ maxHours Int @map("max_hours")
+ hourlyRate Decimal @map("hourly_rate") @db.Decimal(12,2)
+ priceMin Decimal @map("price_min") @db.Decimal(12,2)
+ priceMax Decimal @map("price_max") @db.Decimal(12,2)
+ position Int @default(0)
+ @@index([quoteId])
+ @@map("quote_lines")
+}
+model QuoteMilestone {
+ id String @id @default(uuid()) @db.Uuid
+ quoteId String @db.Uuid @map("quote_id")
+ quote Quote @relation(fields:[quoteId],references:[id],onDelete:Cascade)
+ name String
+ percent Int?
+ amount Decimal? @db.Decimal(12,2)
+ position Int @default(0)
+ @@index([quoteId])
+ @@map("quote_milestones")
+}
+model MaintenanceAgreement {
+ id String @id @default(uuid()) @db.Uuid
+ projectId String @unique @db.Uuid @map("project_id")
+ project Project @relation(fields:[projectId],references:[id],onDelete:Cascade)
+ status MaintenanceStatus @default(active)
+ hoursPerMonth Decimal @map("hours_per_month") @db.Decimal(6,2)
+ monthlyPrice Decimal? @map("monthly_price") @db.Decimal(12,2)
+ currency String @default("USD")
+ startDate DateTime @map("start_date")
+ endDate DateTime? @map("end_date")
+ createdAt DateTime @default(now()) @map("created_at")
+ updatedAt DateTime @updatedAt @map("updated_at")
+ entries MaintenanceEntry[]
+ @@index([status])
+ @@map("maintenance_agreements")
+}
+model MaintenanceEntry {
+ id String @id @default(uuid()) @db.Uuid
+ agreementId String @db.Uuid @map("agreement_id")
+ agreement MaintenanceAgreement @relation(fields:[agreementId],references:[id],onDelete:Cascade)
+ changeRequestId String? @db.Uuid @map("change_request_id")
+ changeRequest ChangeRequest? @relation(fields:[changeRequestId],references:[id],onDelete:SetNull)
+ date DateTime
+ hours Decimal @db.Decimal(6,2)
+ description String
+ billableExtra Boolean @default(false) @map("billable_extra")
+ createdAt DateTime @default(now()) @map("created_at")
+ @@index([agreementId])
+ @@index([changeRequestId])
+ @@map("maintenance_entries")
 }

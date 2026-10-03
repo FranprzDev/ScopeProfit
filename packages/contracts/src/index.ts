@@ -2,6 +2,8 @@ export type ProjectStatus =
   'draft' | 'in_review' | 'changes_requested' | 'approved' | 'delivered' | 'archived';
 export type AgentStatus =
   'idle' | 'pending' | 'running' | 'failed' | 'agent_configuration_required';
+export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'rejected';
+export type MaintenanceStatus = 'active' | 'paused' | 'ended';
 export interface User {
   id: string;
   email: string | null;
@@ -111,6 +113,79 @@ export interface ProjectState {
   pendingQuestions: Question[];
   updatedAt: string;
   status: ProjectStatus;
+}
+export interface RateCard {
+  id: string;
+  ownerId: string;
+  label: string;
+  hourlyRate: number;
+  currency: string;
+  marginPercent: number;
+  isDefault: boolean;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface QuoteLine {
+  id: string;
+  quoteId: string;
+  module: string;
+  minHours: number;
+  maxHours: number;
+  hourlyRate: number;
+  priceMin: number;
+  priceMax: number;
+  position: number;
+}
+export interface QuoteMilestone {
+  id: string;
+  quoteId: string;
+  name: string;
+  percent: number | null;
+  amount: number | null;
+  position: number;
+}
+export interface Quote {
+  id: string;
+  projectId: string;
+  status: QuoteStatus;
+  currency: string;
+  subtotalMin: number;
+  subtotalMax: number;
+  totalMin: number;
+  totalMax: number;
+  validUntil: string | null;
+  terms: string | null;
+  rateCardSnapshot: unknown;
+  sentAt: string | null;
+  decidedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  lines?: QuoteLine[];
+  milestones?: QuoteMilestone[];
+}
+export interface MaintenanceEntry {
+  id: string;
+  agreementId: string;
+  changeRequestId: string | null;
+  date: string;
+  hours: number;
+  description: string;
+  billableExtra: boolean;
+  createdAt: string;
+}
+export interface MaintenanceAgreement {
+  id: string;
+  projectId: string;
+  status: MaintenanceStatus;
+  hoursPerMonth: number;
+  monthlyPrice: number | null;
+  currency: string;
+  startDate: string;
+  endDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+  entries?: MaintenanceEntry[];
 }
 export interface Page<T> {
   items: T[];
