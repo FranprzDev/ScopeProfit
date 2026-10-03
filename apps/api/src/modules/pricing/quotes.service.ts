@@ -5,6 +5,7 @@ import {
   QuoteLine as QuoteLineRow,
   QuoteMilestone as QuoteMilestoneRow,
   QuoteStatus,
+  Role,
   User,
 } from '@prisma/client';
 import type {
@@ -16,9 +17,11 @@ import { PrismaService } from '../../prisma.service';
 import { AuthService } from '../auth/auth.service';
 import { fail } from '../../security';
 import { validateBrief } from '../brief/brief.validation';
+import { buildQuoteProposal, renderQuoteProposal } from '../documents/render-quote';
 import { computeQuoteTotals, type QuoteLineInput, type QuoteTotals } from './pricing.calc';
 import {
   assertDraftQuote,
+  assertSentQuote,
   parseRateCardSnapshot,
   validateQuoteLines,
   validateQuoteMilestones,
@@ -26,6 +29,14 @@ import {
 } from './pricing.validation';
 
 type QuoteWithRelations = QuoteRow & { lines: QuoteLineRow[]; milestones: QuoteMilestoneRow[] };
+
+export type QuoteDecision = typeof QuoteStatus.accepted | typeof QuoteStatus.rejected;
+
+export interface QuoteFile {
+  buffer: Buffer;
+  name: string;
+  mimeType: string;
+}
 
 export interface PopulatedQuote extends QuoteDto {
   lines: QuoteLineDto[];
@@ -97,13 +108,28 @@ export class QuotesService {
     return this.auth.project(user, projectId);
   }
 
-  async get(user: User, projectId: string): Promise<PopulatedQuote> {
-    await this.authorize(user, projectId);
+  private async clientAccess(user: User | null, projectId: string, rawToken?: string) {
+    if (user?.role === Role.professional) fail('FORBIDDEN', 403);
+    if (!rawToken) fail(user ? 'FORBIDDEN' : 'UNAUTHENTICATED', user ? 403 : 401);
+    await this.auth.checkLink(projectId, rawToken);
+  }
+
+  private async readAccess(user: User | null, projectId: string, rawToken?: string) {
+    if (user?.role === Role.professional) {
+      await this.authorize(user, projectId);
+      return false;
+    }
+    await this.clientAccess(user, projectId, rawToken);
+    return true;
+  }
+
+  async get(user: User | null, projectId: string, rawToken?: string): Promise<PopulatedQuote> {
+    const viaLink = await this.readAccess(user, projectId, rawToken);
     const quote = await this.db.quote.findUnique({
       where: { projectId },
       include: quoteInclude(),
     });
-    if (!quote) fail('QUOTE_NOT_FOUND', 404);
+    if (!quote || (viaLink && quote.status === QuoteStatus.draft)) fail('QUOTE_NOT_FOUND', 404);
     return toQuoteDto(quote);
   }
 
@@ -240,6 +266,103 @@ export class QuotesService {
       return tx.quote.findUniqueOrThrow({ where: { id: updated.id }, include: quoteInclude() });
     });
     return toQuoteDto(saved);
+  }
+
+  async send(user: User, projectId: string): Promise<PopulatedQuote> {
+    await this.authorize(user, projectId);
+    const quote = await this.db.quote.findUnique({
+      where: { projectId },
+      include: quoteInclude(),
+    });
+    if (!quote) fail('QUOTE_NOT_FOUND', 404);
+    assertDraftQuote(quote.status);
+    const sent = await this.db.$transaction(async (tx) => {
+      const changed = await tx.quote.updateMany({
+        where: { id: quote.id, status: QuoteStatus.draft },
+        data: { status: QuoteStatus.sent, sentAt: new Date() },
+      });
+      if (changed.count !== 1) fail('QUOTE_NOT_DRAFT', 409);
+      await tx.auditEvent.create({
+        data: {
+          projectId,
+          actorId: user.id,
+          action: 'quote.sent',
+          result: 'success',
+          metadata: { quoteId: quote.id },
+        },
+      });
+      return tx.quote.findUniqueOrThrow({ where: { id: quote.id }, include: quoteInclude() });
+    });
+    return toQuoteDto(sent);
+  }
+
+  async decide(
+    user: User | null,
+    projectId: string,
+    rawToken: string | undefined,
+    decision: QuoteDecision,
+  ): Promise<PopulatedQuote> {
+    await this.clientAccess(user, projectId, rawToken);
+    const quote = await this.db.quote.findUnique({
+      where: { projectId },
+      include: quoteInclude(),
+    });
+    if (!quote) fail('QUOTE_NOT_FOUND', 404);
+    assertSentQuote(quote.status);
+    const decided = await this.db.$transaction(async (tx) => {
+      const changed = await tx.quote.updateMany({
+        where: { id: quote.id, status: QuoteStatus.sent },
+        data: { status: decision, decidedAt: new Date() },
+      });
+      if (changed.count !== 1) fail('QUOTE_NOT_SENDABLE', 409);
+      await tx.auditEvent.create({
+        data: {
+          projectId,
+          actorId: user?.id ?? null,
+          action: 'quote.decided',
+          result: 'success',
+          metadata: { quoteId: quote.id, decision },
+        },
+      });
+      return tx.quote.findUniqueOrThrow({ where: { id: quote.id }, include: quoteInclude() });
+    });
+    return toQuoteDto(decided);
+  }
+
+  async download(
+    user: User | null,
+    projectId: string,
+    format: string,
+    rawToken?: string,
+  ): Promise<QuoteFile> {
+    const viaLink = await this.readAccess(user, projectId, rawToken);
+    if (format !== 'pdf' && format !== 'docx') fail('INVALID_FORMAT', 400);
+    const quote = await this.db.quote.findUnique({
+      where: { projectId },
+      include: quoteInclude(),
+    });
+    if (!quote || (viaLink && quote.status === QuoteStatus.draft)) fail('QUOTE_NOT_FOUND', 404);
+    const project = await this.db.project.findUnique({
+      where: { id: projectId },
+      include: { owner: true },
+    });
+    if (!project) fail('PROJECT_NOT_FOUND', 404);
+    const buffers = await renderQuoteProposal(
+      buildQuoteProposal(toQuoteDto(quote), {
+        projectName: project.name,
+        clientName: project.clientEmail || 'Cliente',
+        author: project.owner.email || 'Profesional',
+        date: new Date().toISOString(),
+      }),
+    );
+    return {
+      buffer: format === 'pdf' ? buffers.pdf : buffers.docx,
+      name: `scope-${projectId}-quote.${format}`,
+      mimeType:
+        format === 'pdf'
+          ? 'application/pdf'
+          : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    };
   }
 
   private async findRateCard(user: User, rateCardId?: string) {
