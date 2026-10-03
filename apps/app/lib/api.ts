@@ -51,6 +51,16 @@ export function errorMessage(error: unknown): string {
       INVALID_QUOTE_LINE: 'Revisá las horas de cada línea: el máximo no puede ser menor al mínimo.',
       INVALID_MILESTONES:
         'Los hitos deben sumar 100% en porcentaje, o tener todos montos mayores a cero.',
+      MAINTENANCE_NOT_FOUND: 'Este proyecto todavía no tiene un retainer de mantenimiento.',
+      MAINTENANCE_EXISTS: 'Este proyecto ya tiene un retainer de mantenimiento.',
+      MAINTENANCE_ENDED: 'El retainer fue finalizado y no se puede reabrir.',
+      MAINTENANCE_NOT_ACTIVE:
+        'El retainer no está activo. Reanudalo antes de registrar un consumo.',
+      CHANGE_REQUEST_NOT_ACCEPTED: 'Solo podés vincular un change request aceptado por el cliente.',
+      INVALID_MAINTENANCE_AGREEMENT:
+        'Revisá las horas por mes, el precio y la fecha de inicio del retainer.',
+      INVALID_MAINTENANCE_ENTRY:
+        'Revisá la fecha, las horas (mayores a cero) y la descripción del consumo.',
     };
     return messages[error.code] ?? error.message;
   }

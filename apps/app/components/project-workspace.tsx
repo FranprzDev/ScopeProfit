@@ -20,6 +20,7 @@ import {
   validateImage,
 } from '@/lib/project';
 import { BriefPanel } from './brief-panel';
+import { MaintenancePanel } from './maintenance-panel';
 import { QuotePanel } from './quote-panel';
 export function ProjectWorkspace({ projectId }: { projectId: string }) {
   const router = useRouter();
@@ -36,7 +37,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   const [file, setFile] = useState<File | null>(null);
   const [pollGeneration, setPollGeneration] = useState(0);
   const [pollError, setPollError] = useState('');
-  const [tab, setTab] = useState<'chat' | 'brief' | 'quote'>('chat');
+  const [tab, setTab] = useState<'chat' | 'brief' | 'quote' | 'maintenance'>('chat');
   const [messageCursor, setMessageCursor] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const bottom = useRef<HTMLDivElement>(null);
@@ -292,6 +293,15 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
         <button role="tab" aria-selected={tab === 'quote'} onClick={() => setTab('quote')}>
           Cotización
         </button>
+        {professional && (
+          <button
+            role="tab"
+            aria-selected={tab === 'maintenance'}
+            onClick={() => setTab('maintenance')}
+          >
+            Mantenimiento
+          </button>
+        )}
       </div>
       <div className="workspace-columns">
         <section
@@ -472,6 +482,14 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
       >
         <QuotePanel projectId={projectId} professional={professional} token={token} />
       </section>
+      {professional && (
+        <section
+          className={`maintenance-section ${tab === 'maintenance' ? 'mobile-active' : ''}`}
+          aria-label="Mantenimiento"
+        >
+          <MaintenancePanel projectId={projectId} professional={professional} token={token} />
+        </section>
+      )}
     </main>
   );
 }

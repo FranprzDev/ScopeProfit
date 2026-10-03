@@ -12,6 +12,7 @@ import type {
   MaintenanceBalance as BalanceDto,
   MaintenanceEntry as EntryDto,
   MaintenanceMonth as MonthDto,
+  MaintenanceSummary as SummaryDto,
 } from '@scopeprofit/contracts';
 import { PrismaService } from '../../prisma.service';
 import { AuthService } from '../auth/auth.service';
@@ -85,6 +86,27 @@ export class MaintenanceService {
   private async authorize(user: User, projectId: string) {
     this.auth.professional(user);
     return this.auth.project(user, projectId);
+  }
+
+  async listMine(user: User): Promise<{ agreements: SummaryDto[] }> {
+    this.auth.professional(user);
+    const rows = await this.db.maintenanceAgreement.findMany({
+      where: { project: { ownerId: user.id } },
+      orderBy: { startDate: 'desc' },
+      include: { project: { select: { name: true } } },
+    });
+    return {
+      agreements: rows.map((row) => ({
+        id: row.id,
+        projectId: row.projectId,
+        projectName: row.project.name,
+        status: row.status,
+        hoursPerMonth: Number(row.hoursPerMonth),
+        monthlyPrice: row.monthlyPrice === null ? null : Number(row.monthlyPrice),
+        currency: row.currency,
+        startDate: row.startDate.toISOString(),
+      })),
+    };
   }
 
   async get(user: User, projectId: string): Promise<AgreementDto> {
