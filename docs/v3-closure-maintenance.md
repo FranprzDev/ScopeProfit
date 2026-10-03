@@ -50,14 +50,14 @@ Hoy el producto cubre del lead desordenado al documento de alcance aprobado (Bri
 
 ## Modelo de datos nuevo
 
-| Modelo | Relación | Notas |
-|---|---|---|
-| `RateCard` | `ownerId → User` | tarifa, moneda, margen, vigencia, `isDefault` |
-| `Quote` | `projectId @unique` | estado, moneda, totales, validez, T&C, snapshot de rate card |
-| `QuoteLine` | `quoteId` | módulo, min/max horas, tarifa, precio min/max |
-| `QuoteMilestone` | `quoteId` | nombre, porcentaje/monto, orden |
-| `MaintenanceAgreement` | `projectId` | horas/mes, precio/mes, inicio/fin, estado |
-| `MaintenanceEntry` | `agreementId`, `changeRequestId?` | fecha, horas, descripción |
+| Modelo                 | Relación                          | Notas                                                        |
+| ---------------------- | --------------------------------- | ------------------------------------------------------------ |
+| `RateCard`             | `ownerId → User`                  | tarifa, moneda, margen, vigencia, `isDefault`                |
+| `Quote`                | `projectId @unique`               | estado, moneda, totales, validez, T&C, snapshot de rate card |
+| `QuoteLine`            | `quoteId`                         | módulo, min/max horas, tarifa, precio min/max                |
+| `QuoteMilestone`       | `quoteId`                         | nombre, porcentaje/monto, orden                              |
+| `MaintenanceAgreement` | `projectId`                       | horas/mes, precio/mes, inicio/fin, estado                    |
+| `MaintenanceEntry`     | `agreementId`, `changeRequestId?` | fecha, horas, descripción                                    |
 
 Enums nuevos (Prisma): `QuoteStatus`, `MaintenanceStatus`. Los documentos de propuesta reutilizan `Document`/`DocumentVersion` con un `kind` distinguishable si hace falta.
 
@@ -72,16 +72,16 @@ Todos responden con `ok(...)` / `fail(CODE)`, validación con `class-validator` 
 
 ## Stacks (orden de merge)
 
-| Stack | Rama | Contenido |
-|---|---|---|
-| S0 | `chore/v3-setup` | baseline (format fix), skill e2e, este doc |
-| S1 | `feat/v3-pricing-schema` | schema Prisma + migración + contratos |
-| S2 | `feat/v3-quote-api` | rate card + quote API + tests |
-| S3 | `feat/v3-quote-docs` | propuesta PDF/DOCX + aprobación + tests |
-| S4 | `feat/v3-maintenance-api` | retainer + consumos + saldo + tests |
-| S5 | `feat/v3-quote-ui` | UI cotización |
-| S6 | `feat/v3-maintenance-ui` | UI mantenimiento |
-| S7 | `feat/v3-e2e-suite` | suite E2E + config |
+| Stack | Rama                      | Contenido                                  |
+| ----- | ------------------------- | ------------------------------------------ |
+| S0    | `chore/v3-setup`          | baseline (format fix), skill e2e, este doc |
+| S1    | `feat/v3-pricing-schema`  | schema Prisma + migración + contratos      |
+| S2    | `feat/v3-quote-api`       | rate card + quote API + tests              |
+| S3    | `feat/v3-quote-docs`      | propuesta PDF/DOCX + aprobación + tests    |
+| S4    | `feat/v3-maintenance-api` | retainer + consumos + saldo + tests        |
+| S5    | `feat/v3-quote-ui`        | UI cotización                              |
+| S6    | `feat/v3-maintenance-ui`  | UI mantenimiento                           |
+| S7    | `feat/v3-e2e-suite`       | suite E2E + config                         |
 
 ## Referencias de trabajo previo (no mergeado)
 
