@@ -18,7 +18,7 @@ import { PrismaService } from '../src/prisma.service';
 import { DocumentsService } from '../src/modules/documents/documents.service';
 import { emptyBrief } from '@scopeprofit/contracts';
 import { Prisma } from '@prisma/client';
-import { hash, token } from '../src/security';
+import { encrypt, hash, token } from '../src/security';
 
 const skip = !process.env.DATABASE_URL;
 let app: INestApplication;
@@ -386,5 +386,142 @@ test(
     });
     assert.equal(patched.status, 200);
     assert.equal((await patched.json()).data.monthlyPrice, 600);
+  },
+);
+
+test(
+  'the quote proposal is downloadable by the professional and decidable by the client link',
+  { skip: skip ? 'DATABASE_URL not set' : false },
+  async () => {
+    const owner = await db.user.upsert({
+      where: { telegramId: '111' },
+      create: { telegramId: '111', role: 'professional' },
+      update: { role: 'professional' },
+    });
+    const ownerSession = token();
+    await db.session.create({
+      data: {
+        userId: owner.id,
+        tokenHash: hash(ownerSession),
+        expiresAt: new Date(Date.now() + 60000),
+      },
+    });
+    const cookie = `sp_session=${ownerSession}`;
+    const project = await db.project.create({
+      data: {
+        name: 'E2E propuesta',
+        ownerId: owner.id,
+        brief: {
+          create: {
+            data: {
+              ...emptyBrief(),
+              estimates: [{ module: 'Auth', minHours: 10, maxHours: 20, uncertainty: 'baja' }],
+            } as unknown as Prisma.InputJsonValue,
+          },
+        },
+        document: { create: {} },
+      },
+    });
+    const quoteUrl = `${baseUrl}/api/projects/${project.id}/quote`;
+    const jsonHeaders = { 'content-type': 'application/json', cookie };
+
+    const rateCard = await fetch(`${baseUrl}/api/me/rate-card`, {
+      method: 'PUT',
+      headers: jsonHeaders,
+      body: JSON.stringify({
+        label: 'Estándar',
+        hourlyRate: 100,
+        currency: 'USD',
+        marginPercent: 10,
+      }),
+    });
+    assert.equal(rateCard.status, 200);
+
+    const generated = await fetch(`${quoteUrl}/generate`, {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({}),
+    });
+    assert.equal(generated.status, 201);
+    const patched = await fetch(quoteUrl, {
+      method: 'PATCH',
+      headers: jsonHeaders,
+      body: JSON.stringify({
+        terms: 'Pago contra entrega',
+        validUntil: '2030-01-01T00:00:00.000Z',
+        milestones: [
+          { name: 'Arranque', percent: 50 },
+          { name: 'Entrega', percent: 50 },
+        ],
+      }),
+    });
+    assert.equal(patched.status, 200);
+
+    const sent = await fetch(`${quoteUrl}/send`, { method: 'POST', headers: jsonHeaders });
+    const sentBody = await sent.json();
+    assert.equal(sent.status, 201);
+    assert.equal(sentBody.data.status, 'sent');
+    assert.ok(sentBody.data.sentAt);
+    const twice = await fetch(`${quoteUrl}/send`, { method: 'POST', headers: jsonHeaders });
+    assert.equal(twice.status, 409);
+    assert.equal((await twice.json()).error.code, 'QUOTE_NOT_DRAFT');
+
+    const pdf = await fetch(`${quoteUrl}/pdf`, { headers: { cookie } });
+    assert.equal(pdf.status, 200);
+    assert.match(pdf.headers.get('content-type') ?? '', /^application\/pdf/);
+    assert.match(pdf.headers.get('content-disposition') ?? '', /quote\.pdf"$/);
+    assert.ok((await pdf.arrayBuffer()).byteLength > 1000, 'expected a non empty PDF');
+    const docx = await fetch(`${quoteUrl}/docx`, { headers: { cookie } });
+    assert.equal(docx.status, 200);
+    assert.match(
+      docx.headers.get('content-type') ?? '',
+      /^application\/vnd\.openxmlformats-officedocument\.wordprocessingml\.document/,
+    );
+    assert.match(docx.headers.get('content-disposition') ?? '', /quote\.docx"$/);
+    assert.ok((await docx.arrayBuffer()).byteLength > 1000, 'expected a non empty DOCX');
+
+    const clientToken = token();
+    await db.projectLink.create({
+      data: {
+        projectId: project.id,
+        tokenHash: hash(clientToken),
+        encryptedToken: encrypt(clientToken),
+      },
+    });
+    const linkHeaders = { 'x-project-token': clientToken };
+
+    const before = await fetch(quoteUrl, { headers: linkHeaders });
+    assert.equal(before.status, 200);
+    assert.equal((await before.json()).data.status, 'sent');
+
+    const professional = await fetch(`${quoteUrl}/decision`, {
+      method: 'POST',
+      headers: jsonHeaders,
+      body: JSON.stringify({ decision: 'accepted' }),
+    });
+    assert.equal(professional.status, 403);
+    assert.equal((await professional.json()).error.code, 'FORBIDDEN');
+
+    const decision = await fetch(`${quoteUrl}/decision`, {
+      method: 'POST',
+      headers: { ...linkHeaders, 'content-type': 'application/json' },
+      body: JSON.stringify({ decision: 'accepted' }),
+    });
+    const decisionBody = await decision.json();
+    assert.equal(decision.status, 201);
+    assert.equal(decisionBody.data.status, 'accepted');
+    assert.ok(decisionBody.data.decidedAt);
+
+    const after = await fetch(quoteUrl, { headers: linkHeaders });
+    assert.equal(after.status, 200);
+    assert.equal((await after.json()).data.status, 'accepted');
+
+    const repeated = await fetch(`${quoteUrl}/decision`, {
+      method: 'POST',
+      headers: { ...linkHeaders, 'content-type': 'application/json' },
+      body: JSON.stringify({ decision: 'rejected' }),
+    });
+    assert.equal(repeated.status, 409);
+    assert.equal((await repeated.json()).error.code, 'QUOTE_NOT_SENDABLE');
   },
 );

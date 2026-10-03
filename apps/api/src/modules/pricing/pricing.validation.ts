@@ -59,6 +59,10 @@ export function assertDraftQuote(status: QuoteStatus): void {
   if (status !== QuoteStatus.draft) fail('QUOTE_NOT_DRAFT', 409);
 }
 
+export function assertSentQuote(status: QuoteStatus): void {
+  if (status !== QuoteStatus.sent) fail('QUOTE_NOT_SENDABLE', 409);
+}
+
 export function parseRateCardSnapshot(snapshot: unknown): QuoteRateCard | null {
   if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) return null;
   const raw = snapshot as Record<string, unknown>;
