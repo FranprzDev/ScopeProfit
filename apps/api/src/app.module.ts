@@ -13,6 +13,7 @@ import { RateCardController } from './modules/pricing/rate-card.controller';
 import { QuoteController } from './modules/pricing/quote.controller';
 import { MyQuotesController } from './modules/pricing/my-quotes.controller';
 import { MaintenanceController } from './modules/maintenance/maintenance.controller';
+import { MyMaintenanceController } from './modules/maintenance/my-maintenance.controller';
 
 @Module({
   imports: [ThrottlerModule.forRoot([{ ttl: 60_000, limit: 30 }]), CoreModule, TelegramModule],
@@ -27,6 +28,7 @@ import { MaintenanceController } from './modules/maintenance/maintenance.control
     QuoteController,
     MyQuotesController,
     MaintenanceController,
+    MyMaintenanceController,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

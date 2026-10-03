@@ -4,6 +4,7 @@ export type AgentStatus =
   'idle' | 'pending' | 'running' | 'failed' | 'agent_configuration_required';
 export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'rejected';
 export type MaintenanceStatus = 'active' | 'paused' | 'ended';
+export type ChangeRequestStatus = 'proposed' | 'accepted' | 'rejected';
 export interface User {
   id: string;
   email: string | null;
@@ -201,6 +202,16 @@ export interface MaintenanceAgreement {
 export interface MaintenanceMonth {
   month: string;
   entries: MaintenanceEntry[];
+}
+export interface MaintenanceSummary {
+  id: string;
+  projectId: string;
+  projectName: string;
+  status: MaintenanceStatus;
+  hoursPerMonth: number;
+  monthlyPrice: number | null;
+  currency: string;
+  startDate: string;
 }
 export interface MaintenanceBalance {
   month: string;

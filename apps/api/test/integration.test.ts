@@ -1,6 +1,6 @@
 process.env.ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || Buffer.alloc(32, 7).toString('base64');
 const runId = Date.now();
-const ownerTelegramIds = Array.from({ length: 14 }, (_, index) => `owner-${index + 1}-${runId}`);
+const ownerTelegramIds = Array.from({ length: 16 }, (_, index) => `owner-${index + 1}-${runId}`);
 process.env.TELEGRAM_AUTHORIZED_USER_IDS = ownerTelegramIds.join(',');
 
 import { test, before, after } from 'node:test';
@@ -805,5 +805,66 @@ test(
       await db.maintenanceEntry.count({ where: { agreement: { projectId: project.id } } }),
       0,
     );
+  },
+);
+
+test(
+  'the dashboard maintenance summary lists only the owner agreements and rejects client users',
+  { skip: skip ? 'DATABASE_URL not set' : false },
+  async () => {
+    const owner = await db.user.create({
+      data: { telegramId: `owner-15-${runId}`, role: 'professional' },
+    });
+    const stranger = await db.user.create({
+      data: { telegramId: `owner-16-${runId}`, role: 'professional' },
+    });
+    const client = await db.user.create({
+      data: { email: `maintenance-summary-${runId}@example.com`, role: 'client' },
+    });
+
+    const oldest = await projects.create(owner, 'Retainer Acme');
+    const newest = await projects.create(owner, 'Retainer Beta');
+    await projects.create(owner, 'Proyecto sin retainer');
+    await maintenance.create(owner, oldest.id, {
+      hoursPerMonth: 10,
+      monthlyPrice: 1200,
+      currency: 'usd',
+      startDate: '2026-01-01T00:00:00.000Z',
+    });
+    await maintenance.create(owner, newest.id, {
+      hoursPerMonth: 4,
+      currency: 'USD',
+      startDate: '2026-03-01T00:00:00.000Z',
+    });
+    const foreignProject = await projects.create(stranger, 'Retainer ajeno');
+    await maintenance.create(stranger, foreignProject.id, {
+      hoursPerMonth: 8,
+      currency: 'USD',
+      startDate: '2026-02-01T00:00:00.000Z',
+    });
+
+    const { agreements } = await maintenance.listMine(owner);
+    assert.equal(agreements.length, 2);
+    assert.deepEqual(
+      agreements.map((entry) => entry.projectName),
+      ['Retainer Beta', 'Retainer Acme'],
+    );
+    assert.ok(
+      agreements.every((entry) => entry.projectId !== foreignProject.id),
+      'expected other owners agreements to stay out of the summary',
+    );
+    assert.ok(agreements.every((entry) => entry.status === MaintenanceStatus.active));
+    assert.deepEqual(
+      agreements.map((entry) => entry.startDate),
+      ['2026-03-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z'],
+    );
+    assert.equal(agreements[0].hoursPerMonth, 4);
+    assert.equal(agreements[0].monthlyPrice, null);
+    assert.equal(agreements[0].currency, 'USD');
+    assert.equal(agreements[1].hoursPerMonth, 10);
+    assert.equal(agreements[1].monthlyPrice, 1200);
+    assert.equal(agreements[1].currency, 'USD');
+
+    await assert.rejects(maintenance.listMine(client), rejectedWith('FORBIDDEN', 403));
   },
 );
