@@ -18,6 +18,7 @@ import { PrismaService } from '../src/prisma.service';
 import { DocumentsService } from '../src/modules/documents/documents.service';
 import { emptyBrief } from '@scopeprofit/contracts';
 import { Prisma } from '@prisma/client';
+import { hash, token } from '../src/security';
 
 const skip = !process.env.DATABASE_URL;
 let app: INestApplication;
@@ -178,5 +179,92 @@ test(
       where: { documentId_version: { documentId: saved.documentId, version: 1 } },
     });
     assert.ok(persisted, 'expected the generated document version to be persisted');
+  },
+);
+
+test(
+  'the pricing routes reject anonymous and client sessions while the default rate card persists',
+  { skip: skip ? 'DATABASE_URL not set' : false },
+  async () => {
+    const anonymous = await fetch(`${baseUrl}/api/me/rate-card`);
+    const anonymousBody = await anonymous.json();
+    assert.equal(anonymous.status, 401);
+    assert.equal(anonymousBody.error.code, 'UNAUTHENTICATED');
+    const quoteUrl = `${baseUrl}/api/projects/00000000-0000-0000-0000-000000000000/quote`;
+    assert.equal((await fetch(quoteUrl)).status, 401);
+    assert.equal((await fetch(`${quoteUrl}/generate`, { method: 'POST' })).status, 401);
+
+    const client = await db.user.upsert({
+      where: { email: 'e2e-pricing-client@example.com' },
+      create: { email: 'e2e-pricing-client@example.com', role: 'client' },
+      update: { role: 'client' },
+    });
+    const clientSession = token();
+    await db.session.create({
+      data: {
+        userId: client.id,
+        tokenHash: hash(clientSession),
+        expiresAt: new Date(Date.now() + 60000),
+      },
+    });
+    const denied = await fetch(`${baseUrl}/api/me/rate-card`, {
+      headers: { cookie: `sp_session=${clientSession}` },
+    });
+    const deniedBody = await denied.json();
+    assert.equal(denied.status, 403);
+    assert.equal(deniedBody.error.code, 'FORBIDDEN');
+    const deniedQuote = await fetch(quoteUrl, {
+      headers: { cookie: `sp_session=${clientSession}` },
+    });
+    assert.equal(deniedQuote.status, 403);
+    assert.equal((await deniedQuote.json()).error.code, 'FORBIDDEN');
+
+    const owner = await db.user.upsert({
+      where: { telegramId: '111' },
+      create: { telegramId: '111', role: 'professional' },
+      update: { role: 'professional' },
+    });
+    const ownerSession = token();
+    await db.session.create({
+      data: {
+        userId: owner.id,
+        tokenHash: hash(ownerSession),
+        expiresAt: new Date(Date.now() + 60000),
+      },
+    });
+    const cookie = `sp_session=${ownerSession}`;
+    const invalid = await fetch(`${baseUrl}/api/me/rate-card`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json', cookie },
+      body: JSON.stringify({
+        label: 'Estándar',
+        hourlyRate: 0,
+        currency: 'USD',
+        marginPercent: 10,
+      }),
+    });
+    assert.equal(invalid.status, 400);
+
+    const created = await fetch(`${baseUrl}/api/me/rate-card`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json', cookie },
+      body: JSON.stringify({
+        label: 'Estándar',
+        hourlyRate: 100,
+        currency: 'USD',
+        marginPercent: 10,
+      }),
+    });
+    const createdBody = await created.json();
+    assert.equal(created.status, 200);
+    assert.equal(createdBody.success, true);
+    assert.equal(createdBody.data.hourlyRate, 100);
+    assert.equal(createdBody.data.isDefault, true);
+
+    const read = await fetch(`${baseUrl}/api/me/rate-card`, { headers: { cookie } });
+    const readBody = await read.json();
+    assert.equal(read.status, 200);
+    assert.equal(readBody.data.id, createdBody.data.id);
+    assert.equal(readBody.data.marginPercent, 10);
   },
 );
