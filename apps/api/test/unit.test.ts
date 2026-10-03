@@ -4,7 +4,7 @@ process.env.TELEGRAM_AUTHORIZED_USER_IDS = process.env.TELEGRAM_AUTHORIZED_USER_
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { HttpException } from '@nestjs/common';
-import { QuoteStatus } from '@prisma/client';
+import { MaintenanceStatus, QuoteStatus } from '@prisma/client';
 import { encrypt, decrypt, hash, secureEqual, authorizedTelegramIds } from '../src/security';
 import { validateBrief, validateSources } from '../src/modules/brief/brief.validation';
 import { validateEditor, markdown } from '../src/modules/documents/render';
@@ -22,6 +22,13 @@ import {
   validateQuoteLines,
   validateQuoteMilestones,
 } from '../src/modules/pricing/pricing.validation';
+import { computeBalance, computeEntrySplit } from '../src/modules/maintenance/maintenance.calc';
+import {
+  assertMaintenanceActive,
+  assertReopenable,
+  monthRange,
+  validateEntryInput,
+} from '../src/modules/maintenance/maintenance.validation';
 import type { TiptapNode } from '@scopeprofit/contracts';
 
 test('Jev clarification threshold routes uncertain briefs to the LLM', () => {
@@ -318,4 +325,145 @@ test('parseRateCardSnapshot reads a snapshot and rejects malformed ones', () => 
     null,
   );
   assert.equal(parseRateCardSnapshot({ hourlyRate: 0, marginPercent: 10, currency: 'USD' }), null);
+});
+
+const maintenanceFailure = (code: string, status: number) => (error: unknown) =>
+  error instanceof HttpException && error.message === code && error.getStatus() === status;
+
+test('computeEntrySplit drains the retainer before billing extra hours', () => {
+  assert.deepEqual(computeEntrySplit(3, 10), {
+    fromRetainer: 3,
+    extraHours: 0,
+    billableExtra: false,
+  });
+  assert.deepEqual(computeEntrySplit(3, 2), {
+    fromRetainer: 2,
+    extraHours: 1,
+    billableExtra: true,
+  });
+  assert.deepEqual(computeEntrySplit(3, 0), {
+    fromRetainer: 0,
+    extraHours: 3,
+    billableExtra: true,
+  });
+  assert.deepEqual(computeEntrySplit(5, 5), {
+    fromRetainer: 5,
+    extraHours: 0,
+    billableExtra: false,
+  });
+  assert.deepEqual(computeEntrySplit(1.5, 1.25), {
+    fromRetainer: 1.25,
+    extraHours: 0.25,
+    billableExtra: true,
+  });
+});
+
+test('computeBalance mixes retainer and extra consumption and rounds to two decimals', () => {
+  assert.deepEqual(
+    computeBalance(
+      [
+        { hours: 2, extraHours: 0 },
+        { hours: 3, extraHours: 1 },
+      ],
+      5,
+    ),
+    { hoursPerMonth: 5, consumedRetainer: 4, consumedExtra: 1, remaining: 1, entriesCount: 2 },
+  );
+  assert.deepEqual(
+    computeBalance(
+      [
+        { hours: 1.05, extraHours: 0 },
+        { hours: 2.5, extraHours: 0.25 },
+      ],
+      4,
+    ),
+    {
+      hoursPerMonth: 4,
+      consumedRetainer: 3.3,
+      consumedExtra: 0.25,
+      remaining: 0.7,
+      entriesCount: 2,
+    },
+  );
+});
+
+test('computeBalance clamps the remaining hours at zero', () => {
+  const totals = computeBalance([{ hours: 10, extraHours: 4 }], 4);
+  assert.equal(totals.consumedRetainer, 6);
+  assert.equal(totals.consumedExtra, 4);
+  assert.equal(totals.remaining, 0);
+});
+
+test('computeBalance without entries reports the full monthly allowance', () => {
+  assert.deepEqual(computeBalance([], 8), {
+    hoursPerMonth: 8,
+    consumedRetainer: 0,
+    consumedExtra: 0,
+    remaining: 8,
+    entriesCount: 0,
+  });
+});
+
+test('only an active agreement accepts new maintenance entries', () => {
+  assert.doesNotThrow(() => assertMaintenanceActive(MaintenanceStatus.active));
+  for (const status of [MaintenanceStatus.paused, MaintenanceStatus.ended]) {
+    assert.throws(
+      () => assertMaintenanceActive(status),
+      maintenanceFailure('MAINTENANCE_NOT_ACTIVE', 409),
+    );
+  }
+});
+
+test('an ended agreement cannot be reopened through a status patch', () => {
+  assert.throws(
+    () => assertReopenable(MaintenanceStatus.ended, MaintenanceStatus.active),
+    maintenanceFailure('MAINTENANCE_ENDED', 409),
+  );
+  assert.throws(
+    () => assertReopenable(MaintenanceStatus.ended, MaintenanceStatus.paused),
+    maintenanceFailure('MAINTENANCE_ENDED', 409),
+  );
+  assert.doesNotThrow(() => assertReopenable(MaintenanceStatus.ended, MaintenanceStatus.ended));
+  assert.doesNotThrow(() => assertReopenable(MaintenanceStatus.ended));
+  assert.doesNotThrow(() => assertReopenable(MaintenanceStatus.active, MaintenanceStatus.ended));
+  assert.doesNotThrow(() => assertReopenable(MaintenanceStatus.paused, MaintenanceStatus.active));
+});
+
+test('validateEntryInput enforces positive two-decimal hours and a real description', () => {
+  const base = { date: '2026-10-05T10:00:00.000Z', hours: 1.5, description: 'Soporte' };
+  const parsed = validateEntryInput(base);
+  assert.equal(parsed.hours, 1.5);
+  assert.equal(parsed.description, 'Soporte');
+  assert.equal(validateEntryInput({ ...base, description: '  Soporte  ' }).description, 'Soporte');
+  assert.throws(
+    () => validateEntryInput({ ...base, hours: 1.235 }),
+    maintenanceFailure('INVALID_MAINTENANCE_ENTRY', 400),
+  );
+  assert.throws(
+    () => validateEntryInput({ ...base, hours: 0 }),
+    maintenanceFailure('INVALID_MAINTENANCE_ENTRY', 400),
+  );
+  assert.throws(
+    () => validateEntryInput({ ...base, description: '   ' }),
+    maintenanceFailure('INVALID_MAINTENANCE_ENTRY', 400),
+  );
+  assert.throws(
+    () => validateEntryInput({ ...base, date: 'mañana' }),
+    maintenanceFailure('INVALID_MAINTENANCE_ENTRY', 400),
+  );
+  assert.throws(
+    () => validateEntryInput({ ...base, changeRequestId: 'not-a-uuid' }),
+    maintenanceFailure('INVALID_MAINTENANCE_ENTRY', 400),
+  );
+});
+
+test('monthRange resolves UTC month boundaries and defaults to the current month', () => {
+  const february = monthRange('2026-02');
+  assert.equal(february.month, '2026-02');
+  assert.equal(february.start.toISOString(), '2026-02-01T00:00:00.000Z');
+  assert.equal(february.end.toISOString(), '2026-03-01T00:00:00.000Z');
+  assert.equal(monthRange().month, new Date().toISOString().slice(0, 7));
+  for (const month of ['2026-13', '2026-00', 'feb-2026', '2026-2']) {
+    assert.throws(() => monthRange(month), maintenanceFailure('INVALID_MONTH', 400));
+  }
 });
