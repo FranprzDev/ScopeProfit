@@ -12,6 +12,7 @@ import type {
   Quote as QuoteDto,
   QuoteLine as QuoteLineDto,
   QuoteMilestone as QuoteMilestoneDto,
+  QuoteSummary,
 } from '@scopeprofit/contracts';
 import { PrismaService } from '../../prisma.service';
 import { AuthService } from '../auth/auth.service';
@@ -131,6 +132,27 @@ export class QuotesService {
     });
     if (!quote || (viaLink && quote.status === QuoteStatus.draft)) fail('QUOTE_NOT_FOUND', 404);
     return toQuoteDto(quote);
+  }
+
+  async listMine(user: User): Promise<{ quotes: QuoteSummary[] }> {
+    this.auth.professional(user);
+    const rows = await this.db.quote.findMany({
+      where: { project: { ownerId: user.id } },
+      orderBy: { updatedAt: 'desc' },
+      include: { project: { select: { name: true } } },
+    });
+    return {
+      quotes: rows.map((quote) => ({
+        id: quote.id,
+        projectId: quote.projectId,
+        projectName: quote.project.name,
+        status: quote.status,
+        currency: quote.currency,
+        totalMin: Number(quote.totalMin),
+        totalMax: Number(quote.totalMax),
+        updatedAt: quote.updatedAt.toISOString(),
+      })),
+    };
   }
 
   async generate(user: User, projectId: string, rateCardId?: string): Promise<PopulatedQuote> {

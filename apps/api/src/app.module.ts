@@ -11,6 +11,7 @@ import { BriefController } from './modules/brief/brief.controller';
 import { DocumentsController } from './modules/documents/documents.controller';
 import { RateCardController } from './modules/pricing/rate-card.controller';
 import { QuoteController } from './modules/pricing/quote.controller';
+import { MyQuotesController } from './modules/pricing/my-quotes.controller';
 import { MaintenanceController } from './modules/maintenance/maintenance.controller';
 
 @Module({
@@ -24,6 +25,7 @@ import { MaintenanceController } from './modules/maintenance/maintenance.control
     DocumentsController,
     RateCardController,
     QuoteController,
+    MyQuotesController,
     MaintenanceController,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
