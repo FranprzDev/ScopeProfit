@@ -329,6 +329,7 @@ model MaintenanceEntry {
  changeRequest ChangeRequest? @relation(fields:[changeRequestId],references:[id],onDelete:SetNull)
  date DateTime
  hours Decimal @db.Decimal(6,2)
+ extraHours Decimal @default(0) @db.Decimal(6,2) @map("extra_hours")
  description String
  billableExtra Boolean @default(false) @map("billable_extra")
  createdAt DateTime @default(now()) @map("created_at")

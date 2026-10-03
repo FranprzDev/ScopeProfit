@@ -11,6 +11,7 @@ import { BriefController } from './modules/brief/brief.controller';
 import { DocumentsController } from './modules/documents/documents.controller';
 import { RateCardController } from './modules/pricing/rate-card.controller';
 import { QuoteController } from './modules/pricing/quote.controller';
+import { MaintenanceController } from './modules/maintenance/maintenance.controller';
 
 @Module({
   imports: [ThrottlerModule.forRoot([{ ttl: 60_000, limit: 30 }]), CoreModule, TelegramModule],
@@ -23,6 +24,7 @@ import { QuoteController } from './modules/pricing/quote.controller';
     DocumentsController,
     RateCardController,
     QuoteController,
+    MaintenanceController,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

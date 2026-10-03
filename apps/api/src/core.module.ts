@@ -9,6 +9,7 @@ import { StorageService } from './modules/storage/storage.service';
 import { ChangeRequestsService } from './modules/projects/change-requests.service';
 import { RateCardsService } from './modules/pricing/rate-cards.service';
 import { QuotesService } from './modules/pricing/quotes.service';
+import { MaintenanceService } from './modules/maintenance/maintenance.service';
 
 const providers = [
   PrismaService,
@@ -21,6 +22,7 @@ const providers = [
   ChangeRequestsService,
   RateCardsService,
   QuotesService,
+  MaintenanceService,
 ];
 
 @Global()
