@@ -1,6 +1,6 @@
 process.env.ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || Buffer.alloc(32, 7).toString('base64');
 const runId = Date.now();
-const ownerTelegramIds = Array.from({ length: 12 }, (_, index) => `owner-${index + 1}-${runId}`);
+const ownerTelegramIds = Array.from({ length: 14 }, (_, index) => `owner-${index + 1}-${runId}`);
 process.env.TELEGRAM_AUTHORIZED_USER_IDS = ownerTelegramIds.join(',');
 
 import { test, before, after } from 'node:test';
@@ -405,6 +405,64 @@ test(
       (decision.metadata as { decision?: string } | null)?.decision,
       QuoteStatus.accepted,
     );
+  },
+);
+
+test(
+  'the dashboard quote summary lists only the owner quotes and rejects client users',
+  { skip: skip ? 'DATABASE_URL not set' : false },
+  async () => {
+    const owner = await db.user.create({
+      data: { telegramId: `owner-13-${runId}`, role: 'professional' },
+    });
+    const stranger = await db.user.create({
+      data: { telegramId: `owner-14-${runId}`, role: 'professional' },
+    });
+    const client = await db.user.create({
+      data: { email: `quotes-client-${runId}@example.com`, role: 'client' },
+    });
+    await rateCards.upsert(owner, {
+      label: 'Estándar',
+      hourlyRate: 100,
+      currency: 'USD',
+      marginPercent: 10,
+    });
+    await rateCards.upsert(stranger, {
+      label: 'Otra tarifa',
+      hourlyRate: 80,
+      currency: 'USD',
+      marginPercent: 0,
+    });
+
+    for (const name of ['Portal Acme', 'Landing Beta']) {
+      const project = await projects.create(owner, name);
+      await seedPricingBrief(project.id);
+      await quotes.generate(owner, project.id);
+    }
+    const foreignProject = await projects.create(stranger, 'Proyecto ajeno');
+    await seedPricingBrief(foreignProject.id);
+    const foreign = await quotes.generate(stranger, foreignProject.id);
+
+    const { quotes: summary } = await quotes.listMine(owner);
+    assert.equal(summary.length, 2);
+    assert.deepEqual(summary.map((entry) => entry.projectName).sort(), [
+      'Landing Beta',
+      'Portal Acme',
+    ]);
+    assert.ok(
+      summary.every((entry) => entry.id !== foreign.id),
+      'expected other owners quotes to stay out of the summary',
+    );
+    assert.ok(summary.every((entry) => entry.status === QuoteStatus.draft));
+    assert.ok(summary.every((entry) => entry.totalMin === 1650 && entry.totalMax === 3300));
+    assert.ok(summary.every((entry) => entry.currency === 'USD'));
+    for (let index = 1; index < summary.length; index++)
+      assert.ok(
+        summary[index - 1].updatedAt >= summary[index].updatedAt,
+        'expected newest quotes first',
+      );
+
+    await assert.rejects(quotes.listMine(client), rejectedWith('FORBIDDEN', 403));
   },
 );
 

@@ -20,6 +20,7 @@ import {
   validateImage,
 } from '@/lib/project';
 import { BriefPanel } from './brief-panel';
+import { QuotePanel } from './quote-panel';
 export function ProjectWorkspace({ projectId }: { projectId: string }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -35,7 +36,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   const [file, setFile] = useState<File | null>(null);
   const [pollGeneration, setPollGeneration] = useState(0);
   const [pollError, setPollError] = useState('');
-  const [tab, setTab] = useState<'chat' | 'brief'>('chat');
+  const [tab, setTab] = useState<'chat' | 'brief' | 'quote'>('chat');
   const [messageCursor, setMessageCursor] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const bottom = useRef<HTMLDivElement>(null);
@@ -288,6 +289,9 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
         <button role="tab" aria-selected={tab === 'brief'} onClick={() => setTab('brief')}>
           Brief y documentos
         </button>
+        <button role="tab" aria-selected={tab === 'quote'} onClick={() => setTab('quote')}>
+          Cotización
+        </button>
       </div>
       <div className="workspace-columns">
         <section
@@ -462,6 +466,12 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
           </section>
         </aside>
       </div>
+      <section
+        className={`quote-section ${tab === 'quote' ? 'mobile-active' : ''}`}
+        aria-label="Cotización"
+      >
+        <QuotePanel projectId={projectId} professional={professional} token={token} />
+      </section>
     </main>
   );
 }

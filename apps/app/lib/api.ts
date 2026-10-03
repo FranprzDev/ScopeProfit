@@ -1,3 +1,5 @@
+import type { ApiResponse } from '@scopeprofit/contracts';
+
 export class ApiError extends Error {
   constructor(
     public code: string,
@@ -39,8 +41,51 @@ export function errorMessage(error: unknown): string {
       LINK_EXPIRED: 'Este enlace venció. Pedile uno nuevo al profesional.',
       AI_CONFIGURATION_REQUIRED: 'El profesional debe configurar su clave de IA para continuar.',
       RATE_LIMITED: 'Demasiados intentos. Esperá un momento antes de volver a intentar.',
+      RATE_CARD_NOT_FOUND: 'Todavía no cargaste tu tarifa por hora.',
+      RATE_CARD_REQUIRED: 'Cargá tu tarifa por hora en Configuración para generar la cotización.',
+      BRIEF_NO_ESTIMATES:
+        'El Brief todavía no tiene estimaciones de horas. Cargá los módulos desde el chat y volvé a intentar.',
+      QUOTE_NOT_FOUND: 'Este proyecto todavía no tiene una cotización disponible.',
+      QUOTE_NOT_DRAFT: 'La cotización ya fue enviada, por lo que no se puede modificar.',
+      QUOTE_NOT_SENDABLE: 'La cotización ya fue respondida por el cliente.',
+      INVALID_QUOTE_LINE: 'Revisá las horas de cada línea: el máximo no puede ser menor al mínimo.',
+      INVALID_MILESTONES:
+        'Los hitos deben sumar 100% en porcentaje, o tener todos montos mayores a cero.',
     };
     return messages[error.code] ?? error.message;
   }
   return 'No pudimos conectar. Revisá tu conexión e intentá nuevamente.';
+}
+export async function downloadFile(path: string, filename: string, token?: string): Promise<void> {
+  const headers = new Headers();
+  if (token) headers.set('x-project-token', token);
+  const response = await fetch(`/api${path}`, {
+    method: 'GET',
+    headers,
+    credentials: 'include',
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    let code = 'REQUEST_FAILED';
+    let message = 'No pudimos descargar el archivo.';
+    try {
+      const result = (await response.json()) as ApiResponse<unknown>;
+      if (!result.success) {
+        code = result.error.code;
+        message = result.error.message;
+      }
+    } catch {
+      code = response.status >= 500 ? 'INTERNAL_ERROR' : 'REQUEST_FAILED';
+    }
+    throw new ApiError(code, message, response.status);
+  }
+  const url = URL.createObjectURL(await response.blob());
+  try {
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+  } finally {
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
 }

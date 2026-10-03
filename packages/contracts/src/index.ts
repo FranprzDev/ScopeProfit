@@ -164,6 +164,16 @@ export interface Quote {
   lines?: QuoteLine[];
   milestones?: QuoteMilestone[];
 }
+export interface QuoteSummary {
+  id: string;
+  projectId: string;
+  projectName: string;
+  status: QuoteStatus;
+  currency: string;
+  totalMin: number;
+  totalMax: number;
+  updatedAt: string;
+}
 export interface MaintenanceEntry {
   id: string;
   agreementId: string;
