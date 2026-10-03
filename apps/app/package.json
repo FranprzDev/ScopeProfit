@@ -9,7 +9,8 @@
     "start": "next start -p 3002 --hostname 0.0.0.0",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test lib/*.test.ts"
+    "test": "tsx --test lib/*.test.ts",
+    "test:e2e": "e2e run"
   },
   "dependencies": {
     "@scopeprofit/contracts": "workspace:*",
@@ -22,12 +23,20 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@ai-sdk/openai-compatible": "^3.0.62",
+    "@e2e-dev/web": "^0.11.2",
     "@types/node": "^22.0.0",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "ai": "^7.0.0",
+    "e2e": "^0.16.0",
     "eslint": "^9.0.0",
     "eslint-config-next": "16.3.4",
+    "pg": "^8.23.1",
+    "playwright": "^1.63.0",
     "tsx": "^4.20.0",
-    "typescript": "^5.9.0"
+    "typescript": "^5.9.0",
+    "zod": "^4.1.8"
   }
 }

@@ -11,6 +11,7 @@ const config: NextConfig = {
         outputFileTracingRoot: path.resolve(process.cwd(), '../..'),
       }),
   poweredByHeader: false,
+  allowedDevOrigins: ['127.0.0.1'],
   async headers() {
     return [
       {

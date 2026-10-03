@@ -35,12 +35,20 @@ Hoy el producto cubre del lead desordenado al documento de alcance aprobado (Bri
 - Dashboard: bloques de Cotizaciones y Mantenimiento (estados y totales).
 - `/p/[projectId]`: panel de Cotización (crear desde Brief, editar líneas/hitos, estados) y panel de Mantenimiento (saldo del período, alta de consumos, historial).
 - Estilo: CSS plano con las variables de `apps/app/app/globals.css`, iconos `lucide-react`, data fetching con `apps/app/lib/api.ts`, tipos desde `@scopeprofit/contracts`.
+- Fix detectado por la suite: los inputs de horas del retainer usaban `min={0.01}` con `step={0.25}`; el step base es `min`, así que valores reales (10, 25, 2) quedaban inválidos y el form no submitteaba. Pasa a `min={0}` (la validación `> 0` ya la hace React y el API).
 
 ### E4 — E2E (framework `e2e` de tester.army)
 
 - Suite que cubre: login → proyecto → cotización → aprobación; y retainer → consumo → saldo.
 - Instalación del skill: `npx skills add tester-army/e2e` (skills en `.agents/skills/`).
 - Modelo del agente: endpoint compatible con OpenAI de OpenCode Zen (`https://opencode.ai/zen/v1`) con key por variable de entorno `OPENCODE_ZEN_API_KEY`; nunca commiteada.
+- Archivos: `apps/app/e2e.config.ts` (target `web`, `app.url: 'http://127.0.0.1:0'` → cada run toma un puerto libre y lo pasa como `PORT={port}` a `scripts/dev.mjs`, `workers: 1` por el rate limit global de la API, `retries: 0`) y `apps/app/tests/{dashboard,quote,maintenance}.e2e.ts` con helpers en `apps/app/tests/support/`.
+- `next.config.ts` declara `allowedDevOrigins: ['127.0.0.1']`: sin eso Next 16 dev bloquea los recursos dev del target `127.0.0.1` y la página no hidrata.
+- Autenticación: cada test inserta un magic link en `magic_links` con el hash `sha256(token)`, lo verifica por `GET /api/auth/magic-link/verify` (302 + cookie `sp_session`) y setea la cookie en el navegador con `browser.setCookies`. El `beforeEach` registra `app.baseUrl` (el runner lo devuelve con barra final; `appBaseUrl()` la normaliza para no armar `//api/...`).
+- Requisitos: API corriendo (`TELEGRAM_AUTHORIZED_USER_IDS=111 node --env-file=.env apps/api/dist/src/main.js`), migraciones aplicadas y `TELEGRAM_AUTHORIZED_USER_IDS=111` también en la corrida (el usuario profesional E2E necesita `telegram_id` para que el API lo autorice).
+- Corrida: `cd apps/app && TELEGRAM_AUTHORIZED_USER_IDS=111 OPENCODE_ZEN_API_KEY=<key> pnpm run test:e2e`.
+- Datos: los tests crean sus proyectos y los borran en `afterEach` (`cleanupTestData`); quedan en la base los usuarios `e2e-professional@scope.test` y `e2e-client@scope.test`.
+- Artefactos en `apps/app/.e2e/` (gitignored): `report.json`, `logs/app.log`, traces y capturas de los intentos fallidos.
 
 ## Fuera de alcance (v3)
 
