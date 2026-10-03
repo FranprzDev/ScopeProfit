@@ -328,7 +328,7 @@ export function MaintenancePanel({
               <input
                 id="maintenance-hours"
                 type="number"
-                min={0.01}
+                min={0}
                 max={9999.99}
                 step={0.25}
                 value={hoursPerMonth}
@@ -444,7 +444,7 @@ export function MaintenancePanel({
               <input
                 id="maintenance-entry-hours"
                 type="number"
-                min={0.01}
+                min={0}
                 max={9999.99}
                 step={0.25}
                 value={entryHours}
@@ -573,7 +573,7 @@ export function MaintenancePanel({
               <input
                 id="maintenance-edit-hours"
                 type="number"
-                min={0.01}
+                min={0}
                 max={9999.99}
                 step={0.25}
                 value={hoursPerMonth}
