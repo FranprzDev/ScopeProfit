@@ -1,6 +1,6 @@
 process.env.ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || Buffer.alloc(32, 7).toString('base64');
 const runId = Date.now();
-const ownerTelegramIds = Array.from({ length: 10 }, (_, index) => `owner-${index + 1}-${runId}`);
+const ownerTelegramIds = Array.from({ length: 12 }, (_, index) => `owner-${index + 1}-${runId}`);
 process.env.TELEGRAM_AUTHORIZED_USER_IDS = ownerTelegramIds.join(',');
 
 import { test, before, after } from 'node:test';
@@ -14,6 +14,7 @@ import {
   QuoteStatus,
 } from '@prisma/client';
 import { emptyBrief } from '@scopeprofit/contracts';
+import { decrypt } from '../src/security';
 import { PrismaService } from '../src/prisma.service';
 import { EmailService } from '../src/email.service';
 import { AuthService } from '../src/modules/auth/auth.service';
@@ -310,6 +311,161 @@ test(
       rejectedWith('FORBIDDEN', 403),
     );
     assert.equal(await db.rateCard.count({ where: { ownerId: client.id } }), 0);
+  },
+);
+
+const seedPricingBrief = async (projectId: string) => {
+  await db.brief.update({
+    where: { projectId },
+    data: {
+      data: {
+        ...emptyBrief(),
+        estimates: [
+          { module: 'Auth', minHours: 10, maxHours: 20, uncertainty: 'baja' },
+          { module: 'Panel', minHours: 5, maxHours: 10, uncertainty: 'media' },
+        ],
+      } as unknown as Prisma.InputJsonValue,
+    },
+  });
+};
+
+const rawClientToken = async (projectId: string) => {
+  const link = await db.projectLink.findFirstOrThrow({
+    where: { projectId, revokedAt: null },
+    orderBy: { createdAt: 'desc' },
+  });
+  return decrypt(link.encryptedToken);
+};
+
+test(
+  'a quote is generated, sent, downloaded and decided by the client through the project link',
+  { skip: skip ? 'DATABASE_URL not set' : false },
+  async () => {
+    const owner = await db.user.create({
+      data: { telegramId: `owner-11-${runId}`, role: 'professional' },
+    });
+    const project = await projects.create(owner, 'Propuesta Acme');
+    await rateCards.upsert(owner, {
+      label: 'Estándar',
+      hourlyRate: 100,
+      currency: 'USD',
+      marginPercent: 10,
+    });
+    await seedPricingBrief(project.id);
+
+    await quotes.generate(owner, project.id);
+    const patched = await quotes.patch(owner, project.id, {
+      terms: 'Pago contra entrega',
+      validUntil: '2030-01-01T00:00:00.000Z',
+      milestones: [
+        { name: 'Arranque', percent: 50 },
+        { name: 'Entrega', percent: 50 },
+      ],
+    });
+    const sent = await quotes.send(owner, project.id);
+    assert.equal(sent.status, QuoteStatus.sent);
+    assert.ok(sent.sentAt);
+    assert.equal(sent.terms, patched.terms);
+    assert.equal(sent.milestones.length, 2);
+
+    const pdf = await quotes.download(owner, project.id, 'pdf');
+    assert.ok(pdf.buffer.length > 1000, 'expected a non empty PDF proposal');
+    assert.equal(pdf.mimeType, 'application/pdf');
+    assert.equal(pdf.name, `scope-${project.id}-quote.pdf`);
+    const docx = await quotes.download(owner, project.id, 'docx');
+    assert.ok(docx.buffer.length > 1000, 'expected a non empty DOCX proposal');
+    assert.equal(
+      docx.mimeType,
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    );
+    await assert.rejects(
+      quotes.download(owner, project.id, 'md'),
+      rejectedWith('INVALID_FORMAT', 400),
+    );
+
+    const clientToken = await rawClientToken(project.id);
+    const seen = await quotes.get(null, project.id, clientToken);
+    assert.equal(seen.id, sent.id);
+    assert.equal(seen.status, QuoteStatus.sent);
+    const clientFile = await quotes.download(null, project.id, 'pdf', clientToken);
+    assert.ok(clientFile.buffer.length > 1000);
+
+    const decided = await quotes.decide(null, project.id, clientToken, QuoteStatus.accepted);
+    assert.equal(decided.status, QuoteStatus.accepted);
+    assert.ok(decided.decidedAt);
+
+    const audits = await db.auditEvent.findMany({
+      where: { projectId: project.id, action: { startsWith: 'quote.' } },
+    });
+    assert.equal(audits.filter((event) => event.action === 'quote.sent').length, 1);
+    const decision = audits.find((event) => event.action === 'quote.decided');
+    assert.ok(decision, 'expected a quote.decided audit event');
+    assert.equal(decision.actorId, null);
+    assert.equal(
+      (decision.metadata as { decision?: string } | null)?.decision,
+      QuoteStatus.accepted,
+    );
+  },
+);
+
+test(
+  'the send and decision transitions are guarded by status, role and link token',
+  { skip: skip ? 'DATABASE_URL not set' : false },
+  async () => {
+    const owner = await db.user.create({
+      data: { telegramId: `owner-12-${runId}`, role: 'professional' },
+    });
+    const project = await projects.create(owner, 'Guardas de propuesta');
+    await rateCards.upsert(owner, {
+      label: 'Estándar',
+      hourlyRate: 100,
+      currency: 'USD',
+      marginPercent: 10,
+    });
+    await seedPricingBrief(project.id);
+    await quotes.generate(owner, project.id);
+    const clientToken = await rawClientToken(project.id);
+
+    await assert.rejects(
+      quotes.decide(null, project.id, clientToken, QuoteStatus.accepted),
+      rejectedWith('QUOTE_NOT_SENDABLE', 409),
+    );
+    await assert.rejects(
+      quotes.decide(owner, project.id, clientToken, QuoteStatus.accepted),
+      rejectedWith('FORBIDDEN', 403),
+    );
+    await assert.rejects(
+      quotes.decide(null, project.id, 'not-a-real-token', QuoteStatus.accepted),
+      rejectedWith('PROJECT_ACCESS_DENIED', 403),
+    );
+    await assert.rejects(
+      quotes.get(null, project.id, clientToken),
+      rejectedWith('QUOTE_NOT_FOUND', 404),
+    );
+    await assert.rejects(
+      quotes.download(null, project.id, 'pdf', clientToken),
+      rejectedWith('QUOTE_NOT_FOUND', 404),
+    );
+
+    await quotes.send(owner, project.id);
+    await assert.rejects(quotes.send(owner, project.id), rejectedWith('QUOTE_NOT_DRAFT', 409));
+
+    const rejected = await quotes.decide(null, project.id, clientToken, QuoteStatus.rejected);
+    assert.equal(rejected.status, QuoteStatus.rejected);
+    assert.ok(rejected.decidedAt);
+    await assert.rejects(
+      quotes.decide(null, project.id, clientToken, QuoteStatus.accepted),
+      rejectedWith('QUOTE_NOT_SENDABLE', 409),
+    );
+
+    assert.equal(
+      await db.auditEvent.count({ where: { projectId: project.id, action: 'quote.sent' } }),
+      1,
+    );
+    assert.equal(
+      await db.auditEvent.count({ where: { projectId: project.id, action: 'quote.decided' } }),
+      1,
+    );
   },
 );
 

@@ -18,10 +18,18 @@ import {
 } from '../src/modules/pricing/pricing.calc';
 import {
   assertDraftQuote,
+  assertSentQuote,
   parseRateCardSnapshot,
   validateQuoteLines,
   validateQuoteMilestones,
 } from '../src/modules/pricing/pricing.validation';
+import {
+  buildQuoteProposal,
+  formatDate,
+  proposalMarkdown,
+  statusLabel,
+  type QuoteProposalSource,
+} from '../src/modules/documents/render-quote';
 import { computeBalance, computeEntrySplit } from '../src/modules/maintenance/maintenance.calc';
 import {
   assertMaintenanceActive,
@@ -325,6 +333,205 @@ test('parseRateCardSnapshot reads a snapshot and rejects malformed ones', () => 
     null,
   );
   assert.equal(parseRateCardSnapshot({ hourlyRate: 0, marginPercent: 10, currency: 'USD' }), null);
+});
+
+const proposalContext = {
+  projectName: 'Portal de clientes',
+  clientName: 'cliente@acme.com',
+  author: 'profesional@scope.test',
+  date: '2026-10-03T09:15:00.000Z',
+};
+
+const proposalSource = (overrides: Partial<QuoteProposalSource> = {}): QuoteProposalSource => ({
+  id: 'quote-1',
+  projectId: 'project-1',
+  status: QuoteStatus.sent,
+  currency: 'USD',
+  subtotalMin: 1650,
+  subtotalMax: 3300,
+  totalMin: 1650,
+  totalMax: 3300,
+  validUntil: '2030-01-01T00:00:00.000Z',
+  terms: 'Pago contra entrega',
+  rateCardSnapshot: {
+    id: 'rate-1',
+    label: 'Estándar',
+    hourlyRate: 100,
+    marginPercent: 10,
+    currency: 'USD',
+    isDefault: true,
+    capturedAt: '2026-10-01T12:00:00.000Z',
+  },
+  sentAt: null,
+  decidedAt: null,
+  createdAt: '2026-10-01T12:00:00.000Z',
+  updatedAt: '2026-10-01T12:00:00.000Z',
+  lines: [
+    {
+      id: 'line-1',
+      quoteId: 'quote-1',
+      module: 'Auth',
+      minHours: 10,
+      maxHours: 20,
+      hourlyRate: 110,
+      priceMin: 1100,
+      priceMax: 2200,
+      position: 0,
+    },
+    {
+      id: 'line-2',
+      quoteId: 'quote-1',
+      module: 'Panel',
+      minHours: 5,
+      maxHours: 10,
+      hourlyRate: 110,
+      priceMin: 550,
+      priceMax: 1100,
+      position: 1,
+    },
+  ],
+  milestones: [],
+  ...overrides,
+});
+
+test('the proposal mapping prices lines, keeps totals and snapshots the rate card', () => {
+  const input = buildQuoteProposal(proposalSource(), proposalContext);
+  assert.equal(input.projectName, 'Portal de clientes');
+  assert.equal(input.clientName, 'cliente@acme.com');
+  assert.equal(input.author, 'profesional@scope.test');
+  assert.equal(input.date, '2026-10-03');
+  assert.equal(input.validUntil, '2030-01-01');
+  assert.equal(input.status, QuoteStatus.sent);
+  assert.equal(input.currency, 'USD');
+  assert.deepEqual(
+    input.lines.map((line) => [line.module, line.hours, line.hourlyRate, line.price]),
+    [
+      ['Auth', '10–20 h', '110.00 USD', '1,100.00 – 2,200.00 USD'],
+      ['Panel', '5–10 h', '110.00 USD', '550.00 – 1,100.00 USD'],
+    ],
+  );
+  assert.equal(input.subtotal, '1,650.00 – 3,300.00 USD');
+  assert.equal(input.total, '1,650.00 – 3,300.00 USD');
+  assert.equal(input.terms, 'Pago contra entrega');
+  assert.deepEqual(input.rateCard, {
+    label: 'Estándar',
+    baseRate: '100.00 USD',
+    marginPercent: 10,
+    effectiveRate: '110.00 USD',
+    capturedAt: '2026-10-01',
+  });
+});
+
+test('the proposal mapping renders percent and amount milestones', () => {
+  const percent = buildQuoteProposal(
+    proposalSource({
+      milestones: [
+        { id: 'm1', quoteId: 'quote-1', name: 'Arranque', percent: 40, amount: null, position: 0 },
+        { id: 'm2', quoteId: 'quote-1', name: 'Entrega', percent: 60, amount: null, position: 1 },
+      ],
+    }),
+    proposalContext,
+  );
+  assert.deepEqual(
+    percent.milestones.map((milestone) => [milestone.name, milestone.detail]),
+    [
+      ['Arranque', '40 % — 660.00 – 1,320.00 USD'],
+      ['Entrega', '60 % — 990.00 – 1,980.00 USD'],
+    ],
+  );
+
+  const amount = buildQuoteProposal(
+    proposalSource({
+      milestones: [
+        { id: 'm3', quoteId: 'quote-1', name: 'Único', percent: null, amount: 1500, position: 0 },
+      ],
+    }),
+    proposalContext,
+  );
+  assert.deepEqual(amount.milestones, [{ name: 'Único', detail: '1,500.00 USD' }]);
+});
+
+test('the proposal markdown includes the commercial sections and the client data', () => {
+  const text = proposalMarkdown(
+    buildQuoteProposal(
+      proposalSource({
+        milestones: [
+          {
+            id: 'm1',
+            quoteId: 'quote-1',
+            name: 'Arranque',
+            percent: 50,
+            amount: null,
+            position: 0,
+          },
+          { id: 'm2', quoteId: 'quote-1', name: 'Entrega', percent: 50, amount: null, position: 1 },
+        ],
+      }),
+      proposalContext,
+    ),
+  );
+  for (const expected of [
+    '# Propuesta comercial — Portal de clientes',
+    'Cliente: cliente@acme.com',
+    'Estado: Enviada',
+    'Moneda: USD',
+    '## Detalle por módulo',
+    'Total estimado: 1,650.00 – 3,300.00 USD',
+    '## Hitos de pago',
+    '- Arranque: 50 % — 825.00 – 1,650.00 USD',
+    '## Condiciones',
+    '- Validez de la oferta: 2030-01-01',
+    '- Términos y condiciones: Pago contra entrega',
+    '## Tarifa aplicada',
+    '- Estándar: 100.00 USD/h + 10 % de margen → 110.00 USD/h',
+    '- Tarifa capturada el 2026-10-01',
+  ])
+    assert.ok(text.includes(expected), `expected the proposal to include "${expected}"`);
+});
+
+test('the proposal markdown falls back when terms, validity, milestones or rate card are missing', () => {
+  const text = proposalMarkdown(
+    buildQuoteProposal(
+      proposalSource({ terms: null, validUntil: null, milestones: [], rateCardSnapshot: null }),
+      proposalContext,
+    ),
+  );
+  for (const expected of [
+    '- Validez de la oferta: Sin vencimiento',
+    '- Términos y condiciones: Sin condiciones adicionales.',
+    '- Sin hitos de pago definidos',
+    '- Sin tarifa asociada',
+    'Estado: Enviada',
+  ])
+    assert.ok(text.includes(expected), `expected the proposal to include "${expected}"`);
+  const draft = proposalMarkdown(
+    buildQuoteProposal(proposalSource({ status: QuoteStatus.draft }), proposalContext),
+  );
+  assert.ok(draft.includes('Estado: Borrador'));
+});
+
+test('proposal dates are rendered as ISO calendar days', () => {
+  assert.equal(formatDate('2030-01-01T00:00:00.000Z'), '2030-01-01');
+  assert.equal(formatDate('2026-12-31'), '2026-12-31');
+  assert.equal(formatDate(null), '—');
+  assert.equal(formatDate(undefined), '—');
+  assert.equal(formatDate('mañana'), '—');
+  assert.equal(statusLabel(QuoteStatus.draft), 'Borrador');
+  assert.equal(statusLabel(QuoteStatus.accepted), 'Aceptada');
+  assert.equal(statusLabel(QuoteStatus.rejected), 'Rechazada');
+});
+
+test('only a sent quote accepts a client decision', () => {
+  assert.doesNotThrow(() => assertSentQuote(QuoteStatus.sent));
+  for (const status of [QuoteStatus.draft, QuoteStatus.accepted, QuoteStatus.rejected]) {
+    assert.throws(
+      () => assertSentQuote(status),
+      (err: unknown) =>
+        err instanceof HttpException &&
+        err.getStatus() === 409 &&
+        err.message === 'QUOTE_NOT_SENDABLE',
+    );
+  }
 });
 
 const maintenanceFailure = (code: string, status: number) => (error: unknown) =>
