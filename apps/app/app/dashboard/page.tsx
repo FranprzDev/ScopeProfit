@@ -2,9 +2,17 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import type { Page, Project, QuoteSummary, User } from '@scopeprofit/contracts';
+import type { MaintenanceSummary, Page, Project, QuoteSummary, User } from '@scopeprofit/contracts';
 import { api, ApiError, errorMessage } from '@/lib/api';
-import { money, quoteStatusLabels, quoteStatusTone, shortDate, statusLabels } from '@/lib/project';
+import {
+  maintenanceStatusLabels,
+  maintenanceStatusTone,
+  money,
+  quoteStatusLabels,
+  quoteStatusTone,
+  shortDate,
+  statusLabels,
+} from '@/lib/project';
 export default function Dashboard() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -14,6 +22,8 @@ export default function Dashboard() {
   const [cursor, setCursor] = useState<string | null>(null);
   const [quotes, setQuotes] = useState<QuoteSummary[] | null>(null);
   const [quotesError, setQuotesError] = useState('');
+  const [agreements, setAgreements] = useState<MaintenanceSummary[] | null>(null);
+  const [agreementsError, setAgreementsError] = useState('');
   useEffect(() => {
     let active = true;
     Promise.all([api<User>('/auth/me'), api<Page<Project>>('/projects')])
@@ -46,6 +56,22 @@ export default function Dashboard() {
         if (!active || (e instanceof ApiError && e.status === 401)) return;
         setQuotes([]);
         setQuotesError(errorMessage(e));
+      });
+    return () => {
+      active = false;
+    };
+  }, [user]);
+  useEffect(() => {
+    if (user?.role !== 'professional') return;
+    let active = true;
+    api<{ agreements: MaintenanceSummary[] }>('/me/maintenance')
+      .then((result) => {
+        if (active) setAgreements(result.agreements);
+      })
+      .catch((e) => {
+        if (!active || (e instanceof ApiError && e.status === 401)) return;
+        setAgreements([]);
+        setAgreementsError(errorMessage(e));
       });
     return () => {
       active = false;
@@ -168,6 +194,50 @@ export default function Dashboard() {
                         <span className="quote-total">
                           {money(quote.totalMin, quote.currency)} –{' '}
                           {money(quote.totalMax, quote.currency)}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+          {user?.role === 'professional' && (
+            <section className="panel space-top" aria-label="Mantenimiento">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">RETAINERS</p>
+                  <h2>Mantenimiento</h2>
+                </div>
+              </div>
+              {agreementsError && (
+                <p role="alert" className="error">
+                  {agreementsError}
+                </p>
+              )}
+              {agreements === null ? (
+                <p role="status">Cargando mantenimiento…</p>
+              ) : agreements.length === 0 && !agreementsError ? (
+                <p className="muted">
+                  Todavía no hay retainers. Abrí un proyecto y creá el retainer desde su panel de
+                  Mantenimiento.
+                </p>
+              ) : (
+                <ul className="maintenance-list">
+                  {agreements.map((agreement) => (
+                    <li key={agreement.id}>
+                      <Link className="maintenance-row" href={`/p/${agreement.projectId}`}>
+                        <span className={`tag ${maintenanceStatusTone[agreement.status]}`}>
+                          {maintenanceStatusLabels[agreement.status]}
+                        </span>
+                        <strong>{agreement.projectName}</strong>
+                        <span className="small muted">
+                          {agreement.hoursPerMonth} h/mes · {shortDate(agreement.startDate)}
+                        </span>
+                        <span className="maintenance-total">
+                          {agreement.monthlyPrice === null
+                            ? 'Sin precio'
+                            : money(agreement.monthlyPrice, agreement.currency)}
                         </span>
                       </Link>
                     </li>

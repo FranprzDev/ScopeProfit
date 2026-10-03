@@ -1,4 +1,10 @@
-import type { AgentStatus, ProjectStatus, QuoteStatus, TiptapNode } from '@scopeprofit/contracts';
+import type {
+  AgentStatus,
+  MaintenanceStatus,
+  ProjectStatus,
+  QuoteStatus,
+  TiptapNode,
+} from '@scopeprofit/contracts';
 export const statusLabels: Record<ProjectStatus, string> = {
   draft: 'Borrador',
   in_review: 'En revisión',
@@ -18,6 +24,16 @@ export const quoteStatusTone: Record<QuoteStatus, string> = {
   sent: 'amber',
   accepted: 'success',
   rejected: 'danger',
+};
+export const maintenanceStatusLabels: Record<MaintenanceStatus, string> = {
+  active: 'Activo',
+  paused: 'Pausado',
+  ended: 'Finalizado',
+};
+export const maintenanceStatusTone: Record<MaintenanceStatus, string> = {
+  active: 'success',
+  paused: 'amber',
+  ended: 'danger',
 };
 export const agentLabels: Record<AgentStatus, string> = {
   idle: 'Al día',
