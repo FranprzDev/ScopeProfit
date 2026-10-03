@@ -9,6 +9,8 @@ import { ProjectsController } from './modules/projects/projects.controller';
 import { ChatController } from './modules/chat/chat.controller';
 import { BriefController } from './modules/brief/brief.controller';
 import { DocumentsController } from './modules/documents/documents.controller';
+import { RateCardController } from './modules/pricing/rate-card.controller';
+import { QuoteController } from './modules/pricing/quote.controller';
 
 @Module({
   imports: [ThrottlerModule.forRoot([{ ttl: 60_000, limit: 30 }]), CoreModule, TelegramModule],
@@ -19,6 +21,8 @@ import { DocumentsController } from './modules/documents/documents.controller';
     ChatController,
     BriefController,
     DocumentsController,
+    RateCardController,
+    QuoteController,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
