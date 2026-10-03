@@ -1,14 +1,18 @@
 process.env.ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || Buffer.alloc(32, 7).toString('base64');
 const runId = Date.now();
-const ownerTelegramIds = ['owner-1', 'owner-2', 'owner-3', 'owner-4', 'owner-5', 'owner-6'].map(
-  (prefix) => `${prefix}-${runId}`,
-);
+const ownerTelegramIds = Array.from({ length: 10 }, (_, index) => `owner-${index + 1}-${runId}`);
 process.env.TELEGRAM_AUTHORIZED_USER_IDS = ownerTelegramIds.join(',');
 
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { HttpException } from '@nestjs/common';
-import { Prisma, QuoteStatus } from '@prisma/client';
+import {
+  ChangeClassification,
+  ChangeRequestStatus,
+  MaintenanceStatus,
+  Prisma,
+  QuoteStatus,
+} from '@prisma/client';
 import { emptyBrief } from '@scopeprofit/contracts';
 import { PrismaService } from '../src/prisma.service';
 import { EmailService } from '../src/email.service';
@@ -16,6 +20,7 @@ import { AuthService } from '../src/modules/auth/auth.service';
 import { ProjectsService } from '../src/modules/projects/projects.service';
 import { RateCardsService } from '../src/modules/pricing/rate-cards.service';
 import { QuotesService } from '../src/modules/pricing/quotes.service';
+import { MaintenanceService } from '../src/modules/maintenance/maintenance.service';
 
 const skip = !process.env.DATABASE_URL;
 
@@ -24,6 +29,7 @@ let auth: AuthService;
 let projects: ProjectsService;
 let rateCards: RateCardsService;
 let quotes: QuotesService;
+let maintenance: MaintenanceService;
 
 const rejectedWith = (code: string, status: number) => (error: unknown) =>
   error instanceof HttpException && error.message === code && error.getStatus() === status;
@@ -36,6 +42,7 @@ before(async () => {
   projects = new ProjectsService(db, auth);
   rateCards = new RateCardsService(db, auth);
   quotes = new QuotesService(db, auth);
+  maintenance = new MaintenanceService(db, auth);
 });
 
 after(async () => {
@@ -303,5 +310,286 @@ test(
       rejectedWith('FORBIDDEN', 403),
     );
     assert.equal(await db.rateCard.count({ where: { ownerId: client.id } }), 0);
+  },
+);
+
+const currentMonthDate = () => {
+  const month = new Date().toISOString().slice(0, 7);
+  return { month, date: `${month}-15T12:00:00.000Z` };
+};
+
+test(
+  'a maintenance retainer drains before billing extra hours and reports the monthly balance',
+  { skip: skip ? 'DATABASE_URL not set' : false },
+  async () => {
+    const owner = await db.user.create({
+      data: { telegramId: `owner-7-${runId}`, role: 'professional' },
+    });
+    const project = await projects.create(owner, 'Mantenimiento Acme');
+    await assert.rejects(
+      maintenance.get(owner, project.id),
+      rejectedWith('MAINTENANCE_NOT_FOUND', 404),
+    );
+    await assert.rejects(
+      maintenance.create(owner, project.id, {
+        hoursPerMonth: 0,
+        currency: 'USD',
+        startDate: '2026-10-01T00:00:00.000Z',
+      }),
+      rejectedWith('INVALID_MAINTENANCE_AGREEMENT', 400),
+    );
+
+    const agreement = await maintenance.create(owner, project.id, {
+      hoursPerMonth: 5,
+      currency: 'usd',
+      startDate: '2026-10-01T00:00:00.000Z',
+    });
+    assert.equal(agreement.status, MaintenanceStatus.active);
+    assert.equal(agreement.currency, 'USD');
+    assert.equal(agreement.hoursPerMonth, 5);
+    assert.equal(agreement.monthlyPrice, null);
+    assert.deepEqual(agreement.entries, []);
+
+    await assert.rejects(
+      maintenance.create(owner, project.id, {
+        hoursPerMonth: 8,
+        currency: 'USD',
+        startDate: '2026-11-01T00:00:00.000Z',
+      }),
+      rejectedWith('MAINTENANCE_EXISTS', 409),
+    );
+
+    const { month } = currentMonthDate();
+    const early = `${month}-10T12:00:00.000Z`;
+    const late = `${month}-20T12:00:00.000Z`;
+    const first = await maintenance.createEntry(owner, project.id, {
+      date: early,
+      hours: 3,
+      description: 'Soporte mensual',
+    });
+    assert.equal(first.hours, 3);
+    assert.equal(first.extraHours, 0);
+    assert.equal(first.billableExtra, false);
+
+    const second = await maintenance.createEntry(owner, project.id, {
+      date: late,
+      hours: 3,
+      description: 'Exceso de soporte',
+    });
+    assert.equal(second.hours, 3);
+    assert.equal(second.extraHours, 1);
+    assert.equal(second.billableExtra, true);
+
+    const listed = await maintenance.listEntries(owner, project.id, month);
+    assert.equal(listed.month, month);
+    assert.deepEqual(
+      listed.entries.map((entry) => [entry.date, entry.hours, entry.extraHours]),
+      [
+        [late, 3, 1],
+        [early, 3, 0],
+      ],
+    );
+    assert.deepEqual(await maintenance.listEntries(owner, project.id, '2020-01'), {
+      month: '2020-01',
+      entries: [],
+    });
+
+    const balance = await maintenance.balance(owner, project.id, month);
+    assert.deepEqual(balance, {
+      month,
+      hoursPerMonth: 5,
+      consumedRetainer: 5,
+      consumedExtra: 1,
+      remaining: 0,
+      entriesCount: 2,
+    });
+
+    const fetched = await maintenance.get(owner, project.id);
+    assert.equal(fetched.id, agreement.id);
+    assert.equal(fetched.entries?.length, 2);
+
+    const audits = await db.auditEvent.findMany({
+      where: { projectId: project.id, action: { startsWith: 'maintenance.' } },
+    });
+    assert.ok(audits.some((event) => event.action === 'maintenance.created'));
+    assert.equal(audits.filter((event) => event.action === 'maintenance.entry_created').length, 2);
+  },
+);
+
+test(
+  'a paused or ended agreement rejects entries and an ended agreement cannot be reopened',
+  { skip: skip ? 'DATABASE_URL not set' : false },
+  async () => {
+    const owner = await db.user.create({
+      data: { telegramId: `owner-8-${runId}`, role: 'professional' },
+    });
+    const project = await projects.create(owner, 'Retainer cerrado');
+    await assert.rejects(
+      maintenance.patch(owner, project.id, { status: MaintenanceStatus.ended }),
+      rejectedWith('MAINTENANCE_NOT_FOUND', 404),
+    );
+    await maintenance.create(owner, project.id, {
+      hoursPerMonth: 4,
+      currency: 'USD',
+      startDate: '2026-10-01T00:00:00.000Z',
+    });
+    const { date } = currentMonthDate();
+
+    await maintenance.patch(owner, project.id, { status: MaintenanceStatus.paused });
+    await assert.rejects(
+      maintenance.createEntry(owner, project.id, { date, hours: 1, description: 'Pausado' }),
+      rejectedWith('MAINTENANCE_NOT_ACTIVE', 409),
+    );
+
+    const resumed = await maintenance.patch(owner, project.id, {
+      status: MaintenanceStatus.active,
+    });
+    assert.equal(resumed.status, MaintenanceStatus.active);
+    const entry = await maintenance.createEntry(owner, project.id, {
+      date,
+      hours: 1,
+      description: 'Reanudado',
+    });
+    assert.equal(entry.extraHours, 0);
+
+    const ended = await maintenance.patch(owner, project.id, {
+      status: MaintenanceStatus.ended,
+      endDate: '2026-12-31T00:00:00.000Z',
+    });
+    assert.equal(ended.status, MaintenanceStatus.ended);
+    assert.equal(ended.endDate, '2026-12-31T00:00:00.000Z');
+    await assert.rejects(
+      maintenance.createEntry(owner, project.id, { date, hours: 1, description: 'Cerrado' }),
+      rejectedWith('MAINTENANCE_NOT_ACTIVE', 409),
+    );
+    await assert.rejects(
+      maintenance.patch(owner, project.id, { status: MaintenanceStatus.active }),
+      rejectedWith('MAINTENANCE_ENDED', 409),
+    );
+
+    const stillEnded = await maintenance.patch(owner, project.id, {
+      hoursPerMonth: 6,
+      monthlyPrice: 1500,
+    });
+    assert.equal(stillEnded.status, MaintenanceStatus.ended);
+    assert.equal(stillEnded.hoursPerMonth, 6);
+    assert.equal(stillEnded.monthlyPrice, 1500);
+  },
+);
+
+test(
+  'an entry only links an accepted change request that belongs to the same project',
+  { skip: skip ? 'DATABASE_URL not set' : false },
+  async () => {
+    const owner = await db.user.create({
+      data: { telegramId: `owner-9-${runId}`, role: 'professional' },
+    });
+    const project = await projects.create(owner, 'Retainer con change requests');
+    const otherProject = await projects.create(owner, 'Proyecto ajeno');
+    await maintenance.create(owner, project.id, {
+      hoursPerMonth: 10,
+      currency: 'USD',
+      startDate: '2026-10-01T00:00:00.000Z',
+    });
+    const { date } = currentMonthDate();
+
+    const foreign = await db.changeRequest.create({
+      data: {
+        projectId: otherProject.id,
+        baseBriefVersion: 0,
+        request: 'Agregar export a PDF',
+        classification: ChangeClassification.ambiguous,
+      },
+    });
+    await assert.rejects(
+      maintenance.createEntry(owner, project.id, {
+        date,
+        hours: 1,
+        description: 'CR ajeno',
+        changeRequestId: foreign.id,
+      }),
+      rejectedWith('CHANGE_REQUEST_NOT_ACCEPTED', 409),
+    );
+
+    const mine = await db.changeRequest.create({
+      data: {
+        projectId: project.id,
+        baseBriefVersion: 0,
+        request: 'Agregar panel de métricas',
+        classification: ChangeClassification.in_scope,
+      },
+    });
+    assert.equal(mine.status, ChangeRequestStatus.proposed);
+    await assert.rejects(
+      maintenance.createEntry(owner, project.id, {
+        date,
+        hours: 1,
+        description: 'CR propuesto',
+        changeRequestId: mine.id,
+      }),
+      rejectedWith('CHANGE_REQUEST_NOT_ACCEPTED', 409),
+    );
+
+    await db.changeRequest.update({
+      where: { id: mine.id },
+      data: { status: ChangeRequestStatus.accepted },
+    });
+    const entry = await maintenance.createEntry(owner, project.id, {
+      date,
+      hours: 1.5,
+      description: 'CR aceptado',
+      changeRequestId: mine.id,
+    });
+    assert.equal(entry.changeRequestId, mine.id);
+    assert.equal(entry.hours, 1.5);
+    assert.equal(entry.extraHours, 0);
+    assert.equal(entry.billableExtra, false);
+    assert.equal(
+      await db.maintenanceEntry.count({ where: { agreement: { projectId: otherProject.id } } }),
+      0,
+    );
+  },
+);
+
+test(
+  'a client user is rejected by every maintenance endpoint',
+  { skip: skip ? 'DATABASE_URL not set' : false },
+  async () => {
+    const owner = await db.user.create({
+      data: { telegramId: `owner-10-${runId}`, role: 'professional' },
+    });
+    const client = await db.user.create({
+      data: { email: `maintenance-client-${runId}@example.com`, role: 'client' },
+    });
+    const project = await projects.create(owner, 'Protegido mantenimiento');
+    const { date } = currentMonthDate();
+
+    await assert.rejects(maintenance.get(client, project.id), rejectedWith('FORBIDDEN', 403));
+    await assert.rejects(
+      maintenance.create(client, project.id, {
+        hoursPerMonth: 4,
+        currency: 'USD',
+        startDate: '2026-10-01T00:00:00.000Z',
+      }),
+      rejectedWith('FORBIDDEN', 403),
+    );
+    await assert.rejects(
+      maintenance.patch(client, project.id, { hoursPerMonth: 8 }),
+      rejectedWith('FORBIDDEN', 403),
+    );
+    await assert.rejects(
+      maintenance.listEntries(client, project.id),
+      rejectedWith('FORBIDDEN', 403),
+    );
+    await assert.rejects(
+      maintenance.createEntry(client, project.id, { date, hours: 1, description: 'Del cliente' }),
+      rejectedWith('FORBIDDEN', 403),
+    );
+    await assert.rejects(maintenance.balance(client, project.id), rejectedWith('FORBIDDEN', 403));
+    assert.equal(await db.maintenanceAgreement.count({ where: { projectId: project.id } }), 0);
+    assert.equal(
+      await db.maintenanceEntry.count({ where: { agreement: { projectId: project.id } } }),
+      0,
+    );
   },
 );

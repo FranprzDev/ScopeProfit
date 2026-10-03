@@ -170,6 +170,7 @@ export interface MaintenanceEntry {
   changeRequestId: string | null;
   date: string;
   hours: number;
+  extraHours: number;
   description: string;
   billableExtra: boolean;
   createdAt: string;
@@ -186,6 +187,18 @@ export interface MaintenanceAgreement {
   createdAt: string;
   updatedAt: string;
   entries?: MaintenanceEntry[];
+}
+export interface MaintenanceMonth {
+  month: string;
+  entries: MaintenanceEntry[];
+}
+export interface MaintenanceBalance {
+  month: string;
+  hoursPerMonth: number;
+  consumedRetainer: number;
+  consumedExtra: number;
+  remaining: number;
+  entriesCount: number;
 }
 export interface Page<T> {
   items: T[];

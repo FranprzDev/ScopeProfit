@@ -268,3 +268,123 @@ test(
     assert.equal(readBody.data.marginPercent, 10);
   },
 );
+
+test(
+  'the maintenance routes require a professional session and expose the retainer balance',
+  { skip: skip ? 'DATABASE_URL not set' : false },
+  async () => {
+    const createBody = JSON.stringify({
+      hoursPerMonth: 4,
+      currency: 'USD',
+      startDate: '2026-10-01T00:00:00.000Z',
+    });
+    const anonymousUrl = `${baseUrl}/api/projects/00000000-0000-0000-0000-000000000000/maintenance`;
+    const anonymous = await fetch(anonymousUrl, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: createBody,
+    });
+    assert.equal(anonymous.status, 401);
+    assert.equal((await anonymous.json()).error.code, 'UNAUTHENTICATED');
+    assert.equal((await fetch(anonymousUrl)).status, 401);
+
+    const client = await db.user.upsert({
+      where: { email: 'e2e-maintenance-client@example.com' },
+      create: { email: 'e2e-maintenance-client@example.com', role: 'client' },
+      update: { role: 'client' },
+    });
+    const clientSession = token();
+    await db.session.create({
+      data: {
+        userId: client.id,
+        tokenHash: hash(clientSession),
+        expiresAt: new Date(Date.now() + 60000),
+      },
+    });
+    const denied = await fetch(anonymousUrl, {
+      headers: { cookie: `sp_session=${clientSession}` },
+    });
+    assert.equal(denied.status, 403);
+    assert.equal((await denied.json()).error.code, 'FORBIDDEN');
+
+    const owner = await db.user.upsert({
+      where: { telegramId: '111' },
+      create: { telegramId: '111', role: 'professional' },
+      update: { role: 'professional' },
+    });
+    const ownerSession = token();
+    await db.session.create({
+      data: {
+        userId: owner.id,
+        tokenHash: hash(ownerSession),
+        expiresAt: new Date(Date.now() + 60000),
+      },
+    });
+    const project = await db.project.create({
+      data: {
+        name: 'E2E maintenance',
+        ownerId: owner.id,
+        brief: { create: { data: emptyBrief() as unknown as Prisma.InputJsonValue } },
+        document: { create: {} },
+      },
+    });
+    const headers = { 'content-type': 'application/json', cookie: `sp_session=${ownerSession}` };
+    const projectUrl = `${baseUrl}/api/projects/${project.id}/maintenance`;
+
+    const created = await fetch(projectUrl, { method: 'POST', headers, body: createBody });
+    const createdBody = await created.json();
+    assert.equal(created.status, 201);
+    assert.equal(createdBody.success, true);
+    assert.equal(createdBody.data.status, 'active');
+    assert.equal(createdBody.data.hoursPerMonth, 4);
+
+    const duplicate = await fetch(projectUrl, { method: 'POST', headers, body: createBody });
+    assert.equal(duplicate.status, 409);
+    assert.equal((await duplicate.json()).error.code, 'MAINTENANCE_EXISTS');
+
+    const read = await fetch(projectUrl, { headers });
+    const readBody = await read.json();
+    assert.equal(read.status, 200);
+    assert.deepEqual(readBody.data.entries, []);
+
+    const month = new Date().toISOString().slice(0, 7);
+    const entry = await fetch(`${projectUrl}/entries`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        date: `${month}-15T12:00:00.000Z`,
+        hours: 1.5,
+        description: 'Soporte mensual',
+      }),
+    });
+    const entryBody = await entry.json();
+    assert.equal(entry.status, 201);
+    assert.equal(entryBody.data.hours, 1.5);
+    assert.equal(entryBody.data.extraHours, 0);
+    assert.equal(entryBody.data.billableExtra, false);
+
+    const entries = await fetch(`${projectUrl}/entries?month=${month}`, { headers });
+    assert.equal(entries.status, 200);
+    assert.equal((await entries.json()).data.entries.length, 1);
+
+    const balance = await fetch(`${projectUrl}/balance?month=${month}`, { headers });
+    const balanceBody = await balance.json();
+    assert.equal(balance.status, 200);
+    assert.deepEqual(balanceBody.data, {
+      month,
+      hoursPerMonth: 4,
+      consumedRetainer: 1.5,
+      consumedExtra: 0,
+      remaining: 2.5,
+      entriesCount: 1,
+    });
+
+    const patched = await fetch(projectUrl, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ monthlyPrice: 600 }),
+    });
+    assert.equal(patched.status, 200);
+    assert.equal((await patched.json()).data.monthlyPrice, 600);
+  },
+);
