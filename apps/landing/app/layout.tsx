@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import { SITE_URL } from '@/lib/site';
 import './globals.css';
 
-const TITLE = 'ScopeProfit — Cerrá el alcance antes de cotizar, no después';
+const TITLE = 'ScopeProfit — Servidor MCP para cerrar el alcance antes de cotizar';
 const DESCRIPTION =
-  'Chateá con tu cliente por Telegram y salí con un alcance de proyecto claro: requerimientos, riesgos y zonas grises detectadas antes de que te exploten en medio del desarrollo. PDF y Word listos para firmar.';
+  'Scope-to-Profit es un servidor MCP: desde ChatGPT, Claude, Cursor o tu propio agente convertís la idea desordenada de un cliente en un documento de alcance versionado, con requerimientos citados, preguntas bloqueantes, riesgos y rango de horas. Exporta PDF y Word.';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -17,6 +17,8 @@ export const metadata: Metadata = {
     'scope creep',
     'brief de proyecto',
     'cotización de software',
+    'servidor MCP',
+    'Model Context Protocol',
   ],
   openGraph: {
     type: 'website',

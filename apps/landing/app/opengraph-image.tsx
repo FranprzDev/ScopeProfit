@@ -37,10 +37,10 @@ export default function OpengraphImage() {
         <span style={{ fontSize: 32, fontWeight: 700 }}>ScopeProfit</span>
       </div>
       <div style={{ fontSize: 56, fontWeight: 800, lineHeight: 1.15, maxWidth: 980 }}>
-        Cobrá por todo lo que hacés. Dejá de regalar el resto.
+        Cerrá el alcance antes de cotizar, desde tu agente de IA.
       </div>
       <div style={{ fontSize: 28, color: '#f0e0ff', marginTop: 32, maxWidth: 900 }}>
-        El chat de Telegram con tu cliente, convertido en un alcance de proyecto claro.
+        Servidor MCP para ChatGPT, Claude, Cursor y cualquier cliente MCP.
       </div>
     </div>,
     size,
