@@ -6,11 +6,13 @@ import cookieParser from 'cookie-parser';
 import express from 'express';
 import { AppModule } from './app.module';
 import { ApiErrorHandler } from './api-error-handler';
+import { csrfProtection } from './csrf';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bodyParser: false });
   app.use(helmet());
   app.use(cookieParser());
+  app.use(csrfProtection);
   app.use(express.json({ limit: '2mb' }));
   app.use(express.urlencoded({ extended: true, limit: '2mb' }));
   app.setGlobalPrefix('api');
