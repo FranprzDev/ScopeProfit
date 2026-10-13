@@ -4,7 +4,6 @@ on:
     paths:
       [
         'apps/landing/**',
-        'apps/app/**',
         'packages/contracts/**',
         'package.json',
         '.prettierrc.json',
@@ -18,7 +17,6 @@ on:
     paths:
       [
         'apps/landing/**',
-        'apps/app/**',
         'packages/contracts/**',
         'package.json',
         '.prettierrc.json',
@@ -50,32 +48,3 @@ jobs:
       - run: pnpm --filter @scopeprofit/landing run typecheck
       - run: pnpm --filter @scopeprofit/landing run build
       - run: docker build -f apps/landing/Dockerfile -t scopeprofit-landing .
-
-  app:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run format:check
-      - run: pnpm --filter @scopeprofit/contracts run build
-      - run: pnpm --filter @scopeprofit/app run lint
-      - run: pnpm --filter @scopeprofit/app run typecheck
-      - run: pnpm --filter @scopeprofit/app run test
-      - run: pnpm --filter @scopeprofit/app run build
-      - run: docker build -f apps/app/Dockerfile -t scopeprofit-app .
-      - uses: actions/upload-artifact@v4
-        with:
-          name: app-production
-          path: |
-            apps/app/.next/standalone
-            apps/app/.next/static
-            apps/app/public
-          include-hidden-files: true
-          retention-days: 7
