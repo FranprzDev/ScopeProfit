@@ -1,92 +1,88 @@
 # Scope-to-Profit
 
-**Copiloto de alcance para freelancers y agencias.** Transforma las ideas desordenadas de un cliente en un documento formal y diagnosticado.
+**Scope copilot for freelancers and software agencies, exposed as an MCP server.** It turns a client's messy idea (loose text, screenshots, "I want something simple but…") into a formal, versioned scope document that any AI agent can drive.
 
-> **Fuente de verdad:** `docs/scope-to-profit.md` — alcance vigente de las versiones v1 y v2.
+> **Source of truth:** `docs/scope-to-profit.md` (product scope v1/v2 and the current MCP-first architecture). MCP setup and tool reference: `docs/mcp.md`.
 
-## Qué resuelve
+## What it produces
 
-Un cliente llega con imágenes, textos sueltos y frases tipo "quiero algo simple pero que...". Scope-to-Profit formaliza ese caos en:
+- requirements (functional / non-functional) with a verbatim source quote
+- blocking questions
+- risks with a traffic light
+- scope (included / excluded / assumptions / acceptance criteria)
+- hour-range estimate (no prices)
+- next steps
 
-- requerimientos (RF/RNF) con cita textual
-- preguntas pendientes que bloquean el alcance
-- riesgos con semáforo
-- alcance (incluidos / excluidos / supuestos / criterios)
-- estimación en rango (horas, sin precio en v1)
-- próximos pasos
+All of it in the fixed **template 7.1**, exported to Markdown, PDF and editable DOCX.
 
-Objetivo: **filtrar y aclarar ideas** para que el cliente y el equipo entiendan el alcance antes de construir.
-
-## Arquitectura v1 — 3 apps que conviven
+## Architecture (MCP-first)
 
 ```
-Cliente (Next.js chat)  →  Backend API (agente IA)  ←  Vos (Telegram)
-                              ↓
-                           DB + filesystem persistente (Brief versionado + docs)
+ChatGPT · Claude · Cursor · Grok bots · custom agents      Telegram (optional, professional)
+                │  MCP (Streamable HTTP / stdio)                       │ webhook
+                ▼                                                      ▼
+        Backend API (NestJS) ── scope tools ── LangGraph agent (optional) ── PostgreSQL + persistent storage
 ```
 
-- **Telegram Bot** — tu interfaz. Creás proyectos, ves TLDR, gestionás docs mediante botones inline. `callback_query` controla ver, editar, aprobar, rechazar, archivar y gestionar links; la edición abre una URL HTTPS firmada solo para el profesional. **No toca DB directo**, habla solo con `POST /api/telegram/webhook`.
-- **Next.js Frontend** — chat colaborativo para el cliente por link `https://tu-app.com/p/<uuid>`. Muestra la conversación y el borrador 7.1 actualizado en vivo. El cliente puede editar partes habilitadas o proponer cambios por chat; el agente reprocesa el documento completo y detecta preguntas pendientes. Requiere cuenta iniciada para identificar al cliente. El link no vence por defecto y se revoca o vence desde Telegram. Habla solo con `POST /api/chat`.
-- **Backend API** — **donde vive el agente IA**. Único con acceso a DB y filesystem persistente. Guarda todo, mantiene el Brief enriquecido versionado por proyecto, genera el doc con plantilla 7.1 y alimenta a ambas UIs.
+- **MCP server (primary interface)** — `POST /api/mcp` (Streamable HTTP, stateless) and a stdio entrypoint for local hosts. 15 tools: `create_project`, `add_client_input` (text + image URLs), `get_tldr`, `get_scope_document`, `list_pending_questions`, `answer_question`, `update_scope_section`, `approve_scope`, `export_document`, `list_projects`, `archive_project`, `get_project`, `get_conversation`, `log_change_request`, `list_change_requests`.
+- **Auth** — `Authorization: Bearer` with a ScopeProfit API key, or OAuth 2.1 (dynamic client registration + PKCE) for ChatGPT-style connectors. See `docs/mcp.md`.
+- **Backend API** — the only component with database and file-system access. Keeps the versioned Brief (PostgreSQL), renders template 7.1 and the PDF/DOCX artifacts, and runs the optional server-side scope agent.
+- **Telegram bot** — still supported for the professional (`/createproject`, `/projects`, `/tldr`, `/doc`, `/ask`, `/archive`, `/help`, approve/reject buttons). Talks only to `POST /api/telegram/webhook`.
+- **Next.js client chat (`apps/app`) — deprecated.** It still builds and works but receives no new features; the client conversation now happens in whatever agent uses the MCP server. `apps/landing` is the marketing site.
 
-El **Brief en PostgreSQL** es la fuente de verdad enriquecida (RF/RNF + dominio + versiones). El filesystem persistente guarda los archivos recibidos y los artefactos PDF/DOCX.
+## Quick start (local)
 
-## Flujo v1
+```bash
+pnpm install
+cp .env.example .env              # fill DATABASE_URL, ENCRYPTION_KEY, TELEGRAM_AUTHORIZED_USER_IDS, PUBLIC_API_URL
+pnpm --filter @scopeprofit/contracts run build
+pnpm run db:migrate
+pnpm --filter @scopeprofit/api run build
+pnpm --filter @scopeprofit/api run mcp:keys create --telegram-id <your-telegram-id> --label local
+pnpm run dev:api                  # MCP endpoint at http://localhost:3001/api/mcp
+```
 
-1. Vos: `/createproject <nombre>` en Telegram → Backend crea proyecto y devuelve link Next.js para el cliente
-2. Cliente: comparte su idea por texto e imágenes en el chat Next.js; el profesional puede enviar preguntas desde Telegram con `/ask`.
-3. Agente en Backend: filtra preguntas boludas, elicia RF/RNF + contexto, mejora el TLDR en vivo
-4. Backend: formaliza → genera doc con **plantilla manual 7.1** (única, fija en v1) → exporta PDF/DOCX + guarda Brief en PostgreSQL
-5. Cliente y agente: revisan y mejoran el borrador en vivo; el cliente puede editar partes habilitadas o pedir cambios por chat
-6. Vos: validás desde Telegram y aprobás el alcance final; el sistema envía automáticamente al cliente el PDF y el DOCX editable
+Then connect a client as described in `docs/mcp.md` (ChatGPT, Claude, Claude Code, Cursor, OpenAI Responses API, MCP Inspector, raw HTTP).
 
-## Comandos Telegram v1
+## Typical flow
 
-- `/createproject <nombre>` — crea proyecto y devuelve `🔗 Abrir chat cliente` + `📋 Copiar link`
-- `/projects` — lista con **un botón por proyecto** (1 fila = 1 proyecto, con estado 🟡/🟢 y TLDR)
-- `/tldr <id>` — TLDR actualizado del proyecto
-- `/doc <id>` — doc 7.1 actual + PDF
-- `/ask <id> <pregunta>` — inyecta pregunta al chat del cliente
-- `/archive <id>` — archiva
-- `/help` — comandos, botones y flujo de revisión/aprobación
+1. `create_project` → `add_client_input` with the client's words and image URLs.
+2. Either the host LLM drafts the scope with `update_scope_section` (every requirement must quote a stored message), or the server agent does it in the background (`analyze: true`, needs the owner's Gemini key).
+3. `get_tldr` / `list_pending_questions` → `answer_question` until nothing blocks the estimate.
+4. `get_scope_document` to review template 7.1 → `approve_scope` (emails PDF + DOCX to the client when Brevo is configured) → `export_document` for a signed download link.
 
-Todo mensaje e imagen se guarda en DB + filesystem persistente vía Backend.
+## Stack
 
-## Plantilla Manual 7.1 (v1)
+- **API:** NestJS 11 (Node 22, TypeScript), Prisma 6 + PostgreSQL 17
+- **MCP:** `@modelcontextprotocol/sdk` (Streamable HTTP + stdio, OAuth 2.1 authorization server)
+- **Agent (optional):** LangGraph + LangChain JS with Gemini; clarification gate via Vercel AI Gateway
+- **Documents:** structured Brief → Markdown, `pdfkit` → PDF, `docx` → DOCX
+- **Email:** Brevo (approved document delivery, magic links of the legacy web app)
+- **Bot:** grammY webhook with `secret_token`
+- **Quality:** unit, integration, MCP (in-memory SDK client) and e2e (HTTP, OAuth, stdio) tests on real PostgreSQL; separate backend/frontend CI pipelines
+- **Deploy:** Docker Compose with PostgreSQL and persistent volumes
 
-Una sola plantilla fija. El agente la rellena, vos editás texto. Después cada usuario podrá hacer su propio docs.
+## Commands
 
-1. Portada · 2. Requerimientos con cita · 3. Preguntas bloqueantes · 4. Riesgos + semáforo · 5. Alcance (incluidos/excluidos/supuestos/criterios) · 6. Estimación rango horas · 7. Próximos pasos
+```bash
+pnpm --filter @scopeprofit/api run lint
+pnpm --filter @scopeprofit/api run typecheck
+pnpm --filter @scopeprofit/api run test        # unit + integration + mcp + e2e (needs DATABASE_URL)
+pnpm --filter @scopeprofit/api run build
+pnpm --filter @scopeprofit/api run mcp:stdio   # local stdio server (needs SCOPEPROFIT_API_KEY)
+pnpm run production:preflight
+```
 
-Ver detalle completo en `docs/scope-to-profit.md:155`.
+## Version status
 
-## Stack v1
-
-- **Bot:** `grammy` / `telegraf` (Node/TS), webhook `setWebhook` con `secret_token`
-- **Web:** Next.js (App Router), ruta `/p/[id]`
-- **API:** NestJS (Node/TS), endpoints `/api/telegram/webhook`, `/api/chat`, `/api/projects`
-- **Agente:** LangGraph + LangChain JS dentro del Backend NestJS
-- **Modelos:** gateway configurable; el agente no queda atado a un proveedor ni modelo específico
-- **DB:** PostgreSQL — datos del producto, Brief versionado y checkpointer de LangGraph
-- **Storage:** filesystem persistente del Backend (archivos y artefactos por proyecto)
-- **Documentos:** fuente estructurada → Markdown, `pdfkit` → PDF y `docx` → DOCX editable
-- **Errores API:** `ApiErrorHandler` global con códigos estables en inglés y `requestId`
-- **Calidad:** unit, integration, E2E y smoke tests reproducibles sobre Docker
-- **CI/CD:** pipelines separados para Frontend y Backend; el Backend usa path filters
-- **Despliegue:** Docker Compose con PostgreSQL en contenedor propio y volúmenes persistentes
-- **Repositorio:** monorepo con pipelines independientes para Frontend y Backend
-- **Entrada:** texto e imágenes; edición integrada con Tiptap
-- **Actualización:** polling cada 10 segundos mientras el agente procesa
-- **Email:** Brevo para magic links, usando su plan gratuito
-- **Modelo inicial:** Gemini 3.8 Flash con API key propia de cada usuario
-
-## Estado de versiones
-
-- **v1 — entregada:** autenticación, proyectos, chat cliente, Telegram, Brief estructurado y versionado, agente IA, documento 7.1, PDF/DOCX, aprobación y entrega.
-- **v2 — entregada:** diff del Brief, registro y clasificación básica de solicitudes de cambio, y endurecimiento de tipos y estados.
-- **Pendiente antes de una nueva versión:** configuración de producción, preflight, webhook real y smoke test completo.
+- **v1 — delivered:** projects, Telegram, structured versioned Brief, AI agent, template 7.1, PDF/DOCX, approval and delivery.
+- **v2 — delivered:** Brief diff, change-request log and classification, strict domain types.
+- **v3 (pricing, quotes, maintenance) — API delivered**, UI only in the deprecated web app.
+- **MCP-first — this release:** MCP server, API keys, OAuth for ChatGPT/Claude connectors, signed exports.
 
 ## Docs
 
-- `docs/scope-to-profit.md` — documento completo (15 secciones, plan 30 días, diferenciadores)
-- `docs/technical-plan.md` — arquitectura, módulos, datos, API, Docker y orden de implementación v1
+- `docs/scope-to-profit.md` — product concept, scope and architecture (source of truth)
+- `docs/mcp.md` — MCP tools, auth and client setup
+- `docs/technical-plan.md` — original v1 technical plan (historical; the web client parts are deprecated)
+- `docs/production-launch-checklist.md` — production checklist

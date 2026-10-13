@@ -33,3 +33,12 @@ La implementación vigente de v1 y v2 está mergeada. Lo único que queda pendie
 - [ ] Dar de alta al primer usuario y ejecutar un flujo completo real (Telegram → chat → brief → documento) como smoke test manual final.
 
 Ninguno de estos pasos requiere más decisiones de producto: todo el código, contratos, esquema de base de datos y flujos ya están implementados y probados (unit, integración y e2e con Postgres real).
+
+## 6. MCP server (MCP-first release)
+
+- [ ] Expose the API directly on its own HTTPS origin (for example `https://api.<domain>`) and set `PUBLIC_API_URL` to it. OAuth discovery (`/.well-known/*`), `/authorize`, `/token`, `/register`, `/revoke` and `/oauth/consent` live at the origin root, so the Next.js `/api/*` proxy is not enough.
+- [ ] Set `TRUST_PROXY_HOPS=1` (or the real number of proxies) when running behind a load balancer.
+- [ ] Run `pnpm run db:migrate` so the `api_keys`, `oauth_clients` and `oauth_tokens` tables exist.
+- [ ] Issue the first key: `pnpm --filter @scopeprofit/api run mcp:keys create --telegram-id <id> --label chatgpt` (the id must be in `TELEGRAM_AUTHORIZED_USER_IDS`). Store it in a password manager; it is shown once.
+- [ ] Optional server-side agent: `SCOPEPROFIT_AI_KEY=<gemini-key> pnpm --filter @scopeprofit/api run mcp:keys set-ai-key --telegram-id <id>` plus `AI_GATEWAY_API_KEY`.
+- [ ] Connect ChatGPT (developer mode, OAuth) and Claude following `docs/mcp.md`, then run one full flow: `create_project` → `add_client_input` → `update_scope_section` → `approve_scope` → `export_document`.
