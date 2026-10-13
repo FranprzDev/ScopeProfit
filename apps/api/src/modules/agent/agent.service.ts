@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { Annotation, StateGraph, START, END } from '@langchain/langgraph';
 import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
@@ -17,6 +17,7 @@ const AgentState = Annotation.Root({
 });
 @Injectable()
 export class AgentService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(AgentService.name);
   private timer?: NodeJS.Timeout;
   private saver?: PostgresSaver;
   private graph: unknown;
@@ -73,7 +74,7 @@ export class AgentService implements OnModuleInit, OnModuleDestroy {
       });
       for (const project of pending) await this.process(project.id);
     } catch {
-      console.error(
+      this.logger.error(
         JSON.stringify({
           event: 'agent_worker_failed',
           code: 'AGENT_WORKER_FAILED',
@@ -175,7 +176,7 @@ export class AgentService implements OnModuleInit, OnModuleDestroy {
           agentError: null,
         },
       });
-      console.log(
+      this.logger.log(
         JSON.stringify({
           event: 'agent_completed',
           projectId: id,
@@ -192,7 +193,7 @@ export class AgentService implements OnModuleInit, OnModuleDestroy {
         where: { id },
         data: { agentStatus: 'failed', agentError: 'AGENT_PROCESSING_FAILED' },
       });
-      console.error(
+      this.logger.error(
         JSON.stringify({
           event: 'agent_failed',
           projectId: id,

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
+import { SITE_URL } from '@/lib/site';
 import './globals.css';
 
-const SITE_URL = 'https://scopeprofit.app';
 const TITLE = 'ScopeProfit — Cerrá el alcance antes de cotizar, no después';
 const DESCRIPTION =
   'Chateá con tu cliente por Telegram y salí con un alcance de proyecto claro: requerimientos, riesgos y zonas grises detectadas antes de que te exploten en medio del desarrollo. PDF y Word listos para firmar.';

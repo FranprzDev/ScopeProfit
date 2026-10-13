@@ -1,8 +1,9 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/common';
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException, Logger } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { Request, Response } from 'express';
 @Catch()
 export class ApiErrorHandler implements ExceptionFilter {
+  private readonly logger = new Logger(ApiErrorHandler.name);
   catch(error: unknown, host: ArgumentsHost) {
     const context = host.switchToHttp();
     const req = context.getRequest<Request>();
@@ -23,7 +24,7 @@ export class ApiErrorHandler implements ExceptionFilter {
               : status === 404
                 ? 'NOT_FOUND'
                 : 'INTERNAL_ERROR';
-    console.error(
+    this.logger.error(
       JSON.stringify({ event: 'request_failed', requestId, method: req.method, status, code }),
     );
     res.status(status).json({

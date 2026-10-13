@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Bot, InlineKeyboard } from 'grammy';
 import type { Update } from 'grammy/types';
 import { randomUUID } from 'node:crypto';
@@ -21,7 +21,8 @@ const briefData = (data: Prisma.JsonValue): BriefData => validateBrief(data);
 
 @Injectable()
 export class TelegramService {
-  readonly bot = new Bot(process.env.TELEGRAM_BOT_TOKEN || '1:placeholder');
+  private readonly logger = new Logger(TelegramService.name);
+  readonly bot: Bot;
 
   constructor(
     private db: PrismaService,
@@ -32,6 +33,13 @@ export class TelegramService {
     private storage: StorageService,
     private changes: ChangeRequestsService,
   ) {
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    if (!token) {
+      this.logger.warn('TELEGRAM_BOT_TOKEN not set; Telegram bot disabled');
+      this.bot = new Bot('');
+    } else {
+      this.bot = new Bot(token);
+    }
     this.register();
   }
 
