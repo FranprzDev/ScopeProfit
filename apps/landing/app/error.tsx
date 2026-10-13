@@ -13,11 +13,10 @@ export default function Error({
   }, [error]);
 
   return (
-    <main className="narrow page">
-      <p className="eyebrow">ERROR</p>
+    <main className="shell">
       <h1>Algo salió mal.</h1>
-      <p className="intro">Hubo un error inesperado. Por favor, intentá de nuevo.</p>
-      <button className="button" onClick={() => reset()}>
+      <p>Hubo un error inesperado. Por favor, intentá de nuevo.</p>
+      <button className="shell-button" onClick={() => reset()}>
         Reintentar
       </button>
     </main>

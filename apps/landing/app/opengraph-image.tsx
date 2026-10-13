@@ -11,36 +11,49 @@ export default function OpengraphImage() {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'center',
-        padding: '80px',
-        background: 'linear-gradient(135deg, #4c1d95 0%, #db2777 100%)',
-        color: '#fff',
+        background: '#eef0f3',
         fontFamily: 'sans-serif',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 36 }}>
-        <div
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'flex-end',
+          height: 330,
+          padding: '0 72px 24px',
+          color: '#1f2de6',
+        }}
+      >
+        <span
           style={{
-            width: 56,
-            height: 56,
-            borderRadius: 12,
-            background: 'rgba(255,255,255,0.2)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 26,
-            fontWeight: 800,
+            fontSize: 30,
+            fontWeight: 700,
+            color: '#0b0c0e',
+            marginBottom: 'auto',
+            paddingTop: 48,
           }}
         >
-          sp
-        </div>
-        <span style={{ fontSize: 32, fontWeight: 700 }}>ScopeProfit</span>
+          ScopeProfit
+        </span>
+        <span style={{ fontSize: 132, fontWeight: 800, letterSpacing: -5, lineHeight: 0.9 }}>
+          CERRÁ EL ALCANCE
+        </span>
       </div>
-      <div style={{ fontSize: 56, fontWeight: 800, lineHeight: 1.15, maxWidth: 980 }}>
-        Cerrá el alcance antes de cotizar, desde tu agente de IA.
-      </div>
-      <div style={{ fontSize: 28, color: '#f0e0ff', marginTop: 32, maxWidth: 900 }}>
-        Servidor MCP para ChatGPT, Claude, Cursor y cualquier cliente MCP.
+      <div
+        style={{
+          display: 'flex',
+          flex: 1,
+          alignItems: 'center',
+          padding: '0 72px',
+          background: '#1f2de6',
+          color: '#ffffff',
+          fontSize: 36,
+          lineHeight: 1.25,
+        }}
+      >
+        Servidor MCP: desde ChatGPT, Claude, Cursor o tu propio agente, un documento de alcance
+        versionado antes de cotizar.
       </div>
     </div>,
     size,
