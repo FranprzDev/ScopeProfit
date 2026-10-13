@@ -4,10 +4,11 @@ import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import express from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import { AppModule } from './app.module';
 import { ApiErrorHandler } from './api-error-handler';
 import { csrfProtection } from './csrf';
-import { mountMcp } from './modules/mcp/mcp-http';
+import { isMcpRoute, mountMcp } from './modules/mcp/mcp-http';
 
 const REQUIRED_ENV_VARS = ['WEB_URL', 'DATABASE_URL', 'ENCRYPTION_KEY'] as const;
 
@@ -23,7 +24,9 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bodyParser: false });
   app.use(helmet());
   app.use(cookieParser());
-  app.use(csrfProtection);
+  app.use((req: Request, res: Response, next: NextFunction) =>
+    isMcpRoute(req.path) ? next() : csrfProtection(req, res, next),
+  );
   app.use(express.json({ limit: '2mb' }));
   app.use(express.urlencoded({ extended: true, limit: '2mb' }));
   app.setGlobalPrefix('api');

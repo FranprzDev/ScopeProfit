@@ -18,6 +18,18 @@ import { publicApiUrl } from './export-links';
 
 export const MCP_PATH = '/api/mcp';
 
+const OAUTH_POST_PATHS = ['/authorize', '/token', '/register', '/revoke', '/oauth/consent'];
+
+/**
+ * True for the MCP and OAuth endpoints. They authenticate with bearer tokens, API keys or a
+ * signed consent payload (never session cookies) and are called from MCP clients and from the
+ * consent form served on the API origin, so the cookie-oriented CSRF origin check must skip them.
+ */
+export function isMcpRoute(path: string) {
+  const base = new URL(publicApiUrl()).pathname.replace(/\/+$/, '');
+  return path === MCP_PATH || OAUTH_POST_PATHS.some((route) => path === `${base}${route}`);
+}
+
 /**
  * Mounts the remote MCP endpoint (Streamable HTTP, stateless JSON mode) and the OAuth 2.1
  * endpoints ChatGPT/Claude connectors need. Plain `Authorization: Bearer sp_live_...` API keys

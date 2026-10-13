@@ -38,6 +38,7 @@ import { createScopeMcpServer } from '../src/modules/mcp/mcp-server';
 import { exportUrl, verifyExportToken } from '../src/modules/mcp/export-links';
 import { fetchImage, isPublicAddress } from '../src/modules/mcp/image-fetch';
 import { signConsent, verifyConsent } from '../src/modules/mcp/oauth-consent';
+import { isMcpRoute } from '../src/modules/mcp/mcp-http';
 
 const skip = !process.env.DATABASE_URL;
 const dbOnly = { skip: skip ? 'DATABASE_URL not set' : false };
@@ -469,4 +470,11 @@ test('approve_scope refuses to email when the project has no client email', dbOn
     await errorCode('get_tldr', { project_id: '00000000-0000-4000-8000-000000000000' }),
     'PROJECT_NOT_FOUND',
   );
+});
+
+test('MCP and OAuth routes skip the cookie CSRF check, the REST API does not', () => {
+  for (const path of ['/api/mcp', '/authorize', '/token', '/register', '/revoke', '/oauth/consent'])
+    assert.equal(isMcpRoute(path), true, path);
+  for (const path of ['/api/projects', '/api/auth/magic-link', '/api/mcp/extra', '/tokens'])
+    assert.equal(isMcpRoute(path), false, path);
 });
