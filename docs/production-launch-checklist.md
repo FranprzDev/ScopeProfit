@@ -23,7 +23,7 @@ La implementación vigente de v1 y v2 está mergeada. Lo único que queda pendie
 ## 4. Validación previa al primer despliegue
 
 - [ ] Ejecutar `pnpm run production:preflight` en el entorno real con las variables reales cargadas.
-- [ ] Confirmar CI en verde en el último PR de la implementación (`backend-ci.yml`, `frontend-ci.yml`).
+- [ ] Confirmar CI en verde en el último PR de la implementación (`backend-ci.yml`, `frontend-ci.yml` — landing only).
 - [ ] Configurar el webhook de Telegram apuntando a `WEB_URL` una vez desplegado.
 
 ## 5. Go-live
@@ -36,7 +36,7 @@ Ninguno de estos pasos requiere más decisiones de producto: todo el código, co
 
 ## 6. MCP server (MCP-first release)
 
-- [ ] Expose the API directly on its own HTTPS origin (for example `https://api.<domain>`) and set `PUBLIC_API_URL` to it. OAuth discovery (`/.well-known/*`), `/authorize`, `/token`, `/register`, `/revoke` and `/oauth/consent` live at the origin root, so the Next.js `/api/*` proxy is not enough.
+- [ ] Expose the API directly on its own HTTPS origin (for example `https://api.<domain>`) and set `PUBLIC_API_URL` to it. OAuth discovery (`/.well-known/*`), `/authorize`, `/token`, `/register`, `/revoke` and `/oauth/consent` live at the origin root, so the API needs its own origin.
 - [ ] Set `TRUST_PROXY_HOPS=1` (or the real number of proxies) when running behind a load balancer.
 - [ ] Run `pnpm run db:migrate` so the `api_keys`, `oauth_clients` and `oauth_tokens` tables exist.
 - [ ] Issue the first key: `pnpm --filter @scopeprofit/api run mcp:keys create --telegram-id <id> --label chatgpt` (the id must be in `TELEGRAM_AUTHORIZED_USER_IDS`). Store it in a password manager; it is shown once.

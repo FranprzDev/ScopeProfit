@@ -1,6 +1,6 @@
 # Plan técnico vigente
 
-> **Note (October 2026):** this is the original v1 plan. The product is now MCP-first (see `docs/scope-to-profit.md` §7.0 and `docs/mcp.md`); the Next.js client chat described here is deprecated.
+> **Note (October 2026):** this is the original v1 plan. The product is now MCP-first (see `README.md` and `docs/mcp.md`); the Next.js client chat described here was removed from the repository.
 
 Estado: implementado para v1 y v2; la checklist de producción es el siguiente hito.
 

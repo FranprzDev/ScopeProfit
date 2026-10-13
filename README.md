@@ -28,7 +28,7 @@ ChatGPT · Claude · Cursor · Grok bots · custom agents      Telegram (optiona
 - **Auth** — `Authorization: Bearer` with a ScopeProfit API key, or OAuth 2.1 (dynamic client registration + PKCE) for ChatGPT-style connectors. See `docs/mcp.md`.
 - **Backend API** — the only component with database and file-system access. Keeps the versioned Brief (PostgreSQL), renders template 7.1 and the PDF/DOCX artifacts, and runs the optional server-side scope agent.
 - **Telegram bot** — still supported for the professional (`/createproject`, `/projects`, `/tldr`, `/doc`, `/ask`, `/archive`, `/help`, approve/reject buttons). Talks only to `POST /api/telegram/webhook`.
-- **Next.js client chat (`apps/app`) — deprecated.** It still builds and works but receives no new features; the client conversation now happens in whatever agent uses the MCP server. `apps/landing` is the marketing site.
+- **Landing (`apps/landing`)** — static marketing page that explains the MCP-first product and how to connect each client. There is no web app anymore: the Next.js client chat (`apps/app`) was removed; the client conversation now happens in whatever agent uses the MCP server.
 
 ## Quick start (local)
 
@@ -40,6 +40,7 @@ pnpm run db:migrate
 pnpm --filter @scopeprofit/api run build
 pnpm --filter @scopeprofit/api run mcp:keys create --telegram-id <your-telegram-id> --label local
 pnpm run dev:api                  # MCP endpoint at http://localhost:3001/api/mcp
+pnpm run dev:landing              # landing at http://localhost:3000
 ```
 
 Then connect a client as described in `docs/mcp.md` (ChatGPT, Claude, Claude Code, Cursor, OpenAI Responses API, MCP Inspector, raw HTTP).
@@ -57,9 +58,9 @@ Then connect a client as described in `docs/mcp.md` (ChatGPT, Claude, Claude Cod
 - **MCP:** `@modelcontextprotocol/sdk` (Streamable HTTP + stdio, OAuth 2.1 authorization server)
 - **Agent (optional):** LangGraph + LangChain JS with Gemini; clarification gate via Vercel AI Gateway
 - **Documents:** structured Brief → Markdown, `pdfkit` → PDF, `docx` → DOCX
-- **Email:** Brevo (approved document delivery, magic links of the legacy web app)
+- **Email:** Brevo (approved document delivery)
 - **Bot:** grammY webhook with `secret_token`
-- **Quality:** unit, integration, MCP (in-memory SDK client) and e2e (HTTP, OAuth, stdio) tests on real PostgreSQL; separate backend/frontend CI pipelines
+- **Quality:** unit, integration, MCP (in-memory SDK client) and e2e (HTTP, OAuth, stdio) tests on real PostgreSQL; separate backend and landing CI pipelines
 - **Deploy:** Docker Compose with PostgreSQL and persistent volumes
 
 ## Commands
@@ -77,12 +78,13 @@ pnpm run production:preflight
 
 - **v1 — delivered:** projects, Telegram, structured versioned Brief, AI agent, template 7.1, PDF/DOCX, approval and delivery.
 - **v2 — delivered:** Brief diff, change-request log and classification, strict domain types.
-- **v3 (pricing, quotes, maintenance) — API delivered**, UI only in the deprecated web app.
-- **MCP-first — this release:** MCP server, API keys, OAuth for ChatGPT/Claude connectors, signed exports.
+- **v3 (pricing, quotes, maintenance) — API only.** Its UI lived in the removed web app; it is not exposed as MCP tools yet. See `docs/v3-api-access.md` for how to reach it today.
+- **MCP-first — this release:** MCP server, API keys, OAuth for ChatGPT/Claude connectors, signed exports; web app removed, landing rewritten.
 
 ## Docs
 
 - `docs/scope-to-profit.md` — product concept, scope and architecture (source of truth)
 - `docs/mcp.md` — MCP tools, auth and client setup
-- `docs/technical-plan.md` — original v1 technical plan (historical; the web client parts are deprecated)
+- `docs/v3-api-access.md` — how to reach the v3 quote, rate-card and maintenance endpoints without a UI
+- `docs/technical-plan.md` — original v1 technical plan (historical; the web client it describes was removed)
 - `docs/production-launch-checklist.md` — production checklist

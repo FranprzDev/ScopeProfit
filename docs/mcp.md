@@ -150,7 +150,7 @@ curl -s https://api.example.com/api/mcp \
 
 ## Deployment requirements
 
-- The API must be reachable **directly** over HTTPS at `PUBLIC_API_URL` (e.g. `https://api.example.com`). OAuth discovery and endpoints live at the origin root (`/.well-known/*`, `/authorize`, `/token`, `/register`, `/revoke`, `/oauth/consent`), so the Next.js `/api/*` proxy is not enough.
+- The API must be reachable **directly** over HTTPS at `PUBLIC_API_URL` (e.g. `https://api.example.com`). OAuth discovery and endpoints live at the origin root (`/.well-known/*`, `/authorize`, `/token`, `/register`, `/revoke`, `/oauth/consent`), so the API needs its own origin (there is no web app proxying `/api/*` anymore).
 - Behind a reverse proxy set `TRUST_PROXY_HOPS` (usually `1`) so rate limits see client IPs.
 - `STORAGE_ROOT` must be a persistent volume (uploads and generated PDF/DOCX).
 - Optional: `MCP_RATE_LIMIT_PER_MINUTE` (default 120 per IP), `MCP_EXPORT_URL_TTL_MINUTES` (default 60).
