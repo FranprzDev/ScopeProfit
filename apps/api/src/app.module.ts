@@ -14,6 +14,7 @@ import { QuoteController } from './modules/pricing/quote.controller';
 import { MyQuotesController } from './modules/pricing/my-quotes.controller';
 import { MaintenanceController } from './modules/maintenance/maintenance.controller';
 import { MyMaintenanceController } from './modules/maintenance/my-maintenance.controller';
+import { ExportsController } from './modules/mcp/exports.controller';
 
 @Module({
   imports: [ThrottlerModule.forRoot([{ ttl: 60_000, limit: 30 }]), CoreModule, TelegramModule],
@@ -29,6 +30,7 @@ import { MyMaintenanceController } from './modules/maintenance/my-maintenance.co
     MyQuotesController,
     MaintenanceController,
     MyMaintenanceController,
+    ExportsController,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

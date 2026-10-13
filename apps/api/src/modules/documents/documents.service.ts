@@ -154,7 +154,16 @@ export class DocumentsService {
       }[format],
     };
   }
-  async approve(projectId: string, userId: string, version: number) {
+  /**
+   * Approves the current document version. Delivery by email runs by default; MCP callers can
+   * approve without emailing (`deliver: false`) and hand the client an export link instead.
+   */
+  async approve(
+    projectId: string,
+    userId: string,
+    version: number,
+    options: { deliver?: boolean } = {},
+  ) {
     await this.prisma.$transaction(
       async (tx) => {
         const user = await tx.user.findUnique({ where: { id: userId } });
@@ -227,6 +236,12 @@ export class DocumentsService {
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
+    if (options.deliver === false) {
+      const document = await this.prisma.document.findUniqueOrThrow({ where: { projectId } });
+      return this.prisma.documentVersion.findUniqueOrThrow({
+        where: { documentId_version: { documentId: document.id, version } },
+      });
+    }
     return this.deliver(projectId, version);
   }
   async deliver(projectId: string, version: number) {

@@ -7,6 +7,7 @@ import express from 'express';
 import { AppModule } from './app.module';
 import { ApiErrorHandler } from './api-error-handler';
 import { csrfProtection } from './csrf';
+import { mountMcp } from './modules/mcp/mcp-http';
 
 const REQUIRED_ENV_VARS = ['WEB_URL', 'DATABASE_URL', 'ENCRYPTION_KEY'] as const;
 
@@ -31,6 +32,9 @@ async function bootstrap() {
   );
   app.useGlobalFilters(new ApiErrorHandler());
   app.enableCors({ origin: process.env.WEB_URL, credentials: true });
+  if (process.env.TRUST_PROXY_HOPS)
+    app.getHttpAdapter().getInstance().set('trust proxy', Number(process.env.TRUST_PROXY_HOPS));
+  mountMcp(app);
   await app.listen(process.env.PORT ?? 3001);
 }
 void bootstrap();
