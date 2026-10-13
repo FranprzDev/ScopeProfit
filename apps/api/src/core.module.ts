@@ -10,6 +10,8 @@ import { ChangeRequestsService } from './modules/projects/change-requests.servic
 import { RateCardsService } from './modules/pricing/rate-cards.service';
 import { QuotesService } from './modules/pricing/quotes.service';
 import { MaintenanceService } from './modules/maintenance/maintenance.service';
+import { ApiKeysService } from './modules/mcp/api-keys.service';
+import { ScopeToolsService } from './modules/mcp/scope-tools.service';
 
 const providers = [
   PrismaService,
@@ -23,6 +25,8 @@ const providers = [
   RateCardsService,
   QuotesService,
   MaintenanceService,
+  ApiKeysService,
+  ScopeToolsService,
 ];
 
 @Global()

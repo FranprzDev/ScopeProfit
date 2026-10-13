@@ -5,6 +5,8 @@
 Documento de concepto, producto y estrategia inicial — 1 de septiembre de 2026
 _Fuente de verdad — foco en documentación de alcance para proyectos nuevos_
 
+> **Update (October 2026):** the product is now MCP-first. The Next.js client chat described in this document was removed; the client conversation happens in any MCP host (ChatGPT, Claude, Cursor, custom agents) and Telegram remains the professional's channel. See `README.md` and `docs/mcp.md`. The sections below are kept as the original product rationale.
+
 > **Estado:** v1 y v2 implementadas | **Foco vigente:** Cliente (Next.js) ↔ Backend (Agente IA) ↔ Vos (Telegram) → DB + filesystem persistente Brief → doc 7.1
 
 > **Arquitectura v1:** 3 apps — `Telegram Bot (tu interfaz)` + `Next.js Frontend (chat cliente)` + `Backend API (donde vive el agente IA) + DB + filesystem persistente`. Telegram y Next.js **nunca tocan la DB directo**, todo pasa por Backend API.

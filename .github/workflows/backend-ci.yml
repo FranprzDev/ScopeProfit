@@ -68,6 +68,7 @@ jobs:
       - run: pnpm --filter @scopeprofit/api run typecheck
       - run: pnpm --filter @scopeprofit/api run test:unit
       - run: pnpm --filter @scopeprofit/api run test:integration
+      - run: pnpm --filter @scopeprofit/api run test:mcp
       - run: pnpm --filter @scopeprofit/api run test:e2e
       - run: pnpm --filter @scopeprofit/api run build
       - run: pnpm run smoke

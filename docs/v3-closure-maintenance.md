@@ -32,12 +32,14 @@ Hoy el producto cubre del lead desordenado al documento de alcance aprobado (Bri
 
 ### E3 — Frontend (sin unit tests; cobertura vía E2E)
 
+> **Removed (October 2026):** the `apps/app` web UI and the E4 E2E suite that drove it were deleted with the MCP-first change. The E1/E2 API is unchanged; see `docs/v3-api-access.md`.
+
 - Dashboard: bloques de Cotizaciones y Mantenimiento (estados y totales).
 - `/p/[projectId]`: panel de Cotización (crear desde Brief, editar líneas/hitos, estados) y panel de Mantenimiento (saldo del período, alta de consumos, historial).
 - Estilo: CSS plano con las variables de `apps/app/app/globals.css`, iconos `lucide-react`, data fetching con `apps/app/lib/api.ts`, tipos desde `@scopeprofit/contracts`.
 - Fix detectado por la suite: los inputs de horas del retainer usaban `min={0.01}` con `step={0.25}`; el step base es `min`, así que valores reales (10, 25, 2) quedaban inválidos y el form no submitteaba. Pasa a `min={0}` (la validación `> 0` ya la hace React y el API).
 
-### E4 — E2E (framework `e2e` de tester.army)
+### E4 — E2E (framework `e2e` de tester.army) — removed with `apps/app`
 
 - Suite que cubre: login → proyecto → cotización → aprobación; y retainer → consumo → saldo.
 - Instalación del skill: `npx skills add tester-army/e2e` (skills en `.agents/skills/`).

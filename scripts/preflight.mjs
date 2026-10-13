@@ -11,6 +11,7 @@ if (existsSync('.env')) process.loadEnvFile('.env');
 const required = [
   'POSTGRES_PASSWORD',
   'WEB_URL',
+  'PUBLIC_API_URL',
   'ENCRYPTION_KEY',
   'SESSION_SECRET',
   'AI_GATEWAY_API_KEY',
@@ -25,6 +26,13 @@ const errors = required
   .map((key) => `${key}: missing or placeholder`);
 if (!/^https:\/\//.test(process.env.WEB_URL || ''))
   errors.push('WEB_URL: production requires HTTPS');
+if (!/^https:\/\//.test(process.env.PUBLIC_API_URL || ''))
+  errors.push('PUBLIC_API_URL: production requires HTTPS (MCP endpoint and OAuth issuer)');
+if (
+  /^(1|true)$/i.test(process.env.MCP_ALLOW_PRIVATE_IMAGE_URLS || '') ||
+  /^(1|true)$/i.test(process.env.MCP_ALLOW_HTTP_IMAGE_URLS || '')
+)
+  errors.push('MCP_ALLOW_*_IMAGE_URLS: testing-only flags must be disabled in production');
 if (Buffer.from(process.env.ENCRYPTION_KEY || '', 'base64').length !== 32)
   errors.push('ENCRYPTION_KEY: expected 32 random bytes encoded as base64');
 if ((process.env.SESSION_SECRET || '').length < 32)
