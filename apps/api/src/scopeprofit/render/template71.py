@@ -20,6 +20,7 @@ from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
+from docx.oxml.table import CT_Tc
 from docx.shared import Mm, Pt, RGBColor
 from PIL import Image, ImageDraw
 from reportlab.lib import colors
@@ -47,9 +48,9 @@ from reportlab.platypus import (
 )
 from reportlab.platypus.flowables import Flowable
 
-from scopeprofit.domain.brief import BriefData
 from scopeprofit.domain.branding import DEFAULT_BRANDING, Branding
-from scopeprofit.enums import ExportFormat
+from scopeprofit.domain.brief import BriefData
+from scopeprofit.enums import DecisionStatus, ExportFormat
 
 PENDING = "Pendiente de definición"
 DISCLAIMER = "Rango orientativo sujeto a los supuestos e incertidumbres indicados; no es un precio."
@@ -67,6 +68,11 @@ MONTHS = (
     "Noviembre",
     "Diciembre",
 )
+DECISION_LABELS: dict[DecisionStatus, str] = {
+    DecisionStatus.proposed: "propuesta",
+    DecisionStatus.accepted: "aceptada",
+    DecisionStatus.superseded: "reemplazada",
+}
 SCOPE_LABELS = ("Incluidos", "Excluidos", "Supuestos", "Criterios de aceptación")
 TEXT_COLOR = "#2B2B2B"
 MUTED_COLOR = "#6B7280"
@@ -134,12 +140,12 @@ def _markdown_annexes(brief: BriefData) -> str:
         )
         parts.append(f"## Anexo A. Glosario\n{terms}\n")
     if brief.decisions:
-        decisions = "\n".join(f"- {d.id} {d.title} ({d.status.value}): {d.decision}" for d in brief.decisions)
+        decisions = "\n".join(
+            f"- {d.id} {d.title} ({DECISION_LABELS[d.status]}): {d.decision}" for d in brief.decisions
+        )
         parts.append(f"## Anexo B. Decisiones\n{decisions}\n")
     if brief.resolved_questions:
-        resolved = "\n".join(
-            f"- {q.id} (ronda {q.round}): {q.question} → {q.answer}" for q in brief.resolved_questions
-        )
+        resolved = "\n".join(f"- {q.id} (ronda {q.round}): {q.question} → {q.answer}" for q in brief.resolved_questions)
         parts.append(f"## Anexo C. Preguntas resueltas\n{resolved}\n")
     return "\n".join(parts)
 
@@ -492,7 +498,7 @@ def _pdf_story(doc: DocumentContext, styles: _Styles, width: float) -> list[Flow
         story.append(_p("Anexo B. Decisiones", styles.h2))
         for decision in brief.decisions:
             parts: list[Flowable] = [
-                _p(f"{decision.id}. {decision.title} ({decision.status.value})", styles.h3),
+                _p(f"{decision.id}. {decision.title} ({DECISION_LABELS[decision.status]})", styles.h3),
                 _p(decision.decision, styles.body),
             ]
             if decision.considered_options:
@@ -563,7 +569,7 @@ def corner_png(branding: Branding, width: int = 900, height: int = 300) -> bytes
     return buffer.getvalue()
 
 
-def _shade(cell_element: OxmlElement, fill: str) -> None:
+def _shade(cell_element: CT_Tc, fill: str) -> None:
     properties = cell_element.get_or_add_tcPr()
     shading = OxmlElement("w:shd")
     shading.set(qn("w:val"), "clear")
@@ -597,8 +603,8 @@ def render_docx(doc: DocumentContext) -> bytes:
     section.left_margin = section.right_margin = Mm(20)
     section.top_margin = section.bottom_margin = Mm(22)
 
-    def brand_row(container_table_parent: DocxDocument, left_color: str) -> None:
-        row = container_table_parent.add_table(rows=1, cols=2)
+    def brand_row(left_color: str) -> None:
+        row = document.add_table(rows=1, cols=2)
         row.alignment = WD_TABLE_ALIGNMENT.CENTER
         left = row.rows[0].cells[0].paragraphs[0].add_run(branding.brand_name)
         left.bold = True
@@ -611,7 +617,7 @@ def render_docx(doc: DocumentContext) -> bytes:
         right.font.size = Pt(14)
         right.font.color.rgb = _rgb(branding.primary_color)
 
-    brand_row(document, branding.accent_color)
+    brand_row(branding.accent_color)
     spacer = document.add_paragraph()
     spacer.paragraph_format.space_before = Pt(190)
     light = spacer.add_run(branding.cover_title_light)
@@ -623,17 +629,15 @@ def render_docx(doc: DocumentContext) -> bytes:
     bold.bold = True
     bold.font.size = Pt(48)
     bold.font.color.rgb = _rgb(branding.primary_color)
-    subtitle = document.add_paragraph().add_run(
-        f"{doc.project_name} · {doc.client_name} · Versión 0.{doc.version}"
-    )
+    subtitle = document.add_paragraph().add_run(f"{doc.project_name} · {doc.client_name} · Versión 0.{doc.version}")
     subtitle.font.color.rgb = _rgb(MUTED_COLOR)
     block = document.add_paragraph()
     block.paragraph_format.space_before = Pt(170)
-    name = block.add_run(branding.brand_name)
-    name.bold = True
-    name.font.size = Pt(16)
-    name.font.color.rgb = _rgb(branding.primary_color)
-    name.add_break(WD_BREAK.LINE)
+    brand_run = block.add_run(branding.brand_name)
+    brand_run.bold = True
+    brand_run.font.size = Pt(16)
+    brand_run.font.color.rgb = _rgb(branding.primary_color)
+    brand_run.add_break(WD_BREAK.LINE)
     tagline = block.add_run(branding.tagline)
     tagline.font.size = Pt(12)
     tagline.font.color.rgb = _rgb(branding.accent_color)
@@ -736,7 +740,7 @@ def render_docx(doc: DocumentContext) -> bytes:
     if brief.decisions:
         document.add_heading("Anexo B. Decisiones", level=1)
         for decision in brief.decisions:
-            document.add_heading(f"{decision.id}. {decision.title} ({decision.status.value})", level=2)
+            document.add_heading(f"{decision.id}. {decision.title} ({DECISION_LABELS[decision.status]})", level=2)
             document.add_paragraph(decision.decision)
             if decision.considered_options:
                 document.add_paragraph("Opciones consideradas: " + "; ".join(decision.considered_options))

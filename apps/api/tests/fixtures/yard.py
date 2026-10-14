@@ -6,8 +6,8 @@ an hours table with a TOTAL row, a glossary, decision records and resolved grill
 
 import uuid
 
-from scopeprofit.domain.brief import BriefData
 from scopeprofit.domain.branding import Branding
+from scopeprofit.domain.brief import BriefData
 
 CLIENT_IDEA = (
     "Tenemos un desarmadero y queremos dejar las planillas. Necesitamos registrar cada vehículo que entra "
