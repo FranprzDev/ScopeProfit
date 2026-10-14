@@ -1,6 +1,26 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
+import { Libre_Franklin, Source_Serif_4 } from 'next/font/google';
 import { SITE_URL } from '@/lib/site';
 import './globals.css';
+
+const display = Libre_Franklin({
+  subsets: ['latin'],
+  weight: '700',
+  variable: '--font-display',
+  display: 'swap',
+});
+
+const text = Source_Serif_4({
+  subsets: ['latin'],
+  weight: ['400', '600'],
+  style: ['normal', 'italic'],
+  variable: '--font-text',
+  display: 'swap',
+});
+
+export const viewport: Viewport = {
+  themeColor: '#eef0f3',
+};
 
 const TITLE = 'ScopeProfit — Servidor MCP para cerrar el alcance antes de cotizar';
 const DESCRIPTION =
@@ -48,7 +68,7 @@ const jsonLd = {
 
 export default function Layout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="es">
+    <html lang="es" className={`${display.variable} ${text.variable}`}>
       <head>
         <script
           type="application/ld+json"
