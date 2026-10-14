@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from 'next';
 import { Libre_Franklin, Source_Serif_4 } from 'next/font/google';
+import { Analytics } from '@/components/analytics';
+import { JsonLd } from '@/components/json-ld';
+import { BASE_OPEN_GRAPH, DESCRIPTION, TITLE } from '@/lib/seo';
 import { SITE_URL } from '@/lib/site';
+import { buildSiteJsonLd } from '@/lib/structured-data';
 import './globals.css';
 
 const display = Libre_Franklin({
@@ -18,14 +22,18 @@ const text = Source_Serif_4({
   display: 'swap',
 });
 
+/** Zoom stays allowed (up to 5x) for accessibility; the theme color matches `--bg`. */
 export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
   themeColor: '#eef0f3',
 };
 
-const TITLE = 'ScopeProfit — Servidor MCP para cerrar el alcance antes de cotizar';
-const DESCRIPTION =
-  'Scope-to-Profit es un servidor MCP: desde ChatGPT, Claude, Cursor o tu propio agente convertís la idea desordenada de un cliente en un documento de alcance versionado, con requerimientos citados, preguntas bloqueantes, riesgos y rango de horas. Exporta PDF y Word.';
-
+/**
+ * Site-wide defaults only. The canonical URL is not set here: each page declares its own
+ * through `buildPageMetadata`, so no route inherits the root as its canonical.
+ */
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: { default: TITLE, template: '%s · ScopeProfit' },
@@ -40,40 +48,21 @@ export const metadata: Metadata = {
     'servidor MCP',
     'Model Context Protocol',
   ],
-  openGraph: {
-    type: 'website',
-    locale: 'es_AR',
-    url: SITE_URL,
-    siteName: 'ScopeProfit',
-    title: TITLE,
-    description: DESCRIPTION,
-  },
+  openGraph: BASE_OPEN_GRAPH,
   twitter: {
     card: 'summary_large_image',
     title: TITLE,
     description: DESCRIPTION,
   },
-  alternates: { canonical: SITE_URL },
   robots: { index: true, follow: true },
-};
-
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'SoftwareApplication',
-  name: 'ScopeProfit',
-  applicationCategory: 'BusinessApplication',
-  operatingSystem: 'Web',
-  description: DESCRIPTION,
 };
 
 export default function Layout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es" className={`${display.variable} ${text.variable}`}>
       <head>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
+        <JsonLd data={buildSiteJsonLd()} />
+        <Analytics />
       </head>
       <body>{children}</body>
     </html>

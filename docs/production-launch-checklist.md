@@ -8,6 +8,7 @@ La implementación vigente de v1 y v2 está mergeada. Lo único que queda pendie
 - [ ] **Vercel AI Gateway**: configurar `AI_GATEWAY_API_KEY`; el agente lo usa para evaluar si hace falta pedir aclaraciones.
 - [ ] **Gemini**: cada usuario final carga su propia `GEMINI_API_KEY` desde `/settings` (ya implementado con cifrado AES-256-GCM). No requiere key global del operador.
 - [ ] **Telegram**: crear bot con @BotFather, obtener `TELEGRAM_BOT_TOKEN`, definir `TELEGRAM_AUTHORIZED_USER_IDS` (IDs numéricos autorizados), generar `TELEGRAM_WEBHOOK_SECRET` propio.
+- [ ] **Plausible (optional landing analytics)**: create the site in Plausible (cloud or self-hosted) and set `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` (e.g. `scopeprofit.app`) and `NEXT_PUBLIC_PLAUSIBLE_SCRIPT_SRC` (e.g. `https://plausible.io/js/script.js`) at landing build time (Docker build args or Vercel env). Leave both empty to keep analytics off; setting only one fails the build.
 
 ## 2. Infraestructura
 

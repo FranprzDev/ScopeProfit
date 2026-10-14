@@ -1,7 +1,10 @@
 import type { NextConfig } from 'next';
 import path from 'node:path';
+import { readPlausibleConfig } from './lib/analytics';
 
 const isVercel = process.env.VERCEL === '1';
+const plausible = readPlausibleConfig();
+const analyticsOrigins = plausible ? [plausible.origin] : [];
 
 const config: NextConfig = {
   ...(isVercel
@@ -24,11 +27,11 @@ const config: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline'",
+              ['script-src', "'self'", "'unsafe-inline'", ...analyticsOrigins].join(' '),
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https:",
               "font-src 'self'",
-              "connect-src 'self'",
+              ['connect-src', "'self'", ...analyticsOrigins].join(' '),
               "frame-ancestors 'none'",
             ].join('; '),
           },

@@ -4,6 +4,7 @@ import {
   BRIDGE_SNIPPET,
   CLAUDE_CODE_SNIPPET,
   CURL_SNIPPET,
+  FAQ_ENTRIES,
   KIND_LABEL,
   MCP_DOCS_URL,
   MCP_ENDPOINT_PLACEHOLDER,
@@ -13,10 +14,16 @@ import {
   STAGES,
   STDIO_SNIPPET,
   TELEGRAM_COMMANDS,
+  TELEGRAM_FAQ,
   TOOL_COUNT,
   TOOL_GROUPS,
   ToolKind,
 } from './content';
+import type { Metadata } from 'next';
+import { JsonLd } from '@/components/json-ld';
+import { buildPageMetadata } from '@/lib/seo';
+import { SitePath } from '@/lib/site';
+import { buildFaqJsonLd } from '@/lib/structured-data';
 import { PageMotion } from './page-motion';
 import { ToolFinder } from './tool-finder';
 import s from './landing.module.css';
@@ -62,9 +69,12 @@ const NAV_LINKS = [
 
 const photoList = Object.values(PHOTOS);
 
+export const metadata: Metadata = buildPageMetadata(SitePath.Home);
+
 export default function Home() {
   return (
     <div className={s.page}>
+      <JsonLd data={buildFaqJsonLd(FAQ_ENTRIES)} />
       <PageMotion />
 
       <header className={s.header} data-header data-ink="light">
@@ -450,11 +460,10 @@ export default function Home() {
           />
           <div className={s.telegramSide}>
             <p className={s.telegramQuestion} data-reveal>
-              ¿Qué hacés desde el bot?
+              {TELEGRAM_FAQ.question}
             </p>
             <p className={s.telegramText} data-reveal>
-              Creás y listás proyectos, mirás el resumen y el documento, mandás texto o imágenes,
-              archivás y aprobás o rechazás con los botones del bot.
+              {TELEGRAM_FAQ.answer}
             </p>
             <p className={s.commands} data-reveal>
               {TELEGRAM_COMMANDS.map((command) => (

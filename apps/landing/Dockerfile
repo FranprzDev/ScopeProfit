@@ -6,6 +6,9 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/landing/package.json apps/landing/package.json
 RUN pnpm install --frozen-lockfile --filter @scopeprofit/landing
 COPY apps/landing apps/landing
+# Optional analytics, inlined at build time (see apps/landing/lib/analytics.ts). Empty means disabled.
+ARG NEXT_PUBLIC_PLAUSIBLE_DOMAIN=
+ARG NEXT_PUBLIC_PLAUSIBLE_SCRIPT_SRC=
 RUN pnpm --filter @scopeprofit/landing run build
 
 FROM node:22-bookworm-slim AS runtime
