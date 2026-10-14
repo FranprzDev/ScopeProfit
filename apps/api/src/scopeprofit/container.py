@@ -13,6 +13,7 @@ from scopeprofit.services.accounts import Accounts, Principal
 from scopeprofit.services.agent import GatewayModel, ScopeAgent, ScopeModel
 from scopeprofit.services.email import BrevoEmail, EmailSender
 from scopeprofit.services.exports import ExportSigner
+from scopeprofit.services.grilling import GrillingService
 from scopeprofit.services.images import ImageFetcher, ImageFetchPolicy
 from scopeprofit.services.oauth import ACCESS_PREFIX, OAuthConfig, OAuthServer
 from scopeprofit.services.scope import ScopeService
@@ -31,6 +32,7 @@ class Services:
     scope: ScopeService
     agent: ScopeAgent
     oauth: OAuthServer
+    grilling: GrillingService
 
     async def authenticate(self, token: str) -> Principal:
         """Resolves a bearer token (an OAuth access token or an API key) to its owner."""
@@ -92,4 +94,5 @@ def build_services(
                 signing_key=settings.signing_key_bytes,
             ),
         ),
+        grilling=GrillingService(scope),
     )

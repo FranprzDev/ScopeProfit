@@ -239,3 +239,47 @@ class ChangeRequestView(View):
 class ChangeRequests(View):
     project_id: uuid.UUID
     change_requests: list[ChangeRequestView]
+
+
+class RoundQuestion(View):
+    id: str
+    question: str
+    reason: str
+    recommended_answer: str
+    blocks_estimate: bool
+
+
+class WaitingQuestion(View):
+    id: str
+    question: str
+    waits_for: list[str] = Field(description="Open question ids that must be answered first")
+
+
+class GrillRound(View):
+    """The next grilling round: every open question whose prerequisites are settled, asked together."""
+
+    project_id: uuid.UUID
+    brief_version: int
+    round: int
+    questions: list[RoundQuestion]
+    waiting: list[WaitingQuestion]
+    resolved: int
+    glossary_terms: int
+    decisions: int
+    done: bool = Field(description="True when no question is open: the frontier is empty")
+    formatted: str = Field(description="The round as Markdown, ready to show the person being interviewed")
+    next: str
+
+
+class AnswersWrite(BriefWrite):
+    resolved_question_ids: list[str]
+    message_ids: list[uuid.UUID]
+    next_round: GrillRound
+
+
+class Profile(View):
+    """OpenAI apps profile contract: a stable opaque id plus display metadata."""
+
+    id: str
+    email: str | None = None
+    nickname: str | None = None

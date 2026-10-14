@@ -166,14 +166,14 @@ class ScopeService:
             raise not_found(ErrorCode.project_not_found, "No project with that id in your account")
         return project
 
-    async def _editable(self, session: AsyncSession, principal: Principal, project_id: uuid.UUID) -> Project:
+    async def editable(self, session: AsyncSession, principal: Principal, project_id: uuid.UUID) -> Project:
         project = await self._project(session, principal, project_id, lock=True)
         if project.status in LOCKED_PROJECT_STATUSES:
             raise conflict(ErrorCode.project_locked, f"Project is {project.status.value} and can no longer be edited")
         return project
 
     @staticmethod
-    def _brief_of(project: Project) -> tuple[BriefData, int]:
+    def brief_of(project: Project) -> tuple[BriefData, int]:
         if project.brief is None:
             return BriefData(), 0
         return parse_brief(project.brief.data), project.brief.version
@@ -348,7 +348,7 @@ class ScopeService:
         projects = projects[:limit]
         items: list[ProjectListItem] = []
         for project in projects:
-            brief, _ = self._brief_of(project)
+            brief, _ = self.brief_of(project)
             items.append(
                 ProjectListItem(
                     project_id=project.id,
@@ -394,7 +394,7 @@ class ScopeService:
     async def get_project(self, principal: Principal, project_id: uuid.UUID) -> ProjectDetail:
         async with self.db.session() as session:
             project = await self._project(session, principal, project_id)
-            brief, brief_version = self._brief_of(project)
+            brief, brief_version = self.brief_of(project)
             latest = await self._latest_version(session, project)
             messages = await session.scalar(select(func.count()).where(Message.project_id == project_id))
         return ProjectDetail(
@@ -453,14 +453,14 @@ class ScopeService:
         if clean:
             validate_text(clean)
         async with self.db.session() as session:
-            await self._editable(session, principal, project_id)
+            await self.editable(session, principal, project_id)
             await session.rollback()
         fetched = [*images, *[await self.images.fetch(url) for url in image_urls]]
         added: list[AddedMessage] = []
         async with self.db.session() as session:
-            await self._editable(session, principal, project_id)
+            await self.editable(session, principal, project_id)
             if clean:
-                message = self._message(project_id, principal, author.value, clean)
+                message = self.input_message(project_id, principal, author.value, clean)
                 session.add(message)
                 await session.flush()
                 added.append(AddedMessage(message_id=message.id, kind="text"))
@@ -468,7 +468,7 @@ class ScopeService:
                 written = await self.storage.write(
                     f"{project_id}/uploads/{uuid.uuid4()}{_suffix(image)}", image.content, session
                 )
-                message = self._message(project_id, principal, author.value, IMAGE_PLACEHOLDER)
+                message = self.input_message(project_id, principal, author.value, IMAGE_PLACEHOLDER)
                 session.add(message)
                 await session.flush()
                 stored = File(
@@ -510,7 +510,7 @@ class ScopeService:
         )
 
     @staticmethod
-    def _message(project_id: uuid.UUID, principal: Principal, role: str, content: str) -> Message:
+    def input_message(project_id: uuid.UUID, principal: Principal, role: str, content: str) -> Message:
         return Message(
             project_id=project_id,
             thread_id=str(project_id),
@@ -555,7 +555,7 @@ class ScopeService:
     async def get_tldr(self, principal: Principal, project_id: uuid.UUID) -> Tldr:
         async with self.db.session() as session:
             project = await self._project(session, principal, project_id)
-        brief, version = self._brief_of(project)
+        brief, version = self.brief_of(project)
         total_min, total_max = brief.total_hours()
         return Tldr(
             project_id=project_id,
@@ -576,14 +576,14 @@ class ScopeService:
     ) -> PendingQuestions:
         async with self.db.session() as session:
             project = await self._project(session, principal, project_id)
-        brief, version = self._brief_of(project)
+        brief, version = self.brief_of(project)
         questions = brief.blocking_questions() if blocking_only else list(brief.questions)
         return PendingQuestions(project_id=project_id, brief_version=version, questions=questions)
 
     async def get_brief(self, principal: Principal, project_id: uuid.UUID) -> BriefState:
         async with self.db.session() as session:
             project = await self._project(session, principal, project_id)
-        brief, version = self._brief_of(project)
+        brief, version = self.brief_of(project)
         return BriefState(
             project_id=project_id,
             brief_version=version,
@@ -602,7 +602,7 @@ class ScopeService:
         analyze: bool = False,
     ) -> BriefWrite:
         async with self.db.session() as session:
-            await self._editable(session, principal, project_id)
+            await self.editable(session, principal, project_id)
             validate_sources(brief, await self._messages(session, project_id))
             version = await self.save_brief(session, project_id, expected_version, brief, source, principal.user_id)
             document_version = await self.generate_document(session, project_id, principal.user_id)
@@ -624,8 +624,8 @@ class ScopeService:
         reanalyze: bool = False,
     ) -> SectionWrite:
         async with self.db.session() as session:
-            project = await self._editable(session, principal, project_id)
-            brief, version = self._brief_of(project)
+            project = await self.editable(session, principal, project_id)
+            brief, version = self.brief_of(project)
             if version != expected_version:
                 raise conflict(
                     ErrorCode.version_conflict,
@@ -658,12 +658,12 @@ class ScopeService:
     ) -> AnsweredQuestion:
         clean = validate_text(answer.strip())
         async with self.db.session() as session:
-            project = await self._editable(session, principal, project_id)
-            brief, version = self._brief_of(project)
+            project = await self.editable(session, principal, project_id)
+            brief, version = self.brief_of(project)
             question = next((q for q in brief.questions if q.id == question_id), None)
             if question is None:
                 raise not_found(ErrorCode.question_not_found, f"No pending question {question_id}")
-            message = self._message(
+            message = self.input_message(
                 project_id, principal, AuthorRole.client.value, f"{question.id} — {question.question}\n{clean}"
             )
             session.add(message)
@@ -716,7 +716,7 @@ class ScopeService:
         async with self.db.session() as session:
             project = await self._project(session, principal, project_id)
             latest = await self._latest_version(session, project)
-        brief, version = self._brief_of(project)
+        brief, version = self.brief_of(project)
         markdown = render_markdown(
             DocumentContext(
                 project_name=project.name,
@@ -739,7 +739,7 @@ class ScopeService:
 
     async def regenerate(self, principal: Principal, project_id: uuid.UUID) -> int:
         async with self.db.session() as session:
-            await self._editable(session, principal, project_id)
+            await self.editable(session, principal, project_id)
             version = await self.generate_document(session, project_id, principal.user_id)
             await session.commit()
         return version
@@ -847,7 +847,7 @@ class ScopeService:
             if project.document is None or project.document.current_version != document_version:
                 raise conflict(ErrorCode.version_conflict, "Approve the current document version")
             saved = await self._latest_version(session, project)
-            brief, brief_version = self._brief_of(project)
+            brief, brief_version = self.brief_of(project)
             if saved is None or saved.version != document_version or saved.brief_version != brief_version:
                 raise conflict(ErrorCode.version_conflict, "Document does not match the current brief")
             if saved.approved_at is None:
@@ -936,7 +936,7 @@ class ScopeService:
             raise DomainError(ErrorCode.invalid_change_request, "Describe the requested change")
         async with self.db.session() as session:
             project = await self._project(session, principal, project_id)
-            brief, version = self._brief_of(project)
+            brief, version = self.brief_of(project)
             change = ChangeRequest(
                 project_id=project_id,
                 actor_id=principal.user_id,
