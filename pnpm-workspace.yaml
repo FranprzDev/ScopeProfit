@@ -2,3 +2,4 @@ packages:
   - 'apps/landing'
 allowBuilds:
   unrs-resolver: true
+  esbuild: true

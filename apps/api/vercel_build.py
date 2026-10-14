@@ -9,7 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
-from scopeprofit.cli import upgrade_database  # noqa: E402
+from scopeprofit.cli import upgrade_database
 
 if __name__ == "__main__":
     if os.environ.get("SCOPEPROFIT_MIGRATE_ON_BUILD") == "true":

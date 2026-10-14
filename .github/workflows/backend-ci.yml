@@ -48,4 +48,4 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
-      - run: docker build -t scopeprofit-api apps/api
+      - run: docker build -t scopeprofit-api .
