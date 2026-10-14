@@ -147,3 +147,60 @@ class VercelOidcMiddleware:
             await self.app(scope, receive, send)
         finally:
             vercel_oidc_token.reset(reset)
+
+
+PUBLIC_CORS_EXACT = frozenset({"/api/mcp", "/oauth/token", "/oauth/register", "/oauth/revoke"})
+PUBLIC_CORS_HEADERS = [
+    (b"access-control-allow-origin", b"*"),
+    (b"access-control-expose-headers", b"www-authenticate, mcp-session-id, mcp-protocol-version, x-request-id"),
+]
+
+
+def is_public_cors_path(path: str) -> bool:
+    """MCP, discovery and token routes are called cross-origin by browser-based MCP clients."""
+    return path in PUBLIC_CORS_EXACT or path.startswith("/.well-known/")
+
+
+class PublicCorsMiddleware:
+    """`Access-Control-Allow-Origin: *` (never with credentials) on the public MCP/OAuth routes.
+
+    Bearer tokens travel in the Authorization header, not cookies, so a wildcard origin exposes nothing a
+    caller does not already hold. The consent page (`/oauth/authorize`) is deliberately excluded."""
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http" or not is_public_cors_path(scope["path"]):
+            await self.app(scope, receive, send)
+            return
+        if scope["method"] == "OPTIONS":
+            await send(
+                {
+                    "type": "http.response.start",
+                    "status": 204,
+                    "headers": [
+                        *PUBLIC_CORS_HEADERS,
+                        (b"access-control-allow-methods", b"GET, POST, DELETE, OPTIONS"),
+                        (
+                            b"access-control-allow-headers",
+                            b"authorization, content-type, mcp-session-id, mcp-protocol-version, last-event-id",
+                        ),
+                        (b"access-control-max-age", b"86400"),
+                    ],
+                }
+            )
+            await send({"type": "http.response.body", "body": b""})
+            return
+
+        async def with_cors(message: Message) -> None:
+            if message["type"] == "http.response.start":
+                headers = [
+                    (name, value)
+                    for name, value in message.get("headers", [])
+                    if not name.lower().startswith(b"access-control-")
+                ]
+                message["headers"] = [*headers, *PUBLIC_CORS_HEADERS]
+            await send(message)
+
+        await self.app(scope, receive, with_cors)

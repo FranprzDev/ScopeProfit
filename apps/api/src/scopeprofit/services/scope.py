@@ -45,6 +45,8 @@ from scopeprofit.domain.views import (
     Archived,
     BriefDiff,
     BriefState,
+    BriefVersionItem,
+    BriefVersions,
     BriefWrite,
     ChangeRequests,
     ChangeRequestView,
@@ -685,6 +687,33 @@ class ScopeService:
             brief_version=new_version,
             document_version=document_version,
         )
+
+    async def brief_versions(self, principal: Principal, project_id: uuid.UUID) -> BriefVersions:
+        async with self.db.session() as session:
+            project = await self._project(session, principal, project_id)
+            rows = list(
+                await session.scalars(
+                    select(BriefVersion)
+                    .where(BriefVersion.project_id == project_id)
+                    .order_by(BriefVersion.version.desc())
+                )
+            )
+        items: list[BriefVersionItem] = []
+        for row in rows:
+            data = parse_brief(row.data)
+            items.append(
+                BriefVersionItem(
+                    version=row.version,
+                    source=row.source,
+                    actor_id=row.actor_id,
+                    created_at=row.created_at,
+                    open_questions=len(data.questions),
+                    resolved_questions=len(data.resolved_questions),
+                    glossary_terms=len(data.glossary),
+                    decisions=len(data.decisions),
+                )
+            )
+        return BriefVersions(project_id=project_id, current_version=self.brief_of(project)[1], versions=items)
 
     async def brief_diff(
         self, principal: Principal, project_id: uuid.UUID, from_version: int, to_version: int

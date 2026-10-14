@@ -11,23 +11,28 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.routing import Route
 
 from scopeprofit import __version__
 from scopeprofit.api.middleware import (
     FixedWindowLimiter,
+    PublicCorsMiddleware,
     RateLimitMiddleware,
     RateRule,
     SecurityHeadersMiddleware,
     VercelOidcMiddleware,
 )
-from scopeprofit.api.routes import agent, oauth, projects, system
+from scopeprofit.api.routes import agent, oauth, projects, system, telegram
 from scopeprofit.config import Settings, get_settings
 from scopeprofit.container import Services, build_services
 from scopeprofit.enums import AgentMode
 from scopeprofit.errors import DomainError, ErrorCode
+from scopeprofit.mcp_server.http import McpEndpoint
+from scopeprofit.mcp_server.tools import build_mcp
 from scopeprofit.services.oauth import www_authenticate
 
 logger = logging.getLogger("scopeprofit.api")
+MCP_PATH = "/api/mcp"
 
 STATUS_CODES: dict[int, ErrorCode] = {
     HTTPStatus.UNAUTHORIZED: ErrorCode.unauthenticated,
@@ -76,8 +81,29 @@ def install_error_handlers(app: FastAPI) -> None:
 
 
 def rate_rules(settings: Settings) -> list[RateRule]:
-    per_minute = FixedWindowLimiter(settings.api_rate_limit_per_minute, 60)
-    return [RateRule("api", lambda _method, path: path.startswith("/api/") and path != "/api/health", per_minute)]
+    """First match wins. Limits are per client IP and per process (see docs/deploy-vercel.md)."""
+    return [
+        RateRule(
+            "sign-in",
+            lambda method, path: method == "POST" and path == "/oauth/authorize",
+            FixedWindowLimiter(settings.sign_in_rate_limit_per_minute, 60),
+        ),
+        RateRule(
+            "oauth",
+            lambda _method, path: path.startswith(("/oauth/", "/.well-known/")),
+            FixedWindowLimiter(settings.oauth_rate_limit_per_minute, 60),
+        ),
+        RateRule(
+            "mcp",
+            lambda _method, path: path == MCP_PATH,
+            FixedWindowLimiter(settings.mcp_rate_limit_per_minute, 60),
+        ),
+        RateRule(
+            "api",
+            lambda _method, path: path.startswith(("/api/", "/telegram/")) and path != "/api/health",
+            FixedWindowLimiter(settings.api_rate_limit_per_minute, 60),
+        ),
+    ]
 
 
 def create_app(
@@ -117,6 +143,9 @@ def create_app(
     app.include_router(projects.router)
     app.include_router(agent.router)
     app.include_router(oauth.router)
+    app.include_router(telegram.router)
+    mcp_endpoint = McpEndpoint(services, build_mcp(services))
+    app.router.routes.append(Route(MCP_PATH, mcp_endpoint, methods=["GET", "POST", "DELETE"], include_in_schema=False))
     if settings.cors_origins:
         app.add_middleware(
             CORSMiddleware,
@@ -128,4 +157,5 @@ def create_app(
     app.add_middleware(RateLimitMiddleware, rules=rate_rules(settings), trust_proxy_hops=settings.trust_proxy_hops)
     app.add_middleware(SecurityHeadersMiddleware, hsts=settings.public_api_url.startswith("https://"))
     app.add_middleware(VercelOidcMiddleware)
+    app.add_middleware(PublicCorsMiddleware)
     return app

@@ -9,6 +9,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
+from scopeprofit.domain.branding import Branding
 from scopeprofit.domain.brief import BriefData, BriefDiffEntry, Question
 from scopeprofit.enums import (
     AgentStatus,
@@ -283,3 +284,25 @@ class Profile(View):
     id: str
     email: str | None = None
     nickname: str | None = None
+
+
+class BriefVersionItem(View):
+    version: int
+    source: str
+    actor_id: str | None
+    created_at: datetime
+    open_questions: int
+    resolved_questions: int
+    glossary_terms: int
+    decisions: int
+
+
+class BriefVersions(View):
+    project_id: uuid.UUID
+    current_version: int
+    versions: list[BriefVersionItem]
+
+
+class BrandingView(View):
+    branding: Branding
+    is_default: bool

@@ -38,6 +38,9 @@ class Settings(BaseSettings):
 
     trust_proxy_hops: int = Field(default=0, ge=0, le=10)
     api_rate_limit_per_minute: int = Field(default=120, ge=1)
+    mcp_rate_limit_per_minute: int = Field(default=300, ge=1)
+    oauth_rate_limit_per_minute: int = Field(default=60, ge=1)
+    sign_in_rate_limit_per_minute: int = Field(default=10, ge=1)
     export_url_ttl_minutes: int = Field(default=60, ge=1, le=7 * 24 * 60)
     cors_allowed_origins: str = Field(
         default="", description="Comma-separated origins allowed to call the REST API from browsers."
