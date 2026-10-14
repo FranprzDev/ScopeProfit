@@ -1,0 +1,14 @@
+{
+  "all": true,
+  "src": ["."],
+  "include": ["lib/tool-finder.ts", "lib/site.ts", "app/content.ts"],
+  "exclude": ["test/**", ".next/**", "coverage/**", "node_modules/**"],
+  "extension": [".ts", ".tsx"],
+  "reporter": ["text", "text-summary", "lcov", "json-summary"],
+  "reports-dir": "coverage",
+  "check-coverage": true,
+  "lines": 90,
+  "statements": 90,
+  "branches": 80,
+  "functions": 70
+}
