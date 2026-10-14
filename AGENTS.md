@@ -1,8 +1,9 @@
 # Repository typing conventions
 
-- Use Prisma-generated enums for closed domain values; do not compare domain status strings to inline arrays.
-- Do not introduce `any` in application or test code. Use the existing domain type, a Prisma payload type, a specific DTO, `unknown`, or a validated type guard.
-- Run the relevant typecheck and tests after changing types.
+- Backend (`apps/api`, Python): every closed domain is a `StrEnum` in `scopeprofit/enums.py`; do not compare status strings to inline literals or lists.
+- Do not introduce `Any` (Python) or `any` (TypeScript). Use the domain model, a Pydantic model, `object` plus a validated narrowing, or a precise type.
+- `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest --cov` must pass in `apps/api` (mypy runs in strict mode).
+- Landing (`apps/landing`, TypeScript): run its lint, typecheck and build after changing types.
 
 # UI and landing work
 

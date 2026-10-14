@@ -8,15 +8,23 @@ coverage/
 .env.vercel-gateway
 *.tsbuildinfo
 .DS_Store
-/storage/
-storage/
-apps/api/storage/
 artifacts/
 playwright-report/
 test-results/
 verification-screenshots/
 *.screenshot.png
 .landing-*.png
+.vercel/
+
+# Python backend
+.venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+backups/
 
 # Taste Skill working files (direction sheet, inspector screenshots)
 .taste-skill/
