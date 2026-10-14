@@ -13,6 +13,8 @@
     "lint": "pnpm -r --if-present run lint",
     "typecheck": "pnpm -r --if-present run typecheck",
     "test": "pnpm -r --if-present run test",
+    "test:coverage": "pnpm -r --if-present run test:coverage",
+    "coverage:summary": "node scripts/coverage-summary.mjs landing=apps/landing/coverage/lcov.info",
     "db:migrate": "pnpm --filter @scopeprofit/api run db:migrate",
     "smoke": "bash scripts/smoke.sh",
     "production:preflight": "node scripts/preflight.mjs",
