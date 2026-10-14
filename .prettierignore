@@ -1,6 +1,8 @@
 pnpm-lock.yaml
-apps/api/src/modules/agent/interview-pitch.md
-apps/api/src/modules/agent/.interview-pitch.md.swp
 **/dist/
 **/.next/
 **/.e2e/
+apps/api/.venv/
+apps/api/.pytest_cache/
+apps/api/.mypy_cache/
+apps/api/.ruff_cache/

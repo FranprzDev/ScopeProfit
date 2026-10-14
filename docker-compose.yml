@@ -1,3 +1,4 @@
+# Self-hosted alternative to Vercel: PostgreSQL with daily backups, the API and the landing.
 services:
   postgres:
     image: postgres:17-alpine
@@ -13,45 +14,43 @@ services:
       timeout: 5s
       retries: 20
     restart: unless-stopped
+  backup:
+    image: prodrigestivill/postgres-backup-local:17
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-scopeprofit}
+      POSTGRES_USER: ${POSTGRES_USER:-scopeprofit}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      SCHEDULE: '@daily'
+      BACKUP_KEEP_DAYS: 7
+      BACKUP_KEEP_WEEKS: 4
+    volumes:
+      - ./backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
   migrate:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
+    build: apps/api
     env_file: .env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-scopeprofit}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-scopeprofit}
-    command: [pnpm, --filter, '@scopeprofit/api', run, db:migrate]
+    command: [scopeprofit, db, upgrade]
     depends_on:
       postgres:
         condition: service_healthy
     restart: 'no'
   api:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
+    build: apps/api
     env_file: .env
     environment:
-      NODE_ENV: production
-      PORT: 3001
       DATABASE_URL: postgresql://${POSTGRES_USER:-scopeprofit}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-scopeprofit}
-      STORAGE_ROOT: /data/storage
-    volumes:
-      - storage_data:/data/storage
-    expose: ['3001']
+      DATABASE_POOL: queue
+      AGENT_MODE: worker
+    ports: ['127.0.0.1:${API_PORT:-3001}:3001']
     depends_on:
       migrate:
         condition: service_completed_successfully
-    healthcheck:
-      test:
-        [
-          CMD,
-          node,
-          -e,
-          "fetch('http://localhost:3001/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 12
     restart: unless-stopped
   landing:
     build:
@@ -62,18 +61,6 @@ services:
       PORT: 3000
       HOSTNAME: 0.0.0.0
     ports: ['127.0.0.1:${LANDING_PORT:-3000}:3000']
-    healthcheck:
-      test:
-        [
-          CMD,
-          node,
-          -e,
-          "fetch('http://localhost:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 12
     restart: unless-stopped
 volumes:
   postgres_data:
-  storage_data:
