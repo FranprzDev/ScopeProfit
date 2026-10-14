@@ -24,7 +24,14 @@ from sqlalchemy.orm import selectinload
 
 from scopeprofit.db.models import File, Message, Project
 from scopeprofit.db.session import Database
-from scopeprofit.domain.brief import BriefData, Question, SourceMessage, parse_brief, validate_sources
+from scopeprofit.domain.brief import (
+    BriefData,
+    Question,
+    SourceMessage,
+    parse_brief,
+    preserve_records,
+    validate_sources,
+)
 from scopeprofit.enums import LOCKED_PROJECT_STATUSES, AgentStatus, AuthorRole, BriefSource
 from scopeprofit.errors import DomainError
 from scopeprofit.security import utcnow
@@ -47,7 +54,10 @@ SYSTEM_PROMPT = (
     "requisitos: cada requirement debe tener source textual exacto de un mensaje y su sourceMessageId. Si una "
     "imagen aporta datos, formulá preguntas para confirmar antes de tratarlos como requisitos. Conservá hechos, "
     "citas y correcciones manuales. Identificá RF/RNF, actores/permisos, datos, integraciones, reglas, riesgos "
-    "y supuestos. Filtrá preguntas repetidas o ya resueltas. {gate} Estimaciones orientativas min/max en horas, "
+    "y supuestos. Filtrá preguntas repetidas o ya resueltas (resolvedQuestions es historia: no la cambies); cada "
+    "pregunta lleva recommendedAnswer y dependsOn con los ids de las preguntas que deben responderse antes. "
+    "Registrá en glossary los términos del dominio acordados y en decisions solo decisiones difíciles de "
+    "revertir, sorprendentes sin contexto y con un trade-off real. {gate} Estimaciones orientativas min/max en horas, "
     "sin precios; rojo sin mitigación es bloqueante. Resumen máximo cinco líneas. Devolvé el brief completo, "
     "no fragmentos."
 )
@@ -287,7 +297,8 @@ class ScopeAgent:
                 data = base64.b64encode(await self.storage.read(file.path)).decode()
                 content.append({"type": "image_url", "image_url": {"url": f"data:{file.mime_type};base64,{data}"}})
         system = SYSTEM_PROMPT.format(gate=ASK_ONE if should_ask else ASK_NONE)
-        brief = enforce_clarification(await model.draft_brief(system, content), list(previous.questions), should_ask)
+        drafted = enforce_clarification(await model.draft_brief(system, content), list(previous.questions), should_ask)
+        brief = preserve_records(previous, drafted)
         validate_sources(brief, [SourceMessage(m.id, m.content) for m in messages])
         async with self.db.session() as session:
             locked = await session.scalar(select(Project).where(Project.id == project_id).with_for_update())

@@ -33,6 +33,7 @@ from scopeprofit.domain.brief import (
     diff_briefs,
     parse_brief,
     replace_section,
+    resolve_questions,
     validate_sources,
 )
 from scopeprofit.domain.views import (
@@ -665,7 +666,7 @@ class ScopeService:
             )
             session.add(message)
             await session.flush()
-            remaining = brief.model_copy(update={"questions": [q for q in brief.questions if q.id != question_id]})
+            remaining = resolve_questions(brief, [(question.id, clean)])
             new_version = await self.save_brief(
                 session, project_id, version, remaining, BriefSource.mcp, principal.user_id
             )

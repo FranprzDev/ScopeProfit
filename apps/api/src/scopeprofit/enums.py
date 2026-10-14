@@ -139,6 +139,17 @@ class ScopeSection(StrEnum):
     acceptance_criteria = "acceptanceCriteria"
     estimates = "estimates"
     next_steps = "nextSteps"
+    glossary = "glossary"
+    decisions = "decisions"
+    resolved_questions = "resolvedQuestions"
+
+
+class DecisionStatus(StrEnum):
+    """Lifecycle of a decision record captured while grilling the scope."""
+
+    proposed = "proposed"
+    accepted = "accepted"
+    superseded = "superseded"
 
 
 class ImageMimeType(StrEnum):
