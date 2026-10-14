@@ -255,6 +255,20 @@ export const PHOTOS = {
   },
 } satisfies Record<string, PhotoCredit>;
 
+export interface FaqEntry {
+  question: string;
+  answer: string;
+}
+
+export const TELEGRAM_FAQ: FaqEntry = {
+  question: '¿Qué hacés desde el bot?',
+  answer:
+    'Creás y listás proyectos, mirás el resumen y el documento, mandás texto o imágenes, archivás y aprobás o rechazás con los botones del bot.',
+};
+
+/** Every question answered on the landing. The FAQPage structured data is built from this list only. */
+export const FAQ_ENTRIES: FaqEntry[] = [TELEGRAM_FAQ];
+
 export const TELEGRAM_COMMANDS = [
   '/createproject',
   '/projects',
