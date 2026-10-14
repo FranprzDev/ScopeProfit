@@ -64,7 +64,9 @@ async def test_authentication_is_required(client: httpx.AsyncClient) -> None:
     missing = await client.get("/api/projects")
     assert missing.status_code == 401
     assert missing.json()["error"]["code"] == "UNAUTHENTICATED"
-    assert missing.headers["www-authenticate"] == "Bearer"
+    assert missing.headers["www-authenticate"].startswith(
+        'Bearer resource_metadata="http://testserver/.well-known/oauth-protected-resource"'
+    )
     wrong = await client.get("/api/projects", headers={"authorization": "Bearer sp_live_nope"})
     assert wrong.status_code == 401
     assert wrong.json()["error"]["code"] == "INVALID_API_KEY"

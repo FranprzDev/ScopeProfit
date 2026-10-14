@@ -26,6 +26,7 @@ from scopeprofit.db.models import (
     User,
 )
 from scopeprofit.db.session import Database
+from scopeprofit.domain.branding import DEFAULT_BRANDING, Branding
 from scopeprofit.domain.brief import (
     BriefData,
     SourceMessage,
@@ -273,6 +274,7 @@ class ScopeService:
             date=utcnow(),
             version=version,
             brief=parse_brief(project.brief.data),
+            branding=Branding.model_validate(owner.branding) if owner and owner.branding else DEFAULT_BRANDING,
         )
         rendered = await asyncio.to_thread(render_all, context)
         generation = uuid.uuid4().hex

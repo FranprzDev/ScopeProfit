@@ -1,17 +1,20 @@
 """Wires settings into the service graph used by the HTTP app, the CLI and the MCP stdio server."""
 
 from dataclasses import dataclass
+from http import HTTPStatus
 
 import httpx
 
 from scopeprofit.config import Settings
 from scopeprofit.db.session import Database
 from scopeprofit.enums import AgentMode
+from scopeprofit.errors import DomainError, ErrorCode
 from scopeprofit.services.accounts import Accounts, Principal
 from scopeprofit.services.agent import GatewayModel, ScopeAgent, ScopeModel
 from scopeprofit.services.email import BrevoEmail, EmailSender
 from scopeprofit.services.exports import ExportSigner
 from scopeprofit.services.images import ImageFetcher, ImageFetchPolicy
+from scopeprofit.services.oauth import ACCESS_PREFIX, OAuthConfig, OAuthServer
 from scopeprofit.services.scope import ScopeService
 from scopeprofit.services.storage import Storage
 
@@ -27,9 +30,17 @@ class Services:
     accounts: Accounts
     scope: ScopeService
     agent: ScopeAgent
+    oauth: OAuthServer
 
     async def authenticate(self, token: str) -> Principal:
-        """Resolves a bearer token (an API key) to its owner."""
+        """Resolves a bearer token (an OAuth access token or an API key) to its owner."""
+        if token.startswith(ACCESS_PREFIX):
+            principal = await self.oauth.verify_access(token)
+            if principal is None:
+                raise DomainError(
+                    ErrorCode.unauthenticated, "Access token is invalid, expired or revoked", HTTPStatus.UNAUTHORIZED
+                )
+            return principal
         return await self.accounts.authenticate(token)
 
     async def close(self) -> None:
@@ -73,4 +84,12 @@ def build_services(
         accounts=Accounts(db),
         scope=scope,
         agent=agent,
+        oauth=OAuthServer(
+            db,
+            OAuthConfig(
+                issuer=settings.public_api_url,
+                resource=settings.mcp_resource,
+                signing_key=settings.signing_key_bytes,
+            ),
+        ),
     )

@@ -83,6 +83,11 @@ class Settings(BaseSettings):
         return base64.b64decode(self.signing_key.get_secret_value())
 
     @property
+    def mcp_resource(self) -> str:
+        """Canonical RFC 8707 resource identifier of the MCP endpoint."""
+        return f"{self.public_api_url}/api/mcp"
+
+    @property
     def async_database_url(self) -> str:
         """`postgres://` / `postgresql://` URLs rewritten for SQLAlchemy's asyncpg driver."""
         return to_async_url(self.database_url.get_secret_value())

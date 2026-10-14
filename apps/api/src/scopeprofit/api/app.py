@@ -4,6 +4,7 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from http import HTTPStatus
+from typing import cast
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -19,11 +20,12 @@ from scopeprofit.api.middleware import (
     SecurityHeadersMiddleware,
     VercelOidcMiddleware,
 )
-from scopeprofit.api.routes import agent, projects, system
+from scopeprofit.api.routes import agent, oauth, projects, system
 from scopeprofit.config import Settings, get_settings
 from scopeprofit.container import Services, build_services
 from scopeprofit.enums import AgentMode
 from scopeprofit.errors import DomainError, ErrorCode
+from scopeprofit.services.oauth import www_authenticate
 
 logger = logging.getLogger("scopeprofit.api")
 
@@ -37,7 +39,11 @@ STATUS_CODES: dict[int, ErrorCode] = {
 
 def _error(request: Request, status: int, code: ErrorCode, message: str, details: object = None) -> JSONResponse:
     request_id = getattr(request.state, "request_id", None)
-    headers = {"www-authenticate": "Bearer"} if status == HTTPStatus.UNAUTHORIZED else None
+    headers = (
+        {"www-authenticate": www_authenticate(cast(Services, request.app.state.services).oauth.config)}
+        if status == HTTPStatus.UNAUTHORIZED
+        else None
+    )
     return JSONResponse(
         {"error": {"code": code.value, "message": message, "details": details, "requestId": request_id}},
         status_code=status,
@@ -110,6 +116,7 @@ def create_app(
     app.include_router(system.router)
     app.include_router(projects.router)
     app.include_router(agent.router)
+    app.include_router(oauth.router)
     if settings.cors_origins:
         app.add_middleware(
             CORSMiddleware,

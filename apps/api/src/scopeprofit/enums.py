@@ -231,3 +231,8 @@ class ConsentMode(StrEnum):
 
 class CodeChallengeMethod(StrEnum):
     s256 = "S256"
+
+
+class ConsentDecision(StrEnum):
+    allow = "allow"
+    deny = "deny"
