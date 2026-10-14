@@ -53,6 +53,9 @@ ignore = ["S101", "ANN401", "RUF001"]  # en dashes are part of the Spanish templ
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S105", "S106", "S107", "S311", "ANN"]
 "migrations/**" = ["S608"]
+# OAuth vocabulary (token types, grant types, error codes) is not a hardcoded secret.
+"src/scopeprofit/{enums,errors}.py" = ["S105"]
+"src/scopeprofit/services/oauth.py" = ["S105", "S106"]
 
 [tool.mypy]
 strict = true

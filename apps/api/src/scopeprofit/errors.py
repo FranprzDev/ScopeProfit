@@ -42,6 +42,11 @@ class ErrorCode(StrEnum):
     invalid_change_request = "INVALID_CHANGE_REQUEST"
     change_request_not_found = "CHANGE_REQUEST_NOT_FOUND"
     api_key_not_found = "API_KEY_NOT_FOUND"
+    account_exists = "ACCOUNT_EXISTS"
+    invalid_credentials = "INVALID_CREDENTIALS"
+    weak_password = "WEAK_PASSWORD"
+    no_open_questions = "NO_OPEN_QUESTIONS"
+    telegram_not_configured = "TELEGRAM_NOT_CONFIGURED"
 
 
 class DomainError(Exception):

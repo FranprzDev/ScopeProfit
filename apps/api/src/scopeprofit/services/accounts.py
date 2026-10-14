@@ -8,15 +8,24 @@ from http import HTTPStatus
 
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
-from sqlalchemy import select, update
+from sqlalchemy import ColumnElement, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from scopeprofit.db.models import ApiKey, AuditEvent, User
+from scopeprofit.db.models import ApiKey, AuditEvent, OAuthGrant, OAuthToken, User
 from scopeprofit.db.session import Database
+from scopeprofit.domain.branding import DEFAULT_BRANDING, Branding
 from scopeprofit.enums import CredentialKind, Role
 from scopeprofit.errors import DomainError, ErrorCode
-from scopeprofit.security import random_token, sha256_hex, utcnow
+from scopeprofit.security import (
+    MAX_PASSWORD_LENGTH,
+    MIN_PASSWORD_LENGTH,
+    hash_password,
+    random_token,
+    sha256_hex,
+    utcnow,
+    verify_password,
+)
 
 API_KEY_PREFIX = "sp_live_"
 LAST_USED_RESOLUTION = timedelta(minutes=1)
@@ -37,8 +46,10 @@ class AuditAction(StrEnum):
     api_key_revoked = "api_key.revoked"
     agent_clarification_decision = "agent_jev_clarification_decision"
     oauth_granted = "mcp.oauth_granted"
-    login_code_sent = "auth.login_code_sent"
+    user_signed_up = "auth.signed_up"
     user_signed_in = "auth.signed_in"
+    sign_in_failed = "auth.sign_in_failed"
+    branding_updated = "branding.updated"
 
 
 def audit(
@@ -102,6 +113,31 @@ def normalize_email(email: str) -> str:
     return email.strip().lower()
 
 
+async def revoke_grants(session: AsyncSession, condition: ColumnElement[bool]) -> None:
+    """Revokes every OAuth grant matching `condition` and all of its codes and tokens."""
+    now = utcnow()
+    grant_ids = list(await session.scalars(select(OAuthGrant.id).where(condition)))
+    if not grant_ids:
+        return
+    await session.execute(
+        update(OAuthGrant).where(OAuthGrant.id.in_(grant_ids), OAuthGrant.revoked_at.is_(None)).values(revoked_at=now)
+    )
+    await session.execute(
+        update(OAuthToken)
+        .where(OAuthToken.grant_id.in_(grant_ids), OAuthToken.revoked_at.is_(None))
+        .values(revoked_at=now)
+    )
+
+
+def check_password(password: str) -> str:
+    if not MIN_PASSWORD_LENGTH <= len(password) <= MAX_PASSWORD_LENGTH:
+        raise DomainError(
+            ErrorCode.weak_password,
+            f"Use a password of {MIN_PASSWORD_LENGTH} to {MAX_PASSWORD_LENGTH} characters",
+        )
+    return password
+
+
 class Accounts:
     def __init__(self, db: Database) -> None:
         self.db = db
@@ -156,7 +192,53 @@ class Accounts:
         return revoked
 
     async def on_key_revoked(self, session: AsyncSession, key_id: uuid.UUID) -> None:
-        """Hook for credentials derived from a key (OAuth grants)."""
+        """OAuth grants consented with a key die with it."""
+        await revoke_grants(session, OAuthGrant.api_key_id == key_id)
+
+    async def sign_up(self, session: AsyncSession, email: str, password: str) -> Principal:
+        """Self-signup with email and password. Existing accounts (with or without a password) must sign
+        in instead, so nobody can claim an account created through the CLI or Telegram."""
+        normalized = normalize_email(email)
+        check_password(password)
+        if await session.scalar(select(User.id).where(User.email == normalized)) is not None:
+            raise DomainError(
+                ErrorCode.account_exists,
+                "An account with this email exists: sign in or use an API key",
+                HTTPStatus.CONFLICT,
+            )
+        user = User(email=normalized, role=Role.professional, password_hash=hash_password(password))
+        session.add(user)
+        await session.flush()
+        audit(session, AuditAction.user_signed_up, actor_id=user.id)
+        return Principal(user_id=user.id, email=user.email, kind=CredentialKind.local)
+
+    async def sign_in(self, session: AsyncSession, email: str, password: str) -> Principal:
+        user = await session.scalar(select(User).where(User.email == normalize_email(email)))
+        if user is None or user.password_hash is None or not verify_password(password, user.password_hash):
+            raise DomainError(ErrorCode.invalid_credentials, "Wrong email or password", HTTPStatus.UNAUTHORIZED)
+        audit(session, AuditAction.user_signed_in, actor_id=user.id)
+        return Principal(user_id=user.id, email=user.email, kind=CredentialKind.local)
+
+    async def set_password(self, session: AsyncSession, user_id: uuid.UUID, password: str) -> None:
+        user = await session.get(User, user_id)
+        if user is None:
+            raise DomainError(ErrorCode.not_found, "No such user", HTTPStatus.NOT_FOUND)
+        user.password_hash = hash_password(check_password(password))
+
+    async def branding(self, user_id: uuid.UUID) -> Branding:
+        async with self.db.session() as session:
+            stored = await session.scalar(select(User.branding).where(User.id == user_id))
+        return Branding.model_validate(stored) if stored else DEFAULT_BRANDING
+
+    async def set_branding(self, user_id: uuid.UUID, branding: Branding | None) -> Branding:
+        """Saves the user's document branding; `None` restores the ScopeProfit default."""
+        async with self.db.session() as session:
+            await session.execute(
+                update(User).where(User.id == user_id).values(branding=branding.to_json() if branding else None)
+            )
+            audit(session, AuditAction.branding_updated, actor_id=user_id)
+            await session.commit()
+        return branding or DEFAULT_BRANDING
 
     async def verify_key(self, session: AsyncSession, raw: str) -> Principal:
         if not raw.startswith(API_KEY_PREFIX):

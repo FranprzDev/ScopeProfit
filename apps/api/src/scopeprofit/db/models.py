@@ -7,7 +7,7 @@ from enum import StrEnum
 from typing import ClassVar
 
 from sqlalchemy import DateTime, Enum, ForeignKey, Index, Integer, LargeBinary, Text, UniqueConstraint
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from scopeprofit.enums import (
@@ -47,6 +47,8 @@ class User(Base):
     email: Mapped[str | None] = mapped_column(Text, unique=True)
     telegram_id: Mapped[str | None] = mapped_column(Text, unique=True)
     role: Mapped[Role] = mapped_column(pg_enum(Role, "Role"), default=Role.professional)
+    password_hash: Mapped[str | None] = mapped_column(Text)
+    branding: Mapped[JsonObject | None]
     created_at: Mapped[datetime] = mapped_column(timestamp(), default=utcnow)
 
 
@@ -236,3 +238,61 @@ class StoredObject(Base):
     checksum: Mapped[str] = mapped_column(Text)
     size: Mapped[int] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(timestamp(), default=utcnow)
+
+
+class OAuthClient(Base):
+    """A dynamically registered OAuth client (RFC 7591). `data` holds its registered metadata."""
+
+    __tablename__ = "oauth_clients"
+
+    client_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    data: Mapped[JsonObject]
+    created_at: Mapped[datetime] = mapped_column(timestamp(), default=utcnow)
+
+
+class OAuthGrant(Base):
+    """One user's consent for one client; every token of that consent belongs to it."""
+
+    __tablename__ = "oauth_grants"
+    __table_args__ = (
+        Index("oauth_grants_user_id_idx", "user_id"),
+        Index("oauth_grants_api_key_id_idx", "api_key_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
+    client_id: Mapped[str] = mapped_column(Text, ForeignKey("oauth_clients.client_id", ondelete="CASCADE"))
+    api_key_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("api_keys.id", ondelete="CASCADE")
+    )
+    resource: Mapped[str] = mapped_column(Text)
+    scopes: Mapped[list[str]] = mapped_column(ARRAY(Text), default=list)
+    revoked_at: Mapped[datetime | None] = mapped_column(timestamp())
+    created_at: Mapped[datetime] = mapped_column(timestamp(), default=utcnow)
+
+    user: Mapped[User] = relationship(lazy="raise")
+
+
+class OAuthToken(Base):
+    """Authorization codes, access tokens and refresh tokens, stored as SHA-256 hashes only."""
+
+    __tablename__ = "oauth_tokens"
+    __table_args__ = (
+        Index("oauth_tokens_grant_id_idx", "grant_id"),
+        Index("oauth_tokens_expires_at_idx", "expires_at"),
+    )
+
+    token_hash: Mapped[str] = mapped_column(Text, primary_key=True)
+    kind: Mapped[str] = mapped_column(Text)
+    client_id: Mapped[str] = mapped_column(Text)
+    grant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("oauth_grants.id", ondelete="CASCADE"))
+    code_challenge: Mapped[str | None] = mapped_column(Text)
+    redirect_uri: Mapped[str | None] = mapped_column(Text)
+    resource: Mapped[str | None] = mapped_column(Text)
+    scopes: Mapped[list[str]] = mapped_column(ARRAY(Text), default=list)
+    expires_at: Mapped[datetime] = mapped_column(timestamp())
+    used_at: Mapped[datetime | None] = mapped_column(timestamp())
+    revoked_at: Mapped[datetime | None] = mapped_column(timestamp())
+    created_at: Mapped[datetime] = mapped_column(timestamp(), default=utcnow)
+
+    grant: Mapped[OAuthGrant] = relationship(lazy="raise")

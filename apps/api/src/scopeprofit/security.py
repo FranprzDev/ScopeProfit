@@ -53,3 +53,38 @@ def verify_model[ModelT: BaseModel](key: bytes, purpose: str, token: str, model:
         return model.model_validate_json(_unb64(payload))
     except (ValidationError, ValueError):
         return None
+
+
+SCRYPT_N = 2**14
+SCRYPT_R = 8
+SCRYPT_P = 1
+SCRYPT_LENGTH = 32
+MIN_PASSWORD_LENGTH = 10
+MAX_PASSWORD_LENGTH = 256
+
+
+def hash_password(password: str) -> str:
+    """`scrypt$N$r$p$<salt>$<hash>` (base64url), using the standard library's scrypt."""
+    salt = secrets.token_bytes(16)
+    digest = hashlib.scrypt(
+        password.encode(), salt=salt, n=SCRYPT_N, r=SCRYPT_R, p=SCRYPT_P, dklen=SCRYPT_LENGTH, maxmem=64 * 1024 * 1024
+    )
+    return f"scrypt${SCRYPT_N}${SCRYPT_R}${SCRYPT_P}${_b64(salt)}${_b64(digest)}"
+
+
+def verify_password(password: str, stored: str) -> bool:
+    parts = stored.split("$")
+    if len(parts) != 6 or parts[0] != "scrypt":
+        return False
+    try:
+        n, r, p = int(parts[1]), int(parts[2]), int(parts[3])
+        salt, expected = _unb64(parts[4]), _unb64(parts[5])
+    except ValueError:
+        return False
+    digest = hashlib.scrypt(password.encode(), salt=salt, n=n, r=r, p=p, dklen=len(expected), maxmem=64 * 1024 * 1024)
+    return hmac.compare_digest(digest, expected)
+
+
+def pkce_s256(verifier: str) -> str:
+    """RFC 7636 S256 code challenge for `verifier`."""
+    return _b64(hashlib.sha256(verifier.encode("ascii")).digest())

@@ -184,3 +184,50 @@ class AgentMode(StrEnum):
     worker = "worker"
     inline = "inline"
     off = "off"
+
+
+class OAuthTokenKind(StrEnum):
+    """`oauth_tokens.kind`."""
+
+    code = "code"
+    access = "access"
+    refresh = "refresh"
+
+
+class OAuthGrantType(StrEnum):
+    authorization_code = "authorization_code"
+    refresh_token = "refresh_token"
+
+
+class OAuthTokenHint(StrEnum):
+    access_token = "access_token"
+    refresh_token = "refresh_token"
+
+
+class OAuthError(StrEnum):
+    """OAuth 2.1 / RFC 6749 / RFC 7591 / RFC 8707 error codes."""
+
+    invalid_request = "invalid_request"
+    invalid_client = "invalid_client"
+    invalid_grant = "invalid_grant"
+    unauthorized_client = "unauthorized_client"
+    unsupported_grant_type = "unsupported_grant_type"
+    unsupported_response_type = "unsupported_response_type"
+    invalid_scope = "invalid_scope"
+    invalid_target = "invalid_target"
+    access_denied = "access_denied"
+    invalid_redirect_uri = "invalid_redirect_uri"
+    invalid_client_metadata = "invalid_client_metadata"
+    invalid_token = "invalid_token"
+
+
+class ConsentMode(StrEnum):
+    """How a person proves who they are on the OAuth consent page."""
+
+    sign_in = "sign_in"
+    sign_up = "sign_up"
+    api_key = "api_key"
+
+
+class CodeChallengeMethod(StrEnum):
+    s256 = "S256"
