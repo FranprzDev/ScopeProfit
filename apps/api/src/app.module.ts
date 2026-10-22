@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { CoreModule } from './core.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
+import { McpModule } from './modules/mcp/mcp.module';
 import { HealthController } from './health.controller';
 import { AuthController } from './modules/auth/auth.controller';
 import { ProjectsController } from './modules/projects/projects.controller';
@@ -17,7 +18,7 @@ import { MyMaintenanceController } from './modules/maintenance/my-maintenance.co
 import { ExportsController } from './modules/mcp/exports.controller';
 
 @Module({
-  imports: [ThrottlerModule.forRoot([{ ttl: 60_000, limit: 30 }]), CoreModule, TelegramModule],
+  imports: [ThrottlerModule.forRoot([{ ttl: 60_000, limit: 30 }]), CoreModule, TelegramModule, McpModule],
   controllers: [
     HealthController,
     AuthController,

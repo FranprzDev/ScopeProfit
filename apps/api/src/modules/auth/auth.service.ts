@@ -133,7 +133,7 @@ export class AuthService {
       },
     });
     if (!project) fail('PROJECT_NOT_FOUND', 404);
-    if (user.role !== 'professional') await this.checkLink(id, raw);
+    if (user.role !== 'professional' && project.ownerId !== user.id) await this.checkLink(id, raw);
     return project;
   }
   professional(user: User) {
