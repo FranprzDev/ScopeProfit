@@ -11,7 +11,6 @@ export class ProjectsService {
     private auth: AuthService,
   ) {}
   async create(user: User, name: string, clientEmail?: string) {
-    this.auth.professional(user);
     const raw = token();
     const project = await this.db.project.create({
       data: {
@@ -49,7 +48,10 @@ export class ProjectsService {
   }
   async list(user: User, limit = 30, cursor?: string) {
     const items = await this.db.project.findMany({
-      where: user.role === 'professional' ? {} : { clientEmail: user.email ?? '' },
+      where:
+        user.role === 'professional'
+          ? {}
+          : { OR: [{ ownerId: user.id }, { clientEmail: user.email ?? undefined }] },
       orderBy: { id: 'asc' },
       take: limit + 1,
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),

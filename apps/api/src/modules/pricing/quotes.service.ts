@@ -105,8 +105,9 @@ export class QuotesService {
   ) {}
 
   private async authorize(user: User, projectId: string) {
-    this.auth.professional(user);
-    return this.auth.project(user, projectId);
+    const project = await this.auth.project(user, projectId);
+    if (user.role !== 'professional' && project.ownerId !== user.id) fail('FORBIDDEN', 403);
+    return project;
   }
 
   private async clientAccess(user: User | null, projectId: string, rawToken?: string) {
@@ -116,7 +117,10 @@ export class QuotesService {
   }
 
   private async readAccess(user: User | null, projectId: string, rawToken?: string) {
-    if (user?.role === Role.professional) {
+    const project = await this.db.project.findUnique({ where: { id: projectId }, select: { ownerId: true } });
+    const isOwner = !!user && project?.ownerId === user.id;
+    if (user?.role === Role.professional || isOwner) {
+      if (!user) fail('UNAUTHENTICATED', 401);
       await this.authorize(user, projectId);
       return false;
     }
@@ -135,7 +139,6 @@ export class QuotesService {
   }
 
   async listMine(user: User): Promise<{ quotes: QuoteSummary[] }> {
-    this.auth.professional(user);
     const rows = await this.db.quote.findMany({
       where: { project: { ownerId: user.id } },
       orderBy: { updatedAt: 'desc' },
@@ -393,7 +396,18 @@ export class QuotesService {
         ? { id: rateCardId, ownerId: user.id, active: true }
         : { ownerId: user.id, isDefault: true, active: true },
     });
-    if (!rateCard) fail('RATE_CARD_REQUIRED', 400);
-    return rateCard;
+    if (rateCard) return rateCard;
+    if (rateCardId) fail('RATE_CARD_REQUIRED', 400);
+    return this.db.rateCard.create({
+      data: {
+        ownerId: user.id,
+        label: 'Default',
+        hourlyRate: 50,
+        currency: 'USD',
+        marginPercent: 20,
+        isDefault: true,
+        active: true,
+      },
+    });
   }
 }
