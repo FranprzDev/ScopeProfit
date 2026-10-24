@@ -1,14 +1,14 @@
 /* Tokens from the Taste Skill v2 direction sheet: "The sentence is the layout" (seed 509174404),
-   palette "Cool grey, cobalt", type "Libre Franklin / Source Serif 4". See docs/design/landing-direction.md. */
+   palette "Cool grey, crimson", type "Libre Franklin / Source Serif 4". See docs/design/landing-direction.md. */
 :root {
   --bg: #eef0f3;
   --surface: #e2e5ea;
   --ink: #0b0c0e;
   --muted: #4f5561;
-  --accent: #1f2de6;
+  --accent: #b01e2f;
   --accent-ink: #ffffff;
-  --accent-deep: #0a1166;
-  --field-1: #1f2de6;
+  --accent-deep: #5a0f18;
+  --field-1: #b01e2f;
   --field-1-ink: #ffffff;
   --field-dark: #0b0c0e;
   --field-dark-ink: #eef0f3;

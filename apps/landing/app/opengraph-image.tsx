@@ -22,7 +22,7 @@ export default function OpengraphImage() {
           justifyContent: 'flex-end',
           height: 330,
           padding: '0 72px 24px',
-          color: '#1f2de6',
+          color: '#b01e2f',
         }}
       >
         <span
@@ -46,7 +46,7 @@ export default function OpengraphImage() {
           flex: 1,
           alignItems: 'center',
           padding: '0 72px',
-          background: '#1f2de6',
+          background: '#b01e2f',
           color: '#ffffff',
           fontSize: 36,
           lineHeight: 1.25,

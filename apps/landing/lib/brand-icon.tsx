@@ -5,7 +5,7 @@ export interface IconSize {
   height: number;
 }
 
-const BRAND_BLUE = '#1f2de6';
+const BRAND_CRIMSON = '#b01e2f';
 /** Glyph size relative to the icon edge, taken from the original 64px icon (34 / 64). */
 const GLYPH_RATIO = 34 / 64;
 
@@ -19,7 +19,7 @@ export function renderBrandIcon(size: IconSize): ImageResponse {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: BRAND_BLUE,
+        background: BRAND_CRIMSON,
         borderRadius: 0,
         color: '#fff',
         fontSize: Math.round(size.width * GLYPH_RATIO),
