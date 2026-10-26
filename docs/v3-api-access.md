@@ -18,7 +18,7 @@ These controllers authenticate with the `sp_session` cookie only. MCP API keys a
 
 Stopgap to get a professional session without the web app:
 
-1. Make sure your email is in `PROFESSIONAL_EMAILS` and the account exists (`mcp:keys create --email <email>` creates it; add `--claim-legacy-telegram-id <id>` to keep the projects of an account created before email authorization).
+1. Have the installation operator provision the professional account from a trusted server shell (`mcp:keys create --email <email>` creates it; add `--claim-legacy-telegram-id <id>` to keep the projects of an account created before email authorization).
 2. Request a magic link and open it against the API origin, then read the cookie from the `302` response:
 
    ```bash

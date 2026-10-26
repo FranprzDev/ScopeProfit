@@ -17,7 +17,6 @@ const required = [
   'AI_GATEWAY_API_KEY',
   'BREVO_API_KEY',
   'BREVO_SENDER_EMAIL',
-  'PROFESSIONAL_EMAILS',
 ];
 const errors = required
   .filter((key) => !process.env[key] || /replace-with|example\.com/.test(process.env[key]))
@@ -35,8 +34,6 @@ if (Buffer.from(process.env.ENCRYPTION_KEY || '', 'base64').length !== 32)
   errors.push('ENCRYPTION_KEY: expected 32 random bytes encoded as base64');
 if ((process.env.SESSION_SECRET || '').length < 32)
   errors.push('SESSION_SECRET: expected at least 32 characters');
-if (!/^[^\s@,]+@[^\s@,]+(,[^\s@,]+@[^\s@,]+)*$/.test(process.env.PROFESSIONAL_EMAILS || ''))
-  errors.push('PROFESSIONAL_EMAILS: expected comma-separated email addresses');
 if (errors.length) {
   process.stderr.write(
     `Production configuration is incomplete:\n${errors.map((error) => `- ${error}`).join('\n')}\n`,

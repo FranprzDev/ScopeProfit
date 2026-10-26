@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
+import { isEmail } from 'class-validator';
 import { User } from '@prisma/client';
 import { createHmac } from 'node:crypto';
 import { PrismaService } from '../../prisma.service';
 import { EmailService } from '../../email.service';
 import {
-  authorizedProfessionalEmails,
   isAuthorizedProfessional,
   decrypt,
   encrypt,
@@ -98,8 +98,6 @@ export class AuthService {
     });
     if (!session || session.revokedAt || session.expiresAt < new Date())
       fail('UNAUTHENTICATED', 401);
-    if (session.user.role === 'professional' && !isAuthorizedProfessional(session.user))
-      fail('FORBIDDEN', 403);
     return session.user;
   }
   async logout(raw?: string) {
@@ -139,7 +137,7 @@ export class AuthService {
   }
   async professionalUser(rawEmail: string, legacyTelegramId?: string) {
     const email = rawEmail.trim().toLowerCase();
-    if (!authorizedProfessionalEmails().includes(email)) fail('FORBIDDEN', 403);
+    if (!isEmail(email) || email.length > 254) fail('INVALID_EMAIL', 400);
     if (legacyTelegramId) {
       const legacy = await this.db.user.findUnique({ where: { telegramId: legacyTelegramId } });
       if (!legacy || legacy.role !== 'professional') fail('LEGACY_PROFESSIONAL_NOT_FOUND', 404);

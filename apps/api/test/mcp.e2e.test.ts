@@ -1,6 +1,5 @@
 process.env.ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || Buffer.alloc(32, 7).toString('base64');
 const ownerEmail = `mcp-e2e-${Date.now()}@scopeprofit.test`;
-process.env.PROFESSIONAL_EMAILS = ownerEmail;
 process.env.WEB_URL = process.env.WEB_URL || 'http://localhost:3000';
 
 import 'reflect-metadata';

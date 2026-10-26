@@ -1,5 +1,4 @@
 process.env.ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || Buffer.alloc(32, 7).toString('base64');
-process.env.PROFESSIONAL_EMAILS = process.env.PROFESSIONAL_EMAILS || 'owner-111@scopeprofit.test';
 process.env.WEB_URL = process.env.WEB_URL || 'http://localhost:3000';
 process.env.ADMIN_EDIT_URL_TTL_DAYS = process.env.ADMIN_EDIT_URL_TTL_DAYS || '10';
 

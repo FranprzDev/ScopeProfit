@@ -1,10 +1,5 @@
 process.env.ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || Buffer.alloc(32, 7).toString('base64');
 const runId = Date.now();
-const ownerEmails = Array.from(
-  { length: 16 },
-  (_, index) => `owner-${index + 1}-${runId}@scopeprofit.test`,
-);
-process.env.PROFESSIONAL_EMAILS = ownerEmails.join(',');
 
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';

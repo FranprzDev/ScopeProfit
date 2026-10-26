@@ -1,9 +1,6 @@
 process.env.ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || Buffer.alloc(32, 7).toString('base64');
 const runId = Date.now();
 const ownerEmail = `mcp-owner-${runId}@scopeprofit.test`;
-process.env.PROFESSIONAL_EMAILS = [process.env.PROFESSIONAL_EMAILS, ownerEmail]
-  .filter(Boolean)
-  .join(',');
 process.env.PUBLIC_API_URL = process.env.PUBLIC_API_URL || 'https://api.scopeprofit.test';
 
 import { test, before, after } from 'node:test';
@@ -231,6 +228,20 @@ test(
     await keys.revoke(created.id);
     await assert.rejects(keys.verify(created.key), withCode('INVALID_API_KEY'));
     await assert.rejects(keys.verify('sp_live_unknown'), withCode('INVALID_API_KEY'));
+    const emailOnly = await db.user.create({
+      data: { email: `client-${Date.now()}@scopeprofit.test` },
+    });
+    assert.equal(emailOnly.role, 'client');
+    await assert.rejects(keys.create(emailOnly, 'not-provisioned'), withCode('FORBIDDEN'));
+    const provisioned = await keys.createForEmail(
+      `new-owner-${Date.now()}@scopeprofit.test`,
+      'cli',
+    );
+    assert.equal((await keys.verify(provisioned.key)).user.role, 'professional');
+    await assert.rejects(keys.createForEmail('invalid-email', 'cli'), withCode('INVALID_EMAIL'));
+    const professional = (await keys.verify(provisioned.key)).user;
+    await db.user.update({ where: { id: professional.id }, data: { role: 'client' } });
+    await assert.rejects(keys.verify(provisioned.key), withCode('INVALID_API_KEY'));
   },
 );
 

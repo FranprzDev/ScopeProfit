@@ -285,7 +285,6 @@ export const STDIO_SNIPPET = `{
       "env": {
         "DATABASE_URL": "postgresql://...",
         "ENCRYPTION_KEY": "...",
-        "PROFESSIONAL_EMAILS": "vos@ejemplo.com",
         "STORAGE_ROOT": "/ruta/a/storage",
         "PUBLIC_API_URL": "https://api.<tu-dominio>",
         "SCOPEPROFIT_API_KEY": "sp_live_..."

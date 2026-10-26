@@ -33,7 +33,7 @@ ChatGPT · Claude · Cursor · Grok bots · custom agents
 
 ```bash
 pnpm install
-cp .env.example .env              # fill DATABASE_URL, ENCRYPTION_KEY, PROFESSIONAL_EMAILS, PUBLIC_API_URL
+cp .env.example .env              # fill DATABASE_URL, ENCRYPTION_KEY, PUBLIC_API_URL
 pnpm --filter @scopeprofit/contracts run build
 pnpm run db:migrate
 pnpm --filter @scopeprofit/api run build

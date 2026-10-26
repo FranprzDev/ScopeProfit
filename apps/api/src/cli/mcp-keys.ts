@@ -11,7 +11,8 @@ const usage = `Usage:
   mcp:keys revoke <key-id>                               Revoke a key and its OAuth grants
   mcp:keys set-ai-key --email <email>                       Store the owner's Gemini key from SCOPEPROFIT_AI_KEY
 
-The email must be listed in PROFESSIONAL_EMAILS. --claim-legacy-telegram-id attaches
+Run this command only on a trusted server shell: it provisions a professional.
+--claim-legacy-telegram-id attaches
 the email to an existing professional created before email authorization, keeping its projects.`;
 
 function option(args: string[], name: string) {
