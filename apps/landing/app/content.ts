@@ -122,7 +122,7 @@ export const TOOL_GROUPS: ToolGroup[] = [
       {
         name: 'update_scope_section',
         kind: ToolKind.Write,
-        text: 'Reemplaza una sección, la valida y regenera el documento. Usa la versión leída para no pisar cambios.',
+        text: 'Reemplaza una sección, la valida y guarda una nueva versión del borrador. Los PDF y DOCX se generan al exportar. Usa la versión leída para no pisar cambios.',
         keywords: ['editar', 'sección', 'cambiar', 'corregir', 'redactar', 'alcance'],
       },
       {
