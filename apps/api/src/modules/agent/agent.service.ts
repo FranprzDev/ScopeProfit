@@ -283,6 +283,7 @@ export class AgentService implements OnModuleInit, OnModuleDestroy {
     );
     const currentBrief = project.brief ? validateBrief(project.brief.data) : null;
     brief.quoteValidity = currentBrief?.quoteValidity ?? null;
+    brief.diagrams = currentBrief?.diagrams ?? null;
     validateSources(brief, project.messages);
     return brief;
   }

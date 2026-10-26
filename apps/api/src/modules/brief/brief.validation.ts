@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { BriefData, TiptapNode } from '@scopeprofit/contracts';
 import { fail } from '../../security';
+import { diagramError } from '../documents/diagram';
 const text = z.string().max(10000);
 const list = z.array(text).max(200);
 export const briefSchema = z
@@ -11,6 +12,21 @@ export const briefSchema = z
         days: z.number().int().min(1).max(3650),
       })
       .strict()
+      .nullish(),
+    diagrams: z
+      .array(
+        z
+          .object({
+            title: z.string().trim().min(1).max(120),
+            source: z
+              .string()
+              .min(1)
+              .max(5000)
+              .refine((value) => diagramError(value) === null, 'Invalid diagram source'),
+          })
+          .strict(),
+      )
+      .max(8)
       .nullish(),
     summary: text,
     requirements: z
