@@ -306,8 +306,9 @@ export default function Home() {
               </div>
               <h3 className={s.bentoTitle}>0. Creá una API key</h3>
               <p className={s.bentoText}>
-                Las keys (<code>sp_live_…</code>) se asocian a tu email de profesional autorizado.
-                Solo se guarda su hash, y revocar una key corta todos los conectores que la usan.
+                Las keys (<code>sp_live_…</code>) se crean desde la consola del servidor y se
+                asocian a tu cuenta profesional. Solo se guarda su hash, y revocar una key corta
+                todos los conectores que la usan.
               </p>
               <Code>{API_KEY_SNIPPET}</Code>
             </div>
