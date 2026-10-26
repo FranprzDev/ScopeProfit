@@ -19,7 +19,7 @@ ScopeProfit runs as a [Model Context Protocol](https://modelcontextprotocol.io) 
 | `list_pending_questions` | read        | Open questions; `blocksEstimate=true` blocks approval.                                                 |
 | `answer_question`        | write       | Stores the client's answer as a message, removes the question, regenerates the document.               |
 | `get_scope_document`     | read        | Template 7.1 rendered as Markdown + structured brief + `briefVersion`.                                 |
-| `update_scope_section`   | write       | Replaces one section (optimistic lock on `expected_version`), validates it, regenerates the document.  |
+| `update_scope_section`   | write       | Replaces one section (optimistic lock on `expected_version`), validates it, saves a document draft.    |
 | `approve_scope`          | destructive | Approves the current document version; optionally emails PDF + DOCX to the client (Brevo).             |
 | `export_document`        | write       | Signed, expiring download URL for `pdf`, `docx` or `md`; can regenerate and persist the document.      |
 | `archive_project`        | destructive | Archives (locks) a project.                                                                            |
@@ -182,3 +182,9 @@ a quotation acceptance workflow, or a change to the legacy v3 quote endpoints.
 The 15 scope tools are file-based xmcp modules in `apps/api/src/modules/mcp/tools`. HTTP uses the xmcp NestJS adapter behind the existing bearer/OAuth middleware; stdio runs the same compiled tools after verifying `SCOPEPROFIT_API_KEY`. Domain services and Prisma remain unchanged. `export_document` is marked as a write because it can regenerate and persist a document.
 
 `pnpm --filter @scopeprofit/api run build` runs Prisma generation, xmcp compilation and TypeScript compilation. Keep the generated `apps/api/.xmcp/adapter` directory alongside `dist` when deploying outside Docker. It is a build artifact, not committed source. OAuth grants are bound to the MCP resource URL and require the scope permission. Older tokens without the correct resource need a fresh connector authorization; API keys remain valid. Browser requests with a present invalid Origin are rejected; non-browser clients may omit Origin. HTTP request context is isolated per request; the stdio process binds one authenticated professional for its entire lifetime. Never mount that stdio context in a shared HTTP process.
+
+## Drafts and export files
+
+Updating a section or answering a question saves the brief and a document snapshot in one transaction. The document version still advances, but PDF/DOCX are not rendered while filling sections. `get_scope_document` returns the current Markdown preview without writing export files. Background reanalysis also saves a draft instead of rendering exports.
+
+The first export or download materializes the saved snapshot. A Markdown-only export writes only Markdown; a PDF or DOCX export builds and stores all three formats together. Later exports reuse those files without creating another document version. A failed export leaves the draft intact and can be retried. Historical downloads use their saved snapshot, not the current brief. Approval still validates the selected current version and locks the project; emailing an approved scope generates its attachments if needed.

@@ -485,23 +485,26 @@ export class ScopeToolsService {
     expectedVersion: number,
     brief: BriefData,
   ) {
-    await this.db.$transaction(async (tx) => {
-      const updated = await tx.brief.updateMany({
-        where: { projectId, version: expectedVersion },
-        data: { version: { increment: 1 }, data: json(brief) },
-      });
-      if (!updated.count) fail('VERSION_CONFLICT', 409, 'Brief changed; re-read it and retry');
-      await tx.briefVersion.create({
-        data: {
-          projectId,
-          version: expectedVersion + 1,
-          data: json(brief),
-          source: 'mcp',
-          actorId: user.id,
-        },
-      });
-    });
-    const document = await this.documents.generate(projectId, user.id);
+    const document = await this.db.$transaction(
+      async (tx) => {
+        const updated = await tx.brief.updateMany({
+          where: { projectId, version: expectedVersion },
+          data: { version: { increment: 1 }, data: json(brief) },
+        });
+        if (!updated.count) fail('VERSION_CONFLICT', 409, 'Brief changed; re-read it and retry');
+        await tx.briefVersion.create({
+          data: {
+            projectId,
+            version: expectedVersion + 1,
+            data: json(brief),
+            source: 'mcp',
+            actorId: user.id,
+          },
+        });
+        return this.documents.saveDraft(tx, projectId, user.id);
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
     return { briefVersion: expectedVersion + 1, documentVersion: document.version };
   }
 }

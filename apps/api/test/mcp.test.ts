@@ -13,7 +13,7 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer, Server } from 'node:http';
 import { AddressInfo } from 'node:net';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, rename, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import sharp from 'sharp';
@@ -416,10 +416,73 @@ test('a full scoping flow runs end to end through MCP tools', dbOnly, async () =
       assert.ok(doc.markdown.includes(heading), heading);
     assert.ok(doc.markdown.includes('Fuente: "reserven turnos online"'));
 
+    const draftVersions = await db.documentVersion.findMany({
+      where: { document: { projectId } },
+      orderBy: { version: 'desc' },
+    });
+    assert.ok(draftVersions.length >= sections.length);
+    assert.ok(draftVersions.every((draft) => Object.keys(draft.artifacts as object).length === 0));
+    const currentDraft = draftVersions[0];
+    const historical = draftVersions.at(-1)!;
+    const mdOnly = await documents.download(projectId, historical.version, 'md');
+    assert.ok(mdOnly.buffer.toString().includes('## 5. Alcance'));
+    const historicalSaved = await db.documentVersion.findUniqueOrThrow({
+      where: { id: historical.id },
+    });
+    assert.deepEqual(Object.keys(historicalSaved.artifacts as object), ['md']);
+    const concurrent = await Promise.all([
+      documents.download(projectId, historical.version, 'pdf'),
+      documents.download(projectId, historical.version, 'docx'),
+    ]);
+    assert.equal(concurrent[0].buffer.subarray(0, 4).toString(), '%PDF');
+    assert.equal(concurrent[1].buffer.subarray(0, 2).toString(), 'PK');
+    assert.equal(
+      (historicalSaved.data as { brief: { summary: string } }).brief.summary,
+      (historical.data as { brief: { summary: string } }).brief.summary,
+    );
+    const root = await storageRoot;
+    await rename(root, `${root}-saved`);
+    await writeFile(root, 'temporary storage obstruction');
+    try {
+      const failed = await call('export_document', { project_id: projectId, format: 'pdf' });
+      assert.equal(failed.isError, true);
+      const unchanged = await db.documentVersion.findUniqueOrThrow({
+        where: { id: currentDraft.id },
+      });
+      assert.deepEqual(unchanged.artifacts, {});
+      assert.equal(unchanged.briefVersion, answered.briefVersion);
+    } finally {
+      await rm(root);
+      await rename(`${root}-saved`, root);
+    }
+    await data('approve_scope', {
+      project_id: projectId,
+      document_version: currentDraft.version,
+      send_to_client: false,
+    });
+    const approvedDraft = await db.documentVersion.findUniqueOrThrow({
+      where: { id: currentDraft.id },
+    });
+    assert.equal(approvedDraft.status, 'approved');
+    assert.deepEqual(approvedDraft.artifacts, {});
     const exported = await data<{ url: string; version: number }>('export_document', {
       project_id: projectId,
       format: 'pdf',
     });
+    assert.equal(exported.version, currentDraft.version);
+    const materialized = await db.documentVersion.findUniqueOrThrow({
+      where: { id: currentDraft.id },
+    });
+    assert.deepEqual(Object.keys(materialized.artifacts as object).sort(), ['docx', 'md', 'pdf']);
+    const repeated = await data<{ version: number }>('export_document', {
+      project_id: projectId,
+      format: 'docx',
+    });
+    assert.equal(repeated.version, currentDraft.version);
+    assert.equal(
+      await db.documentVersion.count({ where: { document: { projectId } } }),
+      draftVersions.length,
+    );
     const claim = verifyExportToken(exported.url.split('/').pop()!)!;
     const pdf = await documents.download(claim.projectId, claim.version, claim.format);
     assert.equal(pdf.buffer.subarray(0, 4).toString(), '%PDF');

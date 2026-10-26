@@ -5,7 +5,7 @@ import type { BriefData, DocumentData, TiptapNode } from '@scopeprofit/contracts
 import { PrismaService } from '../../prisma.service';
 import { EmailService } from '../../email.service';
 import { StorageService } from '../storage/storage.service';
-import { render, validateEditor } from './render';
+import { markdown, render, validateEditor } from './render';
 import { ProjectStatus } from '@prisma/client';
 
 type Artifact = { path: string; checksum: string; size: number };
@@ -27,6 +27,61 @@ export class DocumentsService {
       include: { versions: { orderBy: { version: 'desc' }, take: 1 } },
     });
     return document?.versions[0] || null;
+  }
+  async saveDraft(tx: Prisma.TransactionClient, projectId: string, actorId: string) {
+    const project = await tx.project.findUnique({
+      where: { id: projectId },
+      include: {
+        owner: true,
+        brief: true,
+        document: { include: { versions: { orderBy: { version: 'desc' }, take: 1 } } },
+      },
+    });
+    if (!project?.brief) return fail('BRIEF_NOT_FOUND', 'Brief not found', 404);
+    if (['approved', 'delivered', 'archived'].includes(project.status))
+      return fail('PROJECT_LOCKED', 'Project is not editable');
+    const current = project.document?.currentVersion ?? 0;
+    const previous = project.document?.versions[0];
+    const data: DocumentData = {
+      projectName: project.name,
+      clientName: project.clientEmail || 'Cliente',
+      author: project.owner.email || 'Profesional',
+      date: new Date().toISOString(),
+      version: current + 1,
+      brief: project.brief.data as unknown as BriefData,
+      editorContent: (previous?.editorContent as unknown as TiptapNode) || null,
+    };
+    const document = await tx.document.upsert({
+      where: { projectId },
+      create: { projectId },
+      update: {},
+    });
+    const updated = await tx.document.updateMany({
+      where: { id: document.id, currentVersion: current },
+      data: { currentVersion: current + 1 },
+    });
+    if (updated.count !== 1) return fail('VERSION_CONFLICT', 'Document changed during save');
+    const saved = await tx.documentVersion.create({
+      data: {
+        documentId: document.id,
+        version: current + 1,
+        briefVersion: project.brief.version,
+        data: json(data),
+        editorContent: data.editorContent ? json(data.editorContent) : Prisma.JsonNull,
+        artifacts: {},
+      },
+    });
+    await tx.project.update({ where: { id: projectId }, data: { status: 'in_review' } });
+    await tx.auditEvent.create({
+      data: {
+        projectId,
+        actorId,
+        action: 'document.draft_saved',
+        result: 'success',
+        metadata: { version: saved.version, briefVersion: saved.briefVersion },
+      },
+    });
+    return saved;
   }
   async generate(
     projectId: string,
@@ -142,7 +197,32 @@ export class DocumentsService {
         where: { documentId_version: { documentId: document.id, version } },
       }));
     if (!saved) return fail('DOCUMENT_NOT_FOUND', 'Document not found', 404);
-    const artifact = (saved.artifacts as unknown as Artifacts)[format];
+    let artifacts = saved.artifacts as unknown as Partial<Artifacts>;
+    if (!artifacts[format]) {
+      const data = saved.data as unknown as DocumentData;
+      const buffers = format === 'md' ? { md: Buffer.from(markdown(data)) } : await render(data);
+      const generated = { ...artifacts };
+      const generation = randomUUID();
+      for (const kind of Object.keys(buffers) as Array<keyof typeof buffers>)
+        generated[kind] = await this.storage.write(
+          `${projectId}/documents/${version}/${generation}.${kind}`,
+          buffers[kind],
+        );
+      let previous = saved.artifacts;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const updated = await this.prisma.documentVersion.updateMany({
+          where: { id: saved.id, artifacts: { equals: previous as Prisma.InputJsonValue } },
+          data: { artifacts: json({ ...(previous as object), ...generated }) },
+        });
+        const live = await this.prisma.documentVersion.findUniqueOrThrow({
+          where: { id: saved.id },
+        });
+        artifacts = live.artifacts as unknown as Artifacts;
+        if (updated.count || artifacts[format]) break;
+        previous = live.artifacts;
+      }
+    }
+    const artifact = artifacts[format];
     if (!artifact) return fail('DOCUMENT_NOT_FOUND', 'Document artifact not found', 404);
     return {
       buffer: await this.storage.read(artifact.path),
