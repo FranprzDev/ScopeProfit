@@ -105,6 +105,7 @@ export class QuotesService {
   ) {}
 
   private async authorize(user: User, projectId: string) {
+    if (user.role !== Role.professional) fail('FORBIDDEN', 403);
     const project = await this.auth.project(user, projectId);
     if (user.role !== 'professional' && project.ownerId !== user.id) fail('FORBIDDEN', 403);
     return project;
@@ -142,6 +143,7 @@ export class QuotesService {
   }
 
   async listMine(user: User): Promise<{ quotes: QuoteSummary[] }> {
+    if (user.role !== Role.professional) fail('FORBIDDEN', 403);
     const rows = await this.db.quote.findMany({
       where: { project: { ownerId: user.id } },
       orderBy: { updatedAt: 'desc' },
