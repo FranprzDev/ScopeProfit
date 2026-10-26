@@ -179,7 +179,10 @@ export function renderStyledPdf(
         case MarkdownBlockKind.Figure: {
           const image = renderDiagram(block.text);
           const maxHeight = bottom() - doc.page.margins.top - 40;
-          const scale = Math.min(1, width / image.width, maxHeight / image.height);
+          const scale = Math.min(
+            Math.min(width, image.naturalWidth) / image.width,
+            maxHeight / image.height,
+          );
           const drawWidth = image.width * scale;
           const drawHeight = image.height * scale;
           ensure(drawHeight + 36);
@@ -191,10 +194,6 @@ export function renderStyledPdf(
               .text(block.title, left, doc.y, { width });
           doc.moveDown(0.3);
           const top = doc.y;
-          doc
-            .rect(left, top, width, drawHeight + 16)
-            .lineWidth(0.8)
-            .stroke(palette.rule);
           doc.image(image.png, left + (width - drawWidth) / 2, top, {
             width: drawWidth,
             height: drawHeight,

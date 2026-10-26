@@ -8,6 +8,7 @@ export interface DiagramImage {
   png: Buffer;
   width: number;
   height: number;
+  naturalWidth: number;
 }
 
 export function diagramError(source: string): string | null {
@@ -37,5 +38,10 @@ export function renderDiagram(source: string): DiagramImage {
     font: { loadSystemFonts: true, defaultFontFamily: 'DejaVu Sans' },
   });
   const image = resvg.render();
-  return { png: image.asPng(), width: image.width, height: image.height };
+  return {
+    png: image.asPng(),
+    width: image.width,
+    height: image.height,
+    naturalWidth: result.width,
+  };
 }
