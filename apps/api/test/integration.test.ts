@@ -163,7 +163,7 @@ test(
 
     await assert.rejects(
       quotes.generate(owner, project.id),
-      rejectedWith('RATE_CARD_REQUIRED', 400),
+      rejectedWith('BRIEF_NO_ESTIMATES', 400),
     );
     await rateCards.upsert(owner, {
       label: 'Estándar',
