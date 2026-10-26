@@ -1,15 +1,16 @@
 import 'reflect-metadata';
+import { createRequire } from 'node:module';
 // stdout carries JSON-RPC frames: route every log line to stderr before anything else loads.
 console.log = (...args: unknown[]) => console.error(...args);
 console.info = (...args: unknown[]) => console.error(...args);
 
 import { Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CoreModule } from './core.module';
 import { ApiKeysService } from './modules/mcp/api-keys.service';
 import { ScopeToolsService } from './modules/mcp/scope-tools.service';
-import { createScopeMcpServer } from './modules/mcp/mcp-server';
+import { stdioToolContext } from './modules/mcp/tool-context';
+import { xmcpStdioPath } from './modules/mcp/xmcp-adapter';
 
 @Module({ imports: [CoreModule] })
 class McpStdioModule {}
@@ -23,16 +24,17 @@ async function main() {
   if (!raw) throw new Error('SCOPEPROFIT_API_KEY is required (create one with `mcp:keys create`)');
   const app = await NestFactory.createApplicationContext(McpStdioModule, { logger: ['error'] });
   const { user } = await app.get(ApiKeysService).verify(raw);
-  const server = createScopeMcpServer(app.get(ScopeToolsService), user);
+
   const shutdown = async () => {
-    await server.close();
     await app.close();
     process.exit(0);
   };
   process.on('SIGINT', () => void shutdown());
   process.on('SIGTERM', () => void shutdown());
   process.stdin.on('close', () => void shutdown());
-  await server.connect(new StdioServerTransport());
+  stdioToolContext.provider({ tools: app.get(ScopeToolsService), user }, () =>
+    createRequire(__filename)(xmcpStdioPath),
+  );
 }
 
 main().catch((error: unknown) => {

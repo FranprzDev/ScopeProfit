@@ -1,0 +1,42 @@
+import { z } from 'zod';
+
+import type { InferSchema, ToolMetadata } from 'xmcp';
+
+import { projectId, executeTool } from '../tool-contracts';
+
+export const schema = {
+  project_id: projectId,
+  document_version: z
+    .number()
+    .int()
+    .min(1)
+    .describe('Current document version (get_project or get_scope_document)'),
+  send_to_client: z.boolean().optional().describe('Email PDF + DOCX to the client (default true)'),
+  client_email: z.string().email().optional().describe('Client email, if the project has none yet'),
+};
+
+export const metadata: ToolMetadata = {
+  name: 'approve_scope',
+  description:
+    'Approve the current document version. Locks the project and, by default, emails the PDF and editable DOCX to the client. Requires: no blocking questions, no red risk without mitigation, all sections filled. Ask the user for confirmation first.',
+  annotations: {
+    ...{
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
+    title: 'Approve scope',
+  },
+};
+
+export default async function approve_scope(args: InferSchema<typeof schema>) {
+  return executeTool((tools, user) =>
+    tools.approveScope(user, {
+      projectId: args.project_id,
+      documentVersion: args.document_version,
+      sendToClient: args.send_to_client,
+      clientEmail: args.client_email,
+    }),
+  );
+}

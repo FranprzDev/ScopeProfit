@@ -17,21 +17,8 @@ import { fail } from '../../security';
 import { fetchImage } from './image-fetch';
 import { exportUrl, ExportFormat } from './export-links';
 
-export const SCOPE_SECTIONS = [
-  'summary',
-  'requirements',
-  'questions',
-  'risks',
-  'included',
-  'excluded',
-  'assumptions',
-  'acceptanceCriteria',
-  'estimates',
-  'nextSteps',
-  'quoteValidity',
-  'diagrams',
-] as const satisfies readonly (keyof BriefData)[];
-export type ScopeSection = (typeof SCOPE_SECTIONS)[number];
+export { SCOPE_SECTIONS } from './scope-sections';
+import type { ScopeSection } from './scope-sections';
 
 const LOCKED: ProjectStatus[] = [
   ProjectStatus.approved,

@@ -18,7 +18,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import sharp from 'sharp';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
+import express from 'express';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { xmcpAdapter } from '../src/modules/mcp/xmcp-adapter';
+import { scopeToolContext } from '../src/modules/mcp/tool-context';
 import type { User } from '@prisma/client';
 import { HttpException } from '@nestjs/common';
 
@@ -34,7 +37,6 @@ import { StorageService } from '../src/modules/storage/storage.service';
 import { ChangeRequestsService } from '../src/modules/projects/change-requests.service';
 import { ApiKeysService } from '../src/modules/mcp/api-keys.service';
 import { ScopeToolsService } from '../src/modules/mcp/scope-tools.service';
-import { createScopeMcpServer } from '../src/modules/mcp/mcp-server';
 import { exportUrl, verifyExportToken } from '../src/modules/mcp/export-links';
 import { fetchImage, isPublicAddress } from '../src/modules/mcp/image-fetch';
 import { signConsent, verifyConsent } from '../src/modules/mcp/oauth-consent';
@@ -50,6 +52,7 @@ let tools: ScopeToolsService;
 let owner: User;
 let client: Client;
 let imageServer: Server;
+let mcpServer: Server;
 let imageBase: string;
 
 type ToolOutput = {
@@ -162,16 +165,26 @@ before(async () => {
   await new Promise<void>((resolve) => imageServer.listen(0, '127.0.0.1', resolve));
   imageBase = `http://127.0.0.1:${(imageServer.address() as AddressInfo).port}`;
 
-  const server = createScopeMcpServer(tools, owner);
-  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  const http = express();
+  const adapter = new xmcpAdapter.XmcpService();
+  http.use(express.json());
+  http.post('/api/mcp', (req, res) =>
+    scopeToolContext.provider({ tools, user: owner }, () => adapter.handleRequest(req, res)),
+  );
+  mcpServer = http.listen(0, '127.0.0.1');
+  await new Promise<void>((resolve) => mcpServer.once('listening', resolve));
+  const address = mcpServer.address() as AddressInfo;
   client = new Client({ name: 'mcp-test', version: '1.0.0' });
-  await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
+  await client.connect(
+    new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${address.port}/api/mcp`)),
+  );
 });
 
 after(async () => {
   if (skip) return;
   await client.close();
   imageServer.close();
+  await new Promise<void>((resolve) => mcpServer.close(() => resolve()));
   await db.$disconnect();
   await rm(await storageRoot, { recursive: true, force: true });
 });

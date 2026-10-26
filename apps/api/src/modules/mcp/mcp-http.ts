@@ -2,7 +2,6 @@ import type { INestApplication } from '@nestjs/common';
 import express from 'express';
 import type { NextFunction, Request, Response } from 'express';
 import { rateLimit } from 'express-rate-limit';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import {
   getOAuthProtectedResourceMetadataUrl,
   mcpAuthRouter,
@@ -13,7 +12,8 @@ import { ApiKeysService } from './api-keys.service';
 import { MCP_SCOPE, McpPrincipal, ScopeProfitOAuthProvider } from './oauth.provider';
 import { consentPage, verifyConsent } from './oauth-consent';
 import { ScopeToolsService } from './scope-tools.service';
-import { createScopeMcpServer } from './mcp-server';
+import { xmcpAdapter } from './xmcp-adapter';
+import { scopeToolContext } from './tool-context';
 import { publicApiUrl } from './export-links';
 
 export const MCP_PATH = '/api/mcp';
@@ -109,28 +109,37 @@ export function mountMcp(app: INestApplication) {
     standardHeaders: true,
     legacyHeaders: false,
   });
-  const auth = requireBearerAuth({ verifier: provider, resourceMetadataUrl });
-
-  http.post(MCP_PATH, limiter, auth, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const principal = req.auth?.extra as McpPrincipal | undefined;
-      const user = principal && (await db.user.findUnique({ where: { id: principal.userId } }));
-      if (!user) return void res.status(401).json({ error: 'invalid_token' });
-      const server = createScopeMcpServer(tools, user);
-      const transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: undefined,
-        enableJsonResponse: true,
-      });
-      res.on('close', () => {
-        void transport.close();
-        void server.close();
-      });
-      await server.connect(transport);
-      await transport.handleRequest(req, res, req.body);
-    } catch (error) {
-      next(error);
-    }
+  const auth = requireBearerAuth({
+    verifier: provider,
+    resourceMetadataUrl,
+    expectedResource: resource,
+    requiredScopes: [MCP_SCOPE],
   });
+  const xmcp = new xmcpAdapter.XmcpService();
+
+  const originCheck = (req: Request, res: Response, next: NextFunction) => {
+    const origin = req.headers.origin;
+    if (origin && origin !== issuer.origin && origin !== process.env.WEB_URL)
+      return void res.status(403).json({ error: 'invalid_origin' });
+    next();
+  };
+
+  http.post(
+    MCP_PATH,
+    limiter,
+    originCheck,
+    auth,
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const principal = req.auth?.extra as McpPrincipal | undefined;
+        const user = principal && (await db.user.findUnique({ where: { id: principal.userId } }));
+        if (!user) return void res.status(401).json({ error: 'invalid_token' });
+        await scopeToolContext.provider({ tools, user }, () => xmcp.handleRequest(req, res));
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
 
   const notAllowed = (_req: Request, res: Response) =>
     void res
@@ -141,6 +150,6 @@ export function mountMcp(app: INestApplication) {
         error: { code: -32000, message: 'Method not allowed (stateless server)' },
         id: null,
       });
-  http.get(MCP_PATH, limiter, auth, notAllowed);
-  http.delete(MCP_PATH, limiter, auth, notAllowed);
+  http.get(MCP_PATH, limiter, originCheck, auth, notAllowed);
+  http.delete(MCP_PATH, limiter, originCheck, auth, notAllowed);
 }
