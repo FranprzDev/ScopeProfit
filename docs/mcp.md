@@ -40,7 +40,7 @@ Every request needs `Authorization: Bearer <token>`. Two token types are accepte
 - **API key** (`sp_live_…`) — for agents, SDKs, Claude Code, Claude connectors with request headers, the OpenAI Responses API, etc.
 - **OAuth 2.1 access token** (`sp_at_…`) — for hosts that only support OAuth (ChatGPT). The server is its own authorization server: dynamic client registration (`/register`), PKCE (`S256`) authorization code flow (`/authorize` → consent page → `/token`), refresh-token rotation and revocation (`/revoke`). Discovery: `/.well-known/oauth-protected-resource/api/mcp` and `/.well-known/oauth-authorization-server`. On the consent page the professional pastes an API key; the OAuth grant is bound to that key, so revoking the key cuts every connector that used it.
 
-Manage API keys (the email must be in `PROFESSIONAL_EMAILS`):
+Manage API keys from a trusted server shell. This local CLI provisions the professional role; it is not a public registration endpoint. Knowing an email or requesting a magic link does not grant this role. API keys and OAuth still authenticate every MCP request. To remove a professional's access, revoke their keys or change their role in the installation; removing an environment entry is no longer an access-control mechanism:
 
 ```bash
 pnpm --filter @scopeprofit/api run build
@@ -89,7 +89,6 @@ Runs the tools in-process against your database:
       "env": {
         "DATABASE_URL": "postgresql://...",
         "ENCRYPTION_KEY": "...",
-        "PROFESSIONAL_EMAILS": "you@example.com",
         "STORAGE_ROOT": "/path/to/storage",
         "PUBLIC_API_URL": "https://api.example.com",
         "SCOPEPROFIT_API_KEY": "sp_live_..."

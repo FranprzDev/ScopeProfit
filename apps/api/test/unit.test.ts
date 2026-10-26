@@ -1,12 +1,10 @@
 process.env.ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || Buffer.alloc(32, 7).toString('base64');
-process.env.PROFESSIONAL_EMAILS =
-  process.env.PROFESSIONAL_EMAILS || 'owner-111@scopeprofit.test,owner-222@scopeprofit.test';
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { HttpException } from '@nestjs/common';
 import { MaintenanceStatus, QuoteStatus } from '@prisma/client';
-import { encrypt, decrypt, hash, secureEqual, authorizedProfessionalEmails } from '../src/security';
+import { encrypt, decrypt, hash, secureEqual, isAuthorizedProfessional } from '../src/security';
 import { validateBrief, validateSources } from '../src/modules/brief/brief.validation';
 import { validateEditor, markdown } from '../src/modules/documents/render';
 import { emptyBrief } from '@scopeprofit/contracts';
@@ -80,11 +78,9 @@ test('hash is deterministic and secureEqual works', () => {
   assert.ok(!secureEqual(hash('a'), hash('b')));
 });
 
-test('authorizedProfessionalEmails parses env list', () => {
-  assert.deepEqual(authorizedProfessionalEmails(), [
-    'owner-111@scopeprofit.test',
-    'owner-222@scopeprofit.test',
-  ]);
+test('professional authorization requires a provisioned role, not an email list', () => {
+  assert.equal(isAuthorizedProfessional({ role: 'professional' }), true);
+  assert.equal(isAuthorizedProfessional({ role: 'client' }), false);
 });
 
 test('validateBrief rejects an inconsistent estimate range', () => {
