@@ -16,8 +16,7 @@ import {
   SDK_SNIPPET,
   STAGES,
   STDIO_SNIPPET,
-  TELEGRAM_COMMANDS,
-  TELEGRAM_FAQ,
+  AUTH_FAQ,
   TOOL_COUNT,
   TOOL_GROUPS,
   ToolKind,
@@ -74,17 +73,16 @@ describe('landing content', () => {
     }
   });
 
-  test('FAQ entries have a question and an answer and include the Telegram entry', () => {
-    assert.ok(FAQ_ENTRIES.includes(TELEGRAM_FAQ));
+  test('FAQ entries have a question and an answer and include the authentication entry', () => {
+    assert.ok(FAQ_ENTRIES.includes(AUTH_FAQ));
     for (const entry of FAQ_ENTRIES) {
       assert.match(entry.question, /\?$/);
       assert.ok(entry.answer.trim().length > 0);
     }
   });
 
-  test('links and Telegram commands are well formed', () => {
+  test('links are well formed', () => {
     assert.ok(MCP_DOCS_URL.startsWith(REPO_URL));
-    for (const command of TELEGRAM_COMMANDS) assert.match(command, /^\/[a-z]+$/);
   });
 });
 

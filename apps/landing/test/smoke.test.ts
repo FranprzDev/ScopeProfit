@@ -24,7 +24,7 @@ enum MetaAttribute {
 
 const APP_DIR = process.cwd();
 const NEXT_BIN = join(APP_DIR, 'node_modules', 'next', 'dist', 'bin', 'next');
-const KEY_SECTIONS = ['como-funciona', 'herramientas', 'conectar', 'telegram'];
+const KEY_SECTIONS = ['como-funciona', 'herramientas', 'conectar'];
 const OPEN_GRAPH_KEYS = ['og:title', 'og:description', 'og:url', 'og:type', 'og:image'];
 const STARTUP_TIMEOUT_MS = 60000;
 

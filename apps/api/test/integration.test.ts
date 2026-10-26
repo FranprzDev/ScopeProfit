@@ -1,7 +1,10 @@
 process.env.ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || Buffer.alloc(32, 7).toString('base64');
 const runId = Date.now();
-const ownerTelegramIds = Array.from({ length: 16 }, (_, index) => `owner-${index + 1}-${runId}`);
-process.env.TELEGRAM_AUTHORIZED_USER_IDS = ownerTelegramIds.join(',');
+const ownerEmails = Array.from(
+  { length: 16 },
+  (_, index) => `owner-${index + 1}-${runId}@scopeprofit.test`,
+);
+process.env.PROFESSIONAL_EMAILS = ownerEmails.join(',');
 
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -55,7 +58,7 @@ test(
   { skip: skip ? 'DATABASE_URL not set' : false },
   async () => {
     const owner = await db.user.create({
-      data: { telegramId: `owner-1-${runId}`, role: 'professional' },
+      data: { email: `owner-1-${runId}@scopeprofit.test`, role: 'professional' },
     });
     const project = await projects.create(owner, 'Portal de clientes');
     const brief = await db.brief.findUniqueOrThrow({ where: { projectId: project.id } });
@@ -73,7 +76,7 @@ test(
   { skip: skip ? 'DATABASE_URL not set' : false },
   async () => {
     const owner = await db.user.create({
-      data: { telegramId: `owner-2-${runId}`, role: 'professional' },
+      data: { email: `owner-2-${runId}@scopeprofit.test`, role: 'professional' },
     });
     const project = await projects.create(owner, 'Landing Acme');
     await projects.link(project.id, owner, 'revoke');
@@ -90,7 +93,7 @@ test(
   { skip: skip ? 'DATABASE_URL not set' : false },
   async () => {
     const owner = await db.user.create({
-      data: { telegramId: `owner-3-${runId}`, role: 'professional' },
+      data: { email: `owner-3-${runId}@scopeprofit.test`, role: 'professional' },
     });
     const project = await projects.create(owner, 'Sin clave configurada');
     const fresh = await db.project.findUniqueOrThrow({
@@ -106,7 +109,7 @@ test(
   { skip: skip ? 'DATABASE_URL not set' : false },
   async () => {
     const owner = await db.user.create({
-      data: { telegramId: `owner-4-${runId}`, role: 'professional' },
+      data: { email: `owner-4-${runId}@scopeprofit.test`, role: 'professional' },
     });
     await assert.rejects(rateCards.get(owner), rejectedWith('RATE_CARD_NOT_FOUND', 404));
 
@@ -157,7 +160,7 @@ test(
   { skip: skip ? 'DATABASE_URL not set' : false },
   async () => {
     const owner = await db.user.create({
-      data: { telegramId: `owner-5-${runId}`, role: 'professional' },
+      data: { email: `owner-5-${runId}@scopeprofit.test`, role: 'professional' },
     });
     const project = await projects.create(owner, 'Cotización Acme');
 
@@ -287,7 +290,7 @@ test(
   { skip: skip ? 'DATABASE_URL not set' : false },
   async () => {
     const owner = await db.user.create({
-      data: { telegramId: `owner-6-${runId}`, role: 'professional' },
+      data: { email: `owner-6-${runId}@scopeprofit.test`, role: 'professional' },
     });
     const client = await db.user.create({
       data: { email: `client-${runId}@example.com`, role: 'client' },
@@ -342,7 +345,7 @@ test(
   { skip: skip ? 'DATABASE_URL not set' : false },
   async () => {
     const owner = await db.user.create({
-      data: { telegramId: `owner-11-${runId}`, role: 'professional' },
+      data: { email: `owner-11-${runId}@scopeprofit.test`, role: 'professional' },
     });
     const project = await projects.create(owner, 'Propuesta Acme');
     await rateCards.upsert(owner, {
@@ -413,10 +416,10 @@ test(
   { skip: skip ? 'DATABASE_URL not set' : false },
   async () => {
     const owner = await db.user.create({
-      data: { telegramId: `owner-13-${runId}`, role: 'professional' },
+      data: { email: `owner-13-${runId}@scopeprofit.test`, role: 'professional' },
     });
     const stranger = await db.user.create({
-      data: { telegramId: `owner-14-${runId}`, role: 'professional' },
+      data: { email: `owner-14-${runId}@scopeprofit.test`, role: 'professional' },
     });
     const client = await db.user.create({
       data: { email: `quotes-client-${runId}@example.com`, role: 'client' },
@@ -471,7 +474,7 @@ test(
   { skip: skip ? 'DATABASE_URL not set' : false },
   async () => {
     const owner = await db.user.create({
-      data: { telegramId: `owner-12-${runId}`, role: 'professional' },
+      data: { email: `owner-12-${runId}@scopeprofit.test`, role: 'professional' },
     });
     const project = await projects.create(owner, 'Guardas de propuesta');
     await rateCards.upsert(owner, {
@@ -537,7 +540,7 @@ test(
   { skip: skip ? 'DATABASE_URL not set' : false },
   async () => {
     const owner = await db.user.create({
-      data: { telegramId: `owner-7-${runId}`, role: 'professional' },
+      data: { email: `owner-7-${runId}@scopeprofit.test`, role: 'professional' },
     });
     const project = await projects.create(owner, 'Mantenimiento Acme');
     await assert.rejects(
@@ -635,7 +638,7 @@ test(
   { skip: skip ? 'DATABASE_URL not set' : false },
   async () => {
     const owner = await db.user.create({
-      data: { telegramId: `owner-8-${runId}`, role: 'professional' },
+      data: { email: `owner-8-${runId}@scopeprofit.test`, role: 'professional' },
     });
     const project = await projects.create(owner, 'Retainer cerrado');
     await assert.rejects(
@@ -696,7 +699,7 @@ test(
   { skip: skip ? 'DATABASE_URL not set' : false },
   async () => {
     const owner = await db.user.create({
-      data: { telegramId: `owner-9-${runId}`, role: 'professional' },
+      data: { email: `owner-9-${runId}@scopeprofit.test`, role: 'professional' },
     });
     const project = await projects.create(owner, 'Retainer con change requests');
     const otherProject = await projects.create(owner, 'Proyecto ajeno');
@@ -770,7 +773,7 @@ test(
   { skip: skip ? 'DATABASE_URL not set' : false },
   async () => {
     const owner = await db.user.create({
-      data: { telegramId: `owner-10-${runId}`, role: 'professional' },
+      data: { email: `owner-10-${runId}@scopeprofit.test`, role: 'professional' },
     });
     const client = await db.user.create({
       data: { email: `maintenance-client-${runId}@example.com`, role: 'client' },
@@ -813,10 +816,10 @@ test(
   { skip: skip ? 'DATABASE_URL not set' : false },
   async () => {
     const owner = await db.user.create({
-      data: { telegramId: `owner-15-${runId}`, role: 'professional' },
+      data: { email: `owner-15-${runId}@scopeprofit.test`, role: 'professional' },
     });
     const stranger = await db.user.create({
-      data: { telegramId: `owner-16-${runId}`, role: 'professional' },
+      data: { email: `owner-16-${runId}@scopeprofit.test`, role: 'professional' },
     });
     const client = await db.user.create({
       data: { email: `maintenance-summary-${runId}@example.com`, role: 'client' },

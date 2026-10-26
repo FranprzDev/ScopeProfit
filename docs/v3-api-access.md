@@ -18,11 +18,13 @@ These controllers authenticate with the `sp_session` cookie only. MCP API keys a
 
 Stopgap to get a professional session without the web app:
 
-1. In Telegram, open a project and press **✏️ Editar doc**. The bot replies with a signed, single-use link `{WEB_URL}/api/auth/admin/verify?token=…`.
-2. The signature does not depend on the host, so call it against the API origin instead of `WEB_URL` and read the cookie from the `302` response:
+1. Make sure your email is in `PROFESSIONAL_EMAILS` and the account exists (`mcp:keys create --email <email>` creates it; add `--claim-legacy-telegram-id <id>` to keep the projects of an account created before email authorization).
+2. Request a magic link and open it against the API origin, then read the cookie from the `302` response:
 
    ```bash
-   curl -si "https://api.<your-domain>/api/auth/admin/verify?token=<token-from-the-link>" | grep -i set-cookie
+   curl -s https://api.<your-domain>/api/auth/magic-link/request \
+     -X POST -H "Content-Type: application/json" -d '{"email":"<email>"}'
+   curl -si "https://api.<your-domain>/api/auth/magic-link/verify?token=<token-from-the-email>" | grep -i set-cookie
    ```
 
 3. Send that cookie on the v3 calls:
@@ -33,7 +35,7 @@ Stopgap to get a professional session without the web app:
      -b "sp_session=<value>"
    ```
 
-`https://api.<your-domain>` is a placeholder for your `PUBLIC_API_URL`. The session lasts up to 30 days or until the link's TTL (`ADMIN_EDIT_URL_TTL_DAYS`), whichever comes first.
+`https://api.<your-domain>` is a placeholder for your `PUBLIC_API_URL`. The session lasts up to 30 days.
 
 ## Follow-up
 

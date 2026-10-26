@@ -40,14 +40,14 @@ Every request needs `Authorization: Bearer <token>`. Two token types are accepte
 - **API key** (`sp_live_…`) — for agents, SDKs, Claude Code, Claude connectors with request headers, the OpenAI Responses API, etc.
 - **OAuth 2.1 access token** (`sp_at_…`) — for hosts that only support OAuth (ChatGPT). The server is its own authorization server: dynamic client registration (`/register`), PKCE (`S256`) authorization code flow (`/authorize` → consent page → `/token`), refresh-token rotation and revocation (`/revoke`). Discovery: `/.well-known/oauth-protected-resource/api/mcp` and `/.well-known/oauth-authorization-server`. On the consent page the professional pastes an API key; the OAuth grant is bound to that key, so revoking the key cuts every connector that used it.
 
-Manage API keys (the Telegram id must be in `TELEGRAM_AUTHORIZED_USER_IDS`):
+Manage API keys (the email must be in `PROFESSIONAL_EMAILS`):
 
 ```bash
 pnpm --filter @scopeprofit/api run build
-pnpm --filter @scopeprofit/api run mcp:keys create --telegram-id 123456789 --label chatgpt
+pnpm --filter @scopeprofit/api run mcp:keys create --email you@example.com --label chatgpt
 pnpm --filter @scopeprofit/api run mcp:keys list
 pnpm --filter @scopeprofit/api run mcp:keys revoke <key-id>
-SCOPEPROFIT_AI_KEY=<gemini-key> pnpm --filter @scopeprofit/api run mcp:keys set-ai-key --telegram-id 123456789
+SCOPEPROFIT_AI_KEY=<gemini-key> pnpm --filter @scopeprofit/api run mcp:keys set-ai-key --email you@example.com
 ```
 
 Only SHA-256 hashes of keys and tokens are stored.
@@ -89,7 +89,7 @@ Runs the tools in-process against your database:
       "env": {
         "DATABASE_URL": "postgresql://...",
         "ENCRYPTION_KEY": "...",
-        "TELEGRAM_AUTHORIZED_USER_IDS": "123456789",
+        "PROFESSIONAL_EMAILS": "you@example.com",
         "STORAGE_ROOT": "/path/to/storage",
         "PUBLIC_API_URL": "https://api.example.com",
         "SCOPEPROFIT_API_KEY": "sp_live_..."

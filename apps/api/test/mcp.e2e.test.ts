@@ -1,7 +1,6 @@
 process.env.ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || Buffer.alloc(32, 7).toString('base64');
-const ownerTelegramId = `mcp-e2e-${Date.now()}`;
-process.env.TELEGRAM_AUTHORIZED_USER_IDS = ownerTelegramId;
-process.env.TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '1:e2e-placeholder';
+const ownerEmail = `mcp-e2e-${Date.now()}@scopeprofit.test`;
+process.env.PROFESSIONAL_EMAILS = ownerEmail;
 process.env.WEB_URL = process.env.WEB_URL || 'http://localhost:3000';
 
 import 'reflect-metadata';
@@ -67,7 +66,7 @@ before(async () => {
   app.useGlobalFilters(new ApiErrorHandler());
   mountMcp(app);
   await app.listen(port, '127.0.0.1');
-  const owner = await app.get(AuthService).telegramUser(ownerTelegramId);
+  const owner = await app.get(AuthService).professionalUser(ownerEmail);
   const created = await app.get(ApiKeysService).create(owner, 'e2e');
   apiKey = created.key;
   apiKeyId = created.id;
@@ -254,7 +253,7 @@ test(
 );
 
 test('the stdio entrypoint serves the same tools for local MCP clients', dbOnly, async () => {
-  const owner = await app.get(AuthService).telegramUser(ownerTelegramId);
+  const owner = await app.get(AuthService).professionalUser(ownerEmail);
   const { key } = await app.get(ApiKeysService).create(owner, 'stdio');
   const env = Object.fromEntries(
     Object.entries(process.env).filter((entry): entry is [string, string] => !!entry[1]),

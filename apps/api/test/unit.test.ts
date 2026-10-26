@@ -1,11 +1,12 @@
 process.env.ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || Buffer.alloc(32, 7).toString('base64');
-process.env.TELEGRAM_AUTHORIZED_USER_IDS = process.env.TELEGRAM_AUTHORIZED_USER_IDS || '111,222';
+process.env.PROFESSIONAL_EMAILS =
+  process.env.PROFESSIONAL_EMAILS || 'owner-111@scopeprofit.test,owner-222@scopeprofit.test';
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { HttpException } from '@nestjs/common';
 import { MaintenanceStatus, QuoteStatus } from '@prisma/client';
-import { encrypt, decrypt, hash, secureEqual, authorizedTelegramIds } from '../src/security';
+import { encrypt, decrypt, hash, secureEqual, authorizedProfessionalEmails } from '../src/security';
 import { validateBrief, validateSources } from '../src/modules/brief/brief.validation';
 import { validateEditor, markdown } from '../src/modules/documents/render';
 import { emptyBrief } from '@scopeprofit/contracts';
@@ -79,8 +80,11 @@ test('hash is deterministic and secureEqual works', () => {
   assert.ok(!secureEqual(hash('a'), hash('b')));
 });
 
-test('authorizedTelegramIds parses env list', () => {
-  assert.deepEqual(authorizedTelegramIds(), ['111', '222']);
+test('authorizedProfessionalEmails parses env list', () => {
+  assert.deepEqual(authorizedProfessionalEmails(), [
+    'owner-111@scopeprofit.test',
+    'owner-222@scopeprofit.test',
+  ]);
 });
 
 test('validateBrief rejects an inconsistent estimate range', () => {

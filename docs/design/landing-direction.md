@@ -17,10 +17,9 @@ The landing (`apps/landing`) follows the `design-taste-frontend` skill (Taste Sk
 4. The estimate is an hour range per module, never a price.
 5. Fixed template 7.1, exported to Markdown, PDF and editable Word.
 6. 15 MCP tools, each marked read, write or destructive.
-7. API keys `sp_live_…`, stored as a hash, tied to an authorized Telegram id.
+7. API keys `sp_live_…`, stored as a hash, tied to an authorized professional email.
 8. Works over Streamable HTTP and stdio; OAuth 2.1 consent screen for ChatGPT and Claude.
-9. The Telegram bot keeps working on the same backend.
-10. In Spanish, scoping is a _relevamiento_, the same word as a land survey.
+9. In Spanish, scoping is a _relevamiento_, the same word as a land survey.
 
 ## Argument (one claim per section)
 
@@ -33,7 +32,6 @@ The landing (`apps/landing`) follows the `design-taste-frontend` skill (Taste Sk
 | Tools        | 15 tools, one per task, each marked by what it may change      | The full tool table                                        |
 | Tool finder  | Your assistant picks the right tool for what you ask           | The live input over the real tool catalogue                |
 | Connect      | One URL and one API key                                        | The endpoint and the setup steps and snippets per client   |
-| Telegram     | Nothing changes for Telegram users                             | The bot commands and the same-backend note                 |
 | Footer       | Every setting is documented step by step                       | The link to `docs/mcp.md`                                  |
 
 ## Direction (dealt by `draw.mjs`)
