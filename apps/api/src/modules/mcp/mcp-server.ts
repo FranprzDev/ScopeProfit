@@ -26,6 +26,7 @@ const SECTION_SHAPES = `Value shape per section:
 - included | excluded | assumptions | acceptanceCriteria | nextSteps: string[]
 - estimates: [{module, minHours:number, maxHours:number (>= minHours), uncertainty}]
 - quoteValidity: {issuedOn:"YYYY-MM-DD", days:integer (1..3650)} or null to remove. Optional commercial validity, set only from the professional's explicit policy. No default applies to other users. Ask for the issuance date; never reset it on export. A 7-day policy is available by setting days:7. Expiry requires a new quote based on availability/workload; prices may rise or fall, never change automatically. This does not turn hour estimates into prices or change accepted commitments.
+- diagrams: [{title, source:<Mermaid text, max 5000 chars>}] (max 8) or null to remove. Rendered with Pele and embedded as figures inside the PDF, DOCX and Markdown exports. Use flowchart, sequence or other Mermaid diagrams only when they clarify processes, actors or flows; the source must render or the write is rejected.
 The value REPLACES the whole section.`;
 
 type ToolResult = Record<string, unknown>;

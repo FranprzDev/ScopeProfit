@@ -43,8 +43,13 @@ export interface QuoteValidity {
   issuedOn: string;
   days: number;
 }
+export interface BriefDiagram {
+  title: string;
+  source: string;
+}
 export interface BriefData {
   quoteValidity?: QuoteValidity | null;
+  diagrams?: BriefDiagram[] | null;
   summary: string;
   requirements: Requirement[];
   questions: Question[];

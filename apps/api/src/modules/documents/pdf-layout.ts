@@ -1,4 +1,5 @@
 import PDFDocument from 'pdfkit';
+import { renderDiagram } from './diagram';
 
 export enum MarkdownBlockKind {
   Title = 'title',
@@ -7,11 +8,13 @@ export enum MarkdownBlockKind {
   Meta = 'meta',
   Bullet = 'bullet',
   Paragraph = 'paragraph',
+  Figure = 'figure',
 }
 
 export interface MarkdownBlock {
   kind: MarkdownBlockKind;
   text: string;
+  title?: string;
 }
 
 const palette = {
@@ -24,19 +27,41 @@ const palette = {
 
 const metaPattern = /^(Cliente|Fecha|Versión|Autor): (.*)$/;
 
+const fence = '```';
+
 export function parseMarkdown(md: string): MarkdownBlock[] {
-  return md
-    .split('\n')
-    .filter((line) => line.trim() !== '')
-    .map((line) => {
-      if (line.startsWith('### '))
-        return { kind: MarkdownBlockKind.Subsection, text: line.slice(4) };
-      if (line.startsWith('## ')) return { kind: MarkdownBlockKind.Section, text: line.slice(3) };
-      if (line.startsWith('# ')) return { kind: MarkdownBlockKind.Title, text: line.slice(2) };
-      if (line.startsWith('- ')) return { kind: MarkdownBlockKind.Bullet, text: line.slice(2) };
-      if (metaPattern.test(line)) return { kind: MarkdownBlockKind.Meta, text: line };
-      return { kind: MarkdownBlockKind.Paragraph, text: line };
-    });
+  const blocks: MarkdownBlock[] = [];
+  let figure: string[] | null = null;
+  for (const line of md.split('\n')) {
+    if (line.startsWith(fence)) {
+      if (figure === null) {
+        figure = [];
+      } else {
+        const last = blocks[blocks.length - 1];
+        const title = last?.kind === MarkdownBlockKind.Subsection ? last.text : undefined;
+        if (title !== undefined) blocks.pop();
+        blocks.push({ kind: MarkdownBlockKind.Figure, text: figure.join('\n'), title });
+        figure = null;
+      }
+      continue;
+    }
+    if (figure !== null) {
+      figure.push(line);
+      continue;
+    }
+    if (line.trim() === '') continue;
+    if (line.startsWith('### '))
+      blocks.push({ kind: MarkdownBlockKind.Subsection, text: line.slice(4) });
+    else if (line.startsWith('## '))
+      blocks.push({ kind: MarkdownBlockKind.Section, text: line.slice(3) });
+    else if (line.startsWith('# '))
+      blocks.push({ kind: MarkdownBlockKind.Title, text: line.slice(2) });
+    else if (line.startsWith('- '))
+      blocks.push({ kind: MarkdownBlockKind.Bullet, text: line.slice(2) });
+    else if (metaPattern.test(line)) blocks.push({ kind: MarkdownBlockKind.Meta, text: line });
+    else blocks.push({ kind: MarkdownBlockKind.Paragraph, text: line });
+  }
+  return blocks;
 }
 
 export function renderStyledPdf(
@@ -149,6 +174,33 @@ export function renderStyledPdf(
               .text(rest.join('  ·  '), left + 18, doc.y, { width: width - 18, lineGap: 2 });
           doc.x = left;
           doc.moveDown(0.5);
+          break;
+        }
+        case MarkdownBlockKind.Figure: {
+          const image = renderDiagram(block.text);
+          const maxHeight = bottom() - doc.page.margins.top - 40;
+          const scale = Math.min(1, width / image.width, maxHeight / image.height);
+          const drawWidth = image.width * scale;
+          const drawHeight = image.height * scale;
+          ensure(drawHeight + 36);
+          if (block.title !== undefined)
+            doc
+              .fillColor(palette.ink)
+              .font('Helvetica-Bold')
+              .fontSize(11)
+              .text(block.title, left, doc.y, { width });
+          doc.moveDown(0.3);
+          const top = doc.y;
+          doc
+            .rect(left, top, width, drawHeight + 16)
+            .lineWidth(0.8)
+            .stroke(palette.rule);
+          doc.image(image.png, left + (width - drawWidth) / 2, top, {
+            width: drawWidth,
+            height: drawHeight,
+          });
+          doc.x = left;
+          doc.y = top + drawHeight + 20;
           break;
         }
         default:

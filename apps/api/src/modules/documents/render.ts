@@ -1,4 +1,5 @@
-import { Document, HeadingLevel, Packer, Paragraph, TextRun } from 'docx';
+import { Document, HeadingLevel, ImageRun, Packer, Paragraph, TextRun } from 'docx';
+import { renderDiagram } from './diagram';
 import { MarkdownBlockKind, parseMarkdown, renderStyledPdf } from './pdf-layout';
 import type { DocumentData, TiptapNode } from '@scopeprofit/contracts';
 
@@ -66,7 +67,7 @@ export function editorText(node: TiptapNode): string {
       : '')
   );
 }
-export function markdown(data: DocumentData) {
+function baseMarkdown(data: DocumentData) {
   const b = data.brief;
   const validity = b.quoteValidity;
   const expiresOn = validity
@@ -77,7 +78,14 @@ export function markdown(data: DocumentData) {
     : '';
   const bullet = (values: string[]) =>
     values.map((value) => `- ${value}`).join('\n') || '- Pendiente de definición';
-  return `# ${data.projectName}\nCliente: ${data.clientName}\nFecha: ${data.date}\nVersión: 0.${data.version}\nAutor: ${data.author}\n\n## 1. Resumen ejecutivo\n${b.summary}\n\n## 2. Requerimientos identificados\n${b.requirements.map((r) => `- ${r.id} | ${r.description} | ${r.type} | ${r.priority} | Fuente: "${r.source}" | ${r.systemNote}`).join('\n')}\n\n## 3. Preguntas pendientes\n${b.questions.map((q) => `- ${q.id}: ${q.question} | ${q.reason} | Bloquea estimación: ${q.blocksEstimate ? 'Sí' : 'No'}`).join('\n') || 'Sin preguntas pendientes'}\n\n## 4. Riesgos y ambigüedades\n${b.risks.map((r) => `- ${r.id}: ${r.description} | Impacto: ${r.impact} | Mitigación/supuesto: ${r.mitigation} | Semáforo: ${r.severity}`).join('\n') || 'Sin riesgos identificados'}\n\n## 5. Alcance\n### Incluidos\n${bullet(b.included)}\n### Excluidos\n${bullet(b.excluded)}\n### Supuestos\n${bullet(b.assumptions)}\n### Criterios de aceptación\n${bullet(b.acceptanceCriteria)}\n\n## 6. Estimación orientativa en horas\n${b.estimates.map((e) => `- ${e.module}: ${e.minHours}–${e.maxHours} h | ${e.uncertainty}`).join('\n')}\nTotal: ${b.estimates.reduce((n, e) => n + e.minHours, 0)}–${b.estimates.reduce((n, e) => n + e.maxHours, 0)} h. Rango orientativo sujeto a los supuestos e incertidumbres indicados; no es un precio.\n\n## 7. Próximos pasos\n${bullet(b.nextSteps)}${validitySection}${data.editorContent ? `\n\n## Observaciones y edición manual\n${editorText(data.editorContent)}` : ''}\n`;
+  return `# ${data.projectName}\nCliente: ${data.clientName}\nFecha: ${data.date}\nVersión: 0.${data.version}\nAutor: ${data.author}\n\n## 1. Resumen ejecutivo\n${b.summary}\n\n## 2. Requerimientos identificados\n${b.requirements.map((r) => `- ${r.id} | ${r.description} | ${r.type} | ${r.priority} | Fuente: "${r.source}" | ${r.systemNote}`).join('\n')}\n\n## 3. Preguntas pendientes\n${b.questions.map((q) => `- ${q.id}: ${q.question} | ${q.reason} | Bloquea estimación: ${q.blocksEstimate ? 'Sí' : 'No'}`).join('\n') || 'Sin preguntas pendientes'}\n\n## 4. Riesgos y ambigüedades\n${b.risks.map((r) => `- ${r.id}: ${r.description} | Impacto: ${r.impact} | Mitigación/supuesto: ${r.mitigation} | Semáforo: ${r.severity}`).join('\n') || 'Sin riesgos identificados'}\n\n## 5. Alcance\n### Incluidos\n${bullet(b.included)}\n### Excluidos\n${bullet(b.excluded)}\n### Supuestos\n${bullet(b.assumptions)}\n### Criterios de aceptación\n${bullet(b.acceptanceCriteria)}\n\n## 6. Estimación orientativa en horas\n${b.estimates.map((e) => `- ${e.module}: ${e.minHours}–${e.maxHours} h | ${e.uncertainty}`).join('\n')}\nTotal: ${b.estimates.length > 0 ? `${b.estimates.reduce((n, e) => n + e.minHours, 0)}–${b.estimates.reduce((n, e) => n + e.maxHours, 0)} h` : 'Pendiente de estimación'}. Rango orientativo sujeto a los supuestos e incertidumbres indicados; no es un precio.\n\n## 7. Próximos pasos\n${bullet(b.nextSteps)}${validitySection}${data.editorContent ? `\n\n## Observaciones y edición manual\n${editorText(data.editorContent)}` : ''}\n`;
+}
+export function markdown(data: DocumentData) {
+  const diagrams = data.brief.diagrams ?? [];
+  const section = diagrams
+    .map((d) => `### ${d.title}\n\`\`\`mermaid\n${d.source}\n\`\`\``)
+    .join('\n\n');
+  return baseMarkdown(data) + (section ? `\n## Diagramas\n${section}\n` : '');
 }
 export async function markdownToPdf(
   md: string,
@@ -86,7 +94,7 @@ export async function markdownToPdf(
   return renderStyledPdf(parseMarkdown(md), info);
 }
 export async function markdownToDocx(md: string): Promise<Buffer> {
-  const children = parseMarkdown(md).map((block) => {
+  const children = parseMarkdown(md).flatMap((block) => {
     const [lead, ...rest] = block.text.split(' | ');
     switch (block.kind) {
       case MarkdownBlockKind.Title:
@@ -95,6 +103,33 @@ export async function markdownToDocx(md: string): Promise<Buffer> {
         return new Paragraph({ heading: HeadingLevel.HEADING_1, text: block.text });
       case MarkdownBlockKind.Subsection:
         return new Paragraph({ heading: HeadingLevel.HEADING_2, text: block.text });
+      case MarkdownBlockKind.Figure: {
+        const image = renderDiagram(block.text);
+        const scale = Math.min(1, 600 / image.width, 800 / image.height);
+        const caption = new Paragraph({
+          heading: HeadingLevel.HEADING_2,
+          text: block.title ?? 'Diagrama',
+        });
+        const figure = new Paragraph({
+          spacing: { before: 120, after: 200 },
+          children: [
+            new ImageRun({
+              type: 'png',
+              data: image.png,
+              transformation: {
+                width: Math.round(image.width * scale),
+                height: Math.round(image.height * scale),
+              },
+              altText: {
+                title: block.title ?? 'Diagrama',
+                description: block.title ?? 'Diagrama',
+                name: 'diagrama',
+              },
+            }),
+          ],
+        });
+        return [caption, figure];
+      }
       case MarkdownBlockKind.Bullet:
         return new Paragraph({
           bullet: { level: 0 },
