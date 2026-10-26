@@ -18,7 +18,12 @@ import { MyMaintenanceController } from './modules/maintenance/my-maintenance.co
 import { ExportsController } from './modules/mcp/exports.controller';
 
 @Module({
-  imports: [ThrottlerModule.forRoot([{ ttl: 60_000, limit: 30 }]), CoreModule, TelegramModule, McpModule],
+  imports: [
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 30 }]),
+    CoreModule,
+    TelegramModule,
+    McpModule,
+  ],
   controllers: [
     HealthController,
     AuthController,

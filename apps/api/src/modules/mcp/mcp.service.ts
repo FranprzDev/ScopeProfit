@@ -62,7 +62,10 @@ export class McpService {
         description: 'Envía un mensaje del cliente/profesional al proyecto.',
         inputSchema: {
           type: 'object',
-          properties: { projectId: { type: 'string', format: 'uuid' }, content: { type: 'string' } },
+          properties: {
+            projectId: { type: 'string', format: 'uuid' },
+            content: { type: 'string' },
+          },
           required: ['projectId', 'content'],
           additionalProperties: false,
         },
@@ -72,7 +75,10 @@ export class McpService {
         description: 'Lista mensajes de un proyecto.',
         inputSchema: {
           type: 'object',
-          properties: { projectId: { type: 'string', format: 'uuid' }, limit: { type: 'integer', minimum: 1, maximum: 100 } },
+          properties: {
+            projectId: { type: 'string', format: 'uuid' },
+            limit: { type: 'integer', minimum: 1, maximum: 100 },
+          },
           required: ['projectId'],
           additionalProperties: false,
         },
@@ -89,7 +95,8 @@ export class McpService {
       },
       {
         name: 'presu_get_state',
-        description: 'Obtiene estado del proyecto, versión de Brief/documento y preguntas bloqueantes.',
+        description:
+          'Obtiene estado del proyecto, versión de Brief/documento y preguntas bloqueantes.',
         inputSchema: {
           type: 'object',
           properties: { projectId: { type: 'string', format: 'uuid' } },
@@ -126,7 +133,10 @@ export class McpService {
         description: 'Genera una cotización borrador a partir del Brief y la RateCard del usuario.',
         inputSchema: {
           type: 'object',
-          properties: { projectId: { type: 'string', format: 'uuid' }, rateCardId: { type: 'string', format: 'uuid' } },
+          properties: {
+            projectId: { type: 'string', format: 'uuid' },
+            rateCardId: { type: 'string', format: 'uuid' },
+          },
           required: ['projectId'],
           additionalProperties: false,
         },
@@ -156,7 +166,8 @@ export class McpService {
       },
       {
         name: 'presu_access_status',
-        description: 'Devuelve el estado de créditos/uso gratuitos del usuario (placeholder hasta P5).',
+        description:
+          'Devuelve el estado de créditos/uso gratuitos del usuario (placeholder hasta P5).',
         inputSchema: { type: 'object', properties: {}, additionalProperties: false },
       },
     ];
@@ -185,7 +196,11 @@ export class McpService {
           createdAt: project.createdAt.toISOString(),
           updatedAt: project.updatedAt.toISOString(),
           brief: project.brief
-            ? { version: project.brief.version, data: project.brief.data, updatedAt: project.brief.updatedAt.toISOString() }
+            ? {
+                version: project.brief.version,
+                data: project.brief.data,
+                updatedAt: project.brief.updatedAt.toISOString(),
+              }
             : undefined,
           document: project.document?.versions?.[0]
             ? {
@@ -207,9 +222,16 @@ export class McpService {
           project.status === ProjectStatus.archived
         )
           fail('PROJECT_LOCKED');
-        if (!content.trim() || Buffer.byteLength(content, 'utf8') > 1024 * 1024) fail('INVALID_TEXT');
+        if (!content.trim() || Buffer.byteLength(content, 'utf8') > 1024 * 1024)
+          fail('INVALID_TEXT');
         const message = await this.db.message.create({
-          data: { projectId, threadId: projectId, authorId: user.id, authorRole: user.role, content },
+          data: {
+            projectId,
+            threadId: projectId,
+            authorId: user.id,
+            authorRole: user.role,
+            content,
+          },
         });
         await this.agent.enqueue(projectId);
         return {
@@ -237,7 +259,12 @@ export class McpService {
             authorRole: m.authorRole,
             content: m.content,
             createdAt: m.createdAt.toISOString(),
-            files: m.files.map((f) => ({ id: f.id, name: f.name, mimeType: f.mimeType, size: f.size })),
+            files: m.files.map((f) => ({
+              id: f.id,
+              name: f.name,
+              mimeType: f.mimeType,
+              size: f.size,
+            })),
           })),
         };
       }
@@ -245,14 +272,20 @@ export class McpService {
         const projectId = String(args.projectId);
         const project = await this.auth.project(user, projectId);
         if (!project.brief) fail('BRIEF_NOT_FOUND', 404);
-        return { version: project.brief.version, data: project.brief.data, updatedAt: project.brief.updatedAt.toISOString() };
+        return {
+          version: project.brief.version,
+          data: project.brief.data,
+          updatedAt: project.brief.updatedAt.toISOString(),
+        };
       }
       case 'presu_get_state': {
         const projectId = String(args.projectId);
         const project = await this.auth.project(user, projectId);
         const brief = project.brief;
         const document = project.document?.versions?.[0];
-        const pendingQuestions = (brief ? validateBrief(brief.data).questions : []).filter((q) => q.blocksEstimate);
+        const pendingQuestions = (brief ? validateBrief(brief.data).questions : []).filter(
+          (q) => q.blocksEstimate,
+        );
         return {
           briefVersion: brief?.version ?? 0,
           documentVersion: document?.version ?? 0,
@@ -290,13 +323,22 @@ export class McpService {
           });
           return tx.brief.findUniqueOrThrow({ where: { projectId } });
         });
-        return { version: saved.version, data: saved.data, updatedAt: saved.updatedAt.toISOString() };
+        return {
+          version: saved.version,
+          data: saved.data,
+          updatedAt: saved.updatedAt.toISOString(),
+        };
       }
       case 'presu_generate_document': {
         const projectId = String(args.projectId);
         await this.auth.project(user, projectId);
         const version = await this.documents.generate(projectId, user.id);
-        return { version: version.version, briefVersion: version.briefVersion, status: version.status, formats: Object.keys(version.artifacts ?? {}) };
+        return {
+          version: version.version,
+          briefVersion: version.briefVersion,
+          status: version.status,
+          formats: Object.keys(version.artifacts ?? {}),
+        };
       }
       case 'presu_generate_quote': {
         const projectId = String(args.projectId);

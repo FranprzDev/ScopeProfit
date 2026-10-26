@@ -67,7 +67,10 @@ export class McpController {
         res.status(200).json({
           jsonrpc: '2.0',
           id,
-          result: { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], isError: false },
+          result: {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+            isError: false,
+          },
         });
         return;
       }
