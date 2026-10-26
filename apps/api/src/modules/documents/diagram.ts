@@ -45,3 +45,16 @@ export function renderDiagram(source: string): DiagramImage {
     naturalWidth: result.width,
   };
 }
+
+export type DiagramRenderer = (source: string) => DiagramImage;
+
+export function memoizedDiagramRenderer(): DiagramRenderer {
+  const cache = new Map<string, DiagramImage>();
+  return (source) => {
+    const cached = cache.get(source);
+    if (cached) return cached;
+    const image = renderDiagram(source);
+    cache.set(source, image);
+    return image;
+  };
+}

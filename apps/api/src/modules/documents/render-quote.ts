@@ -1,5 +1,6 @@
 import type { Quote, QuoteLine, QuoteMilestone, QuoteStatus } from '@scopeprofit/contracts';
 import { round2 } from '../pricing/pricing.calc';
+import { memoizedDiagramRenderer } from './diagram';
 import { markdownToDocx, markdownToPdf } from './render';
 
 export interface QuoteProposalSource extends Quote {
@@ -193,9 +194,10 @@ export async function renderQuoteProposal(
   input: QuoteProposalInput,
 ): Promise<{ pdf: Buffer; docx: Buffer }> {
   const md = proposalMarkdown(input);
+  const diagram = memoizedDiagramRenderer();
   const [pdf, docx] = await Promise.all([
-    markdownToPdf(md, { title: `Propuesta — ${input.projectName}`, author: input.author }),
-    markdownToDocx(md),
+    markdownToPdf(md, { title: `Propuesta — ${input.projectName}`, author: input.author }, diagram),
+    markdownToDocx(md, diagram),
   ]);
   return { pdf, docx };
 }
