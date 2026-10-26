@@ -117,7 +117,10 @@ export class QuotesService {
   }
 
   private async readAccess(user: User | null, projectId: string, rawToken?: string) {
-    const project = await this.db.project.findUnique({ where: { id: projectId }, select: { ownerId: true } });
+    const project = await this.db.project.findUnique({
+      where: { id: projectId },
+      select: { ownerId: true },
+    });
     const isOwner = !!user && project?.ownerId === user.id;
     if (user?.role === Role.professional || isOwner) {
       if (!user) fail('UNAUTHENTICATED', 401);
