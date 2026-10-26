@@ -155,3 +155,24 @@ curl -s https://api.example.com/api/mcp \
 - `STORAGE_ROOT` must be a persistent volume (uploads and generated PDF/DOCX).
 - Optional: `MCP_RATE_LIMIT_PER_MINUTE` (default 120 per IP), `MCP_EXPORT_URL_TTL_MINUTES` (default 60).
 - Image URLs are fetched server-side with SSRF guards (public addresses only, https only, ≤3 redirects, ≤10 MB, image content types, re-validated with `sharp`). `MCP_ALLOW_HTTP_IMAGE_URLS` / `MCP_ALLOW_PRIVATE_IMAGE_URLS` exist for local testing only; never enable them in production.
+
+## Optional quotation validity
+
+The scope document can include a professional's commercial validity policy without
+calculating a price. Use `update_scope_section` with `section: "quoteValidity"` and
+`value: {"issuedOn": "2026-10-26", "days": 7}`. The issuance date must be explicit;
+exporting the same brief again never starts a new validity period. Seven days is
+an example policy, not a default for every professional. Any whole duration from
+1 to 3650 days is supported. Set `value: null` to remove the section from an
+editable brief.
+
+The section appears in the Markdown, PDF and DOCX scope exports. It explains that
+a quotation depends on the professional's availability and project workload;
+after expiry it must be quoted again and the price may rise or fall. It never
+changes prices automatically or changes an accepted quotation. Existing briefs
+without this field keep their current output. Approved, delivered and archived
+projects retain the existing edit lock. AI reanalysis preserves the policy set
+by the professional instead of inventing or replacing it.
+
+This is a commercial note in the scope document, not a price calculation,
+a quotation acceptance workflow, or a change to the legacy v3 quote endpoints.

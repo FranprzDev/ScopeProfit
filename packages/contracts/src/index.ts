@@ -39,7 +39,12 @@ export interface Estimate {
   maxHours: number;
   uncertainty: string;
 }
+export interface QuoteValidity {
+  issuedOn: string;
+  days: number;
+}
 export interface BriefData {
+  quoteValidity?: QuoteValidity | null;
   summary: string;
   requirements: Requirement[];
   questions: Question[];

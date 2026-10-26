@@ -5,6 +5,13 @@ const text = z.string().max(10000);
 const list = z.array(text).max(200);
 export const briefSchema = z
   .object({
+    quoteValidity: z
+      .object({
+        issuedOn: z.iso.date(),
+        days: z.number().int().min(1).max(3650),
+      })
+      .strict()
+      .nullish(),
     summary: text,
     requirements: z
       .array(

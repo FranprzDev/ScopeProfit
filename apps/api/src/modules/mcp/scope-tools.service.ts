@@ -28,6 +28,7 @@ export const SCOPE_SECTIONS = [
   'acceptanceCriteria',
   'estimates',
   'nextSteps',
+  'quoteValidity',
 ] as const satisfies readonly (keyof BriefData)[];
 export type ScopeSection = (typeof SCOPE_SECTIONS)[number];
 
