@@ -8,7 +8,7 @@ import { DocumentsService } from '../documents/documents.service';
 import { PrismaService } from '../../prisma.service';
 import { QuotesService } from '../pricing/quotes.service';
 import { fail } from '../../security';
-import { validateBrief } from '../brief/brief.validation';
+import { validateBrief, validateSources } from '../brief/brief.validation';
 
 export interface McpTool {
   name: string;
@@ -306,6 +306,13 @@ export class McpService {
         )
           fail('PROJECT_LOCKED');
         const brief = validateBrief(args.data);
+        validateSources(
+          brief,
+          await this.db.message.findMany({
+            where: { projectId },
+            select: { id: true, content: true },
+          }),
+        );
         const saved = await this.db.$transaction(async (tx) => {
           const updated = await tx.brief.updateMany({
             where: { projectId, version: expectedVersion },

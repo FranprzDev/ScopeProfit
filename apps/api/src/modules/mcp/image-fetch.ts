@@ -1,5 +1,8 @@
 import { lookup } from 'node:dns/promises';
+import { request as httpRequest, type IncomingMessage } from 'node:http';
+import { request as httpsRequest } from 'node:https';
 import { BlockList, isIP } from 'node:net';
+import { HttpException } from '@nestjs/common';
 import { fail } from '../../security';
 
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
@@ -40,7 +43,12 @@ export function isPublicAddress(address: string): boolean {
   return !blocked.check(address, family === 4 ? 'ipv4' : 'ipv6');
 }
 
-async function assertPublicUrl(raw: string) {
+interface ValidatedUrl {
+  url: URL;
+  address?: { address: string; family: number };
+}
+
+async function assertPublicUrl(raw: string): Promise<ValidatedUrl> {
   let url: URL;
   try {
     url = new URL(raw);
@@ -51,14 +59,38 @@ async function assertPublicUrl(raw: string) {
   if (url.protocol !== 'https:' && !(allowHttp && url.protocol === 'http:'))
     fail('INVALID_IMAGE_URL', 400, 'Image URLs must use https');
   if (url.username || url.password) fail('INVALID_IMAGE_URL');
-  if (process.env.MCP_ALLOW_PRIVATE_IMAGE_URLS === 'true') return url;
+  if (process.env.MCP_ALLOW_PRIVATE_IMAGE_URLS === 'true') return { url };
   const host = url.hostname.replace(/^\[|\]$/g, '');
   const addresses = isIP(host)
-    ? [{ address: host }]
+    ? [{ address: host, family: isIP(host) }]
     : await lookup(host, { all: true }).catch(() => fail('INVALID_IMAGE_URL', 400, 'Unknown host'));
   if (!addresses.length || addresses.some((entry) => !isPublicAddress(entry.address)))
     fail('INVALID_IMAGE_URL', 400, 'Image URL must resolve to a public address');
-  return url;
+  return { url, address: addresses[0] };
+}
+
+function send({ url, address }: ValidatedUrl): Promise<IncomingMessage> {
+  const open = url.protocol === 'https:' ? httpsRequest : httpRequest;
+  return new Promise((resolve, reject) => {
+    const req = open(
+      url,
+      {
+        method: 'GET',
+        timeout: 15_000,
+        headers: { accept: 'image/jpeg,image/png,image/webp' },
+        lookup: address
+          ? (_host, options, callback) => {
+              if (options.all) callback(null, [address] as never, undefined as never);
+              else callback(null, address.address, address.family);
+            }
+          : undefined,
+      },
+      resolve,
+    );
+    req.on('timeout', () => req.destroy(new Error('timeout')));
+    req.on('error', reject);
+    req.end();
+  });
 }
 
 /**
@@ -66,35 +98,45 @@ async function assertPublicUrl(raw: string) {
  * 10 MB and JPEG/PNG/WebP content types. The bytes are validated again by StorageService.
  */
 export async function fetchImage(raw: string) {
-  let url = await assertPublicUrl(raw);
+  let target = await assertPublicUrl(raw);
   for (let hop = 0; hop < 4; hop++) {
-    const response = await fetch(url, {
-      redirect: 'manual',
-      signal: AbortSignal.timeout(15_000),
-      headers: { accept: 'image/jpeg,image/png,image/webp' },
-    }).catch(() => fail('IMAGE_FETCH_FAILED', 502));
-    if (response.status >= 300 && response.status < 400) {
-      const location = response.headers.get('location');
+    const response = await send(target).catch(() => fail('IMAGE_FETCH_FAILED', 502));
+    const status = response.statusCode ?? 0;
+    if (status >= 300 && status < 400) {
+      response.resume();
+      const location = response.headers.location;
       if (!location || hop === 3) fail('IMAGE_FETCH_FAILED', 502, 'Too many redirects');
-      url = await assertPublicUrl(new URL(location, url).href);
+      target = await assertPublicUrl(new URL(location, target.url).href);
       continue;
     }
-    if (!response.ok || !response.body)
-      fail('IMAGE_FETCH_FAILED', 502, `Image URL answered ${response.status}`);
-    const mimeType = (response.headers.get('content-type') ?? '').split(';')[0].trim();
-    if (!EXTENSIONS[mimeType])
+    if (status < 200 || status >= 300) {
+      response.resume();
+      fail('IMAGE_FETCH_FAILED', 502, `Image URL answered ${status}`);
+    }
+    const mimeType = (response.headers['content-type'] ?? '').split(';')[0].trim();
+    if (!EXTENSIONS[mimeType]) {
+      response.destroy();
       fail('INVALID_IMAGE', 400, 'Only JPEG, PNG or WebP images are supported');
-    if (Number(response.headers.get('content-length') ?? 0) > MAX_IMAGE_BYTES)
+    }
+    if (Number(response.headers['content-length'] ?? 0) > MAX_IMAGE_BYTES) {
+      response.destroy();
       fail('INVALID_IMAGE', 400, 'Image limit is 10 MB');
+    }
     const chunks: Buffer[] = [];
     let size = 0;
-    for await (const chunk of response.body) {
-      size += chunk.length;
-      if (size > MAX_IMAGE_BYTES) fail('INVALID_IMAGE', 400, 'Image limit is 10 MB');
-      chunks.push(Buffer.from(chunk));
+    try {
+      for await (const chunk of response) {
+        size += chunk.length;
+        if (size > MAX_IMAGE_BYTES) fail('INVALID_IMAGE', 400, 'Image limit is 10 MB');
+        chunks.push(Buffer.from(chunk));
+      }
+    } catch (error) {
+      response.destroy();
+      if (error instanceof HttpException) throw error;
+      fail('IMAGE_FETCH_FAILED', 502);
     }
     const name =
-      url.pathname
+      target.url.pathname
         .split('/')
         .pop()
         ?.replace(/\.[^.]*$/, '') || 'image';

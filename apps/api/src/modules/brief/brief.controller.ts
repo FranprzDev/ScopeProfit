@@ -5,7 +5,7 @@ import { Prisma } from '@prisma/client';
 import { AuthService } from '../auth/auth.service';
 import { AgentService } from '../agent/agent.service';
 import { PrismaService } from '../../prisma.service';
-import { validateBrief } from './brief.validation';
+import { validateBrief, validateSources } from './brief.validation';
 import { diffBrief } from './brief-diff';
 import { ok, SESSION_COOKIE } from '../../response';
 import { fail } from '../../security';
@@ -76,6 +76,13 @@ export class BriefController {
     )
       fail('PROJECT_LOCKED');
     const brief = validateBrief(body.data);
+    validateSources(
+      brief,
+      await this.db.message.findMany({
+        where: { projectId: id },
+        select: { id: true, content: true },
+      }),
+    );
     const saved = await this.db.$transaction(async (tx) => {
       const updated = await tx.brief.updateMany({
         where: { projectId: id, version: body.expectedVersion },
