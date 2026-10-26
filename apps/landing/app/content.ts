@@ -133,8 +133,8 @@ export const TOOL_GROUPS: ToolGroup[] = [
       },
       {
         name: 'export_document',
-        kind: ToolKind.Read,
-        text: 'Link de descarga firmado y con vencimiento en PDF, DOCX o Markdown.',
+        kind: ToolKind.Write,
+        text: 'Genera el documento si cambió el brief y devuelve un link de descarga firmado y con vencimiento en PDF, DOCX o Markdown.',
         keywords: ['exportar', 'descargar', 'pdf', 'word', 'docx', 'markdown', 'link'],
       },
     ],
