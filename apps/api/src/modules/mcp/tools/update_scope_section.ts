@@ -17,7 +17,7 @@ export const schema = {
 
 export const metadata: ToolMetadata = {
   name: 'update_scope_section',
-  description: `Replace one section of the structured brief and regenerate the document (new brief and document versions). Fails with VERSION_CONFLICT if expected_version is stale. ${SECTION_SHAPES}`,
+  description: `Replace one section of the structured brief and save a versioned document snapshot without rendering export files. PDF/DOCX/Markdown files are generated on first export or download. Fails with VERSION_CONFLICT if expected_version is stale. ${SECTION_SHAPES}`,
   annotations: { ...write, title: 'Update a scope section' },
 };
 

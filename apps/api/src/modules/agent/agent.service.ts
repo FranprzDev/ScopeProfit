@@ -129,39 +129,42 @@ export class AgentService implements OnModuleInit, OnModuleDestroy {
         },
       );
       const brief = validateBrief(result.brief);
-      const saved = await this.db.$transaction(async (tx) => {
-        const updated = await tx.brief.updateMany({
-          where: { projectId: id, version: project.brief!.version },
-          data: {
-            version: { increment: 1 },
-            data: brief as unknown as Prisma.InputJsonValue,
-          },
-        });
-        if (!updated.count) return false;
-        await tx.briefVersion.create({
-          data: {
-            projectId: id,
-            version: project.brief!.version + 1,
-            data: brief as unknown as Prisma.InputJsonValue,
-            source: 'agent',
-          },
-        });
-        await tx.message.create({
-          data: {
-            projectId: id,
-            threadId: id,
-            authorRole: 'agent',
-            content: brief.questions.length
-              ? `${brief.summary}\n\n${brief.questions
-                  .slice(0, 3)
-                  .map((q) => q.question)
-                  .join('\n')}`
-              : brief.summary,
-          },
-        });
-        return true;
-      });
-      if (saved) await this.documents.generate(id, project.ownerId);
+      const saved = await this.db.$transaction(
+        async (tx) => {
+          const updated = await tx.brief.updateMany({
+            where: { projectId: id, version: project.brief!.version },
+            data: {
+              version: { increment: 1 },
+              data: brief as unknown as Prisma.InputJsonValue,
+            },
+          });
+          if (!updated.count) return false;
+          await tx.briefVersion.create({
+            data: {
+              projectId: id,
+              version: project.brief!.version + 1,
+              data: brief as unknown as Prisma.InputJsonValue,
+              source: 'agent',
+            },
+          });
+          await tx.message.create({
+            data: {
+              projectId: id,
+              threadId: id,
+              authorRole: 'agent',
+              content: brief.questions.length
+                ? `${brief.summary}\n\n${brief.questions
+                    .slice(0, 3)
+                    .map((q) => q.question)
+                    .join('\n')}`
+                : brief.summary,
+            },
+          });
+          await this.documents.saveDraft(tx, id, project.ownerId);
+          return true;
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
       const newer = await this.db.message.findFirst({
         where: {
           projectId: id,
