@@ -105,7 +105,7 @@ export async function markdownToDocx(md: string): Promise<Buffer> {
         return new Paragraph({ heading: HeadingLevel.HEADING_2, text: block.text });
       case MarkdownBlockKind.Figure: {
         const image = renderDiagram(block.text);
-        const scale = Math.min(1, 600 / image.width, 800 / image.height);
+        const scale = Math.min(Math.min(600, image.naturalWidth) / image.width, 800 / image.height);
         const caption = new Paragraph({
           heading: HeadingLevel.HEADING_2,
           text: block.title ?? 'Diagrama',
