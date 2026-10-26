@@ -1,5 +1,5 @@
-import PDFDocument from 'pdfkit';
-import { Document, Packer, Paragraph, TextRun } from 'docx';
+import { Document, HeadingLevel, Packer, Paragraph, TextRun } from 'docx';
+import { MarkdownBlockKind, parseMarkdown, renderStyledPdf } from './pdf-layout';
 import type { DocumentData, TiptapNode } from '@scopeprofit/contracts';
 
 export function validateEditor(node: TiptapNode, depth = 0, count = { value: 0 }): void {
@@ -83,44 +83,31 @@ export async function markdownToPdf(
   md: string,
   info: { title: string; author: string },
 ): Promise<Buffer> {
-  return new Promise<Buffer>((resolve, reject) => {
-    const document = new PDFDocument({
-      margin: 50,
-      info: { Title: info.title, Author: info.author },
-    });
-    const chunks: Buffer[] = [];
-    document.on('data', (chunk: Buffer) => chunks.push(chunk));
-    document.on('end', () => resolve(Buffer.concat(chunks)));
-    document.on('error', reject);
-    for (const line of md.split('\n'))
-      document
-        .font(line.startsWith('#') ? 'Helvetica-Bold' : 'Helvetica')
-        .fontSize(line.startsWith('# ') ? 20 : line.startsWith('## ') ? 14 : 10)
-        .text(line.replace(/^#+ /, ''), { lineGap: 3 });
-    document.end();
-  });
+  return renderStyledPdf(parseMarkdown(md), info);
 }
 export async function markdownToDocx(md: string): Promise<Buffer> {
-  return Packer.toBuffer(
-    new Document({
-      sections: [
-        {
-          children: md.split('\n').map(
-            (line) =>
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: line.replace(/^#+ /, ''),
-                    bold: line.startsWith('#'),
-                    size: line.startsWith('# ') ? 36 : 22,
-                  }),
-                ],
-              }),
-          ),
-        },
-      ],
-    }),
-  );
+  const children = parseMarkdown(md).map((block) => {
+    const [lead, ...rest] = block.text.split(' | ');
+    switch (block.kind) {
+      case MarkdownBlockKind.Title:
+        return new Paragraph({ heading: HeadingLevel.TITLE, text: block.text });
+      case MarkdownBlockKind.Section:
+        return new Paragraph({ heading: HeadingLevel.HEADING_1, text: block.text });
+      case MarkdownBlockKind.Subsection:
+        return new Paragraph({ heading: HeadingLevel.HEADING_2, text: block.text });
+      case MarkdownBlockKind.Bullet:
+        return new Paragraph({
+          bullet: { level: 0 },
+          children: [
+            new TextRun({ text: lead ?? '', bold: rest.length > 0 }),
+            ...(rest.length > 0 ? [new TextRun({ text: ` | ${rest.join(' | ')}` })] : []),
+          ],
+        });
+      default:
+        return new Paragraph({ spacing: { after: 120 }, children: [new TextRun(block.text)] });
+    }
+  });
+  return Packer.toBuffer(new Document({ sections: [{ children }] }));
 }
 export async function render(data: DocumentData) {
   const md = markdown(data);
