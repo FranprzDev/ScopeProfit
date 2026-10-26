@@ -27,7 +27,19 @@ const palette = {
 
 const metaPattern = /^(Cliente|Fecha|Versión|Autor): (.*)$/;
 
+const datePattern = /^(Fecha: )(\d{4})-(\d{2})-(\d{2})$/;
+const timestampPattern = /^(Fecha: )(?:\d{4}-\d{2}-\d{2}T.*)$/;
 const fence = '```';
+
+function readableDate(line: string): string {
+  const day = datePattern.exec(line);
+  if (day) return `${day[1]}${day[4]}/${day[3]}/${day[2]}`;
+  if (!timestampPattern.test(line)) return line;
+  const moment = new Date(line.slice('Fecha: '.length));
+  if (Number.isNaN(moment.getTime())) return line;
+  const iso = moment.toISOString();
+  return `Fecha: ${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)} ${iso.slice(11, 16)} UTC`;
+}
 
 export function parseMarkdown(md: string): MarkdownBlock[] {
   const blocks: MarkdownBlock[] = [];
@@ -58,7 +70,8 @@ export function parseMarkdown(md: string): MarkdownBlock[] {
       blocks.push({ kind: MarkdownBlockKind.Title, text: line.slice(2) });
     else if (line.startsWith('- '))
       blocks.push({ kind: MarkdownBlockKind.Bullet, text: line.slice(2) });
-    else if (metaPattern.test(line)) blocks.push({ kind: MarkdownBlockKind.Meta, text: line });
+    else if (metaPattern.test(line))
+      blocks.push({ kind: MarkdownBlockKind.Meta, text: readableDate(line) });
     else blocks.push({ kind: MarkdownBlockKind.Paragraph, text: line });
   }
   return blocks;
