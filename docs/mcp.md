@@ -4,7 +4,7 @@ ScopeProfit runs as a [Model Context Protocol](https://modelcontextprotocol.io) 
 
 - **Remote:** Streamable HTTP at `POST {PUBLIC_API_URL}/api/mcp` (stateless, JSON responses).
 - **Local:** stdio, `pnpm --filter @scopeprofit/api run mcp:stdio`.
-- **Implementation:** official TypeScript SDK (`@modelcontextprotocol/sdk`), code in `apps/api/src/modules/mcp/`.
+- **Implementation:** xmcp 1.9 file-based tools with the NestJS HTTP adapter and stdio runtime. The official TypeScript SDK supplies the existing OAuth middleware; code is in `apps/api/src/modules/mcp/`.
 
 ## Tools
 
@@ -21,7 +21,7 @@ ScopeProfit runs as a [Model Context Protocol](https://modelcontextprotocol.io) 
 | `get_scope_document`     | read        | Template 7.1 rendered as Markdown + structured brief + `briefVersion`.                                 |
 | `update_scope_section`   | write       | Replaces one section (optimistic lock on `expected_version`), validates it, regenerates the document.  |
 | `approve_scope`          | destructive | Approves the current document version; optionally emails PDF + DOCX to the client (Brevo).             |
-| `export_document`        | read        | Signed, expiring download URL for `pdf`, `docx` or `md`.                                               |
+| `export_document`        | write       | Signed, expiring download URL for `pdf`, `docx` or `md`; can regenerate and persist the document.      |
 | `archive_project`        | destructive | Archives (locks) a project.                                                                            |
 | `log_change_request`     | write       | Logs a post-scope change, classified `in_scope` / `out_of_scope` / `ambiguous`.                        |
 | `list_change_requests`   | read        | Change requests of a project.                                                                          |
