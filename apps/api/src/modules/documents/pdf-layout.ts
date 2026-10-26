@@ -1,5 +1,5 @@
 import PDFDocument from 'pdfkit';
-import { renderDiagram } from './diagram';
+import { renderDiagram, type DiagramRenderer } from './diagram';
 
 export enum MarkdownBlockKind {
   Title = 'title',
@@ -80,6 +80,7 @@ export function parseMarkdown(md: string): MarkdownBlock[] {
 export function renderStyledPdf(
   blocks: MarkdownBlock[],
   info: { title: string; author: string },
+  diagram: DiagramRenderer = renderDiagram,
 ): Promise<Buffer> {
   return new Promise<Buffer>((resolve, reject) => {
     const doc = new PDFDocument({
@@ -190,7 +191,7 @@ export function renderStyledPdf(
           break;
         }
         case MarkdownBlockKind.Figure: {
-          const image = renderDiagram(block.text);
+          const image = diagram(block.text);
           const maxHeight = bottom() - doc.page.margins.top - 40;
           const scale = Math.min(
             Math.min(width, image.naturalWidth) / image.width,

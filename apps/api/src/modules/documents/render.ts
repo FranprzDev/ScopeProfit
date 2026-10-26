@@ -1,5 +1,5 @@
 import { Document, HeadingLevel, ImageRun, Packer, Paragraph, TextRun } from 'docx';
-import { renderDiagram } from './diagram';
+import { memoizedDiagramRenderer, renderDiagram, type DiagramRenderer } from './diagram';
 import { MarkdownBlockKind, parseMarkdown, renderStyledPdf } from './pdf-layout';
 import type { DocumentData, TiptapNode } from '@scopeprofit/contracts';
 
@@ -90,10 +90,14 @@ export function markdown(data: DocumentData) {
 export async function markdownToPdf(
   md: string,
   info: { title: string; author: string },
+  diagram: DiagramRenderer = renderDiagram,
 ): Promise<Buffer> {
-  return renderStyledPdf(parseMarkdown(md), info);
+  return renderStyledPdf(parseMarkdown(md), info, diagram);
 }
-export async function markdownToDocx(md: string): Promise<Buffer> {
+export async function markdownToDocx(
+  md: string,
+  diagram: DiagramRenderer = renderDiagram,
+): Promise<Buffer> {
   const children = parseMarkdown(md).flatMap((block) => {
     const [lead, ...rest] = block.text.split(' | ');
     switch (block.kind) {
@@ -104,7 +108,7 @@ export async function markdownToDocx(md: string): Promise<Buffer> {
       case MarkdownBlockKind.Subsection:
         return new Paragraph({ heading: HeadingLevel.HEADING_2, text: block.text });
       case MarkdownBlockKind.Figure: {
-        const image = renderDiagram(block.text);
+        const image = diagram(block.text);
         const scale = Math.min(Math.min(600, image.naturalWidth) / image.width, 800 / image.height);
         const caption = new Paragraph({
           heading: HeadingLevel.HEADING_2,
@@ -146,9 +150,10 @@ export async function markdownToDocx(md: string): Promise<Buffer> {
 }
 export async function render(data: DocumentData) {
   const md = markdown(data);
+  const diagram = memoizedDiagramRenderer();
   const [pdf, docx] = await Promise.all([
-    markdownToPdf(md, { title: data.projectName, author: data.author }),
-    markdownToDocx(md),
+    markdownToPdf(md, { title: data.projectName, author: data.author }, diagram),
+    markdownToDocx(md, diagram),
   ]);
   return { md: Buffer.from(md), pdf, docx };
 }
