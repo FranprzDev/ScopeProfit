@@ -1,11 +1,9 @@
-/* Tokens from the Taste Skill v2 direction sheet: "The sentence is the layout" (seed 509174404),
-   palette "Cool grey, crimson", type "Libre Franklin / Source Serif 4". See docs/design/landing-direction.md. */
 :root {
-  --bg: #eef0f3;
-  --surface: #e2e5ea;
-  --ink: #0b0c0e;
-  --muted: #4f5561;
-  --accent: #b01e2f;
+  --bg: #090a10;
+  --surface: #141724;
+  --ink: #e2e8f0;
+  --muted: #8e96aa;
+  --accent: #ea2845;
   --accent-ink: #ffffff;
   --accent-deep: #5a0f18;
   --field-1: #b01e2f;
@@ -24,9 +22,9 @@
   --section-space: clamp(6rem, 4rem + 8vw, 12rem);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 
-  --font-display-stack: var(--font-display), 'Helvetica Neue', Arial, sans-serif;
-  --font-text-stack: var(--font-text), Georgia, 'Times New Roman', serif;
-  --font-code-stack: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace; /* taste-skill-ignore: used only by code and pre */
+  --font-display-stack: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-text-stack: var(--font-display-stack);
+  --font-code-stack: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
 }
 
 *,
@@ -115,7 +113,6 @@ pre {
   border: 0;
 }
 
-/* Error, loading and not-found shells */
 .shell {
   display: flex;
   min-height: 100svh;
@@ -158,7 +155,6 @@ pre {
   transform: translateY(0) scale(0.98);
 }
 
-/* Motion layer (page-motion.tsx). Without the "motion" class every part stays visible. */
 .motion [data-reveal] {
   opacity: 0;
   transform: translateY(24px);

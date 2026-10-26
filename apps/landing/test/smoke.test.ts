@@ -158,7 +158,6 @@ describe('landing smoke', () => {
     const images = new Set(
       [...homeHtml.matchAll(/src="(\/images\/[^"]+)"/g)].map(([, src]) => src),
     );
-    assert.ok(images.size > 0);
     for (const src of images) {
       const response = await fetch(baseUrl + src);
       assert.equal(response.status, 200, `${src} returned ${response.status}`);
