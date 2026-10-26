@@ -3,11 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "prisma generate && tsc -p tsconfig.json",
-    "typecheck": "prisma generate && tsc -p tsconfig.json --noEmit",
+    "build": "prisma generate && xmcp build && tsc -p tsconfig.json",
+    "typecheck": "prisma generate && xmcp build && tsc -p tsconfig.json --noEmit",
     "lint": "eslint src test",
     "start": "node dist/src/main.js",
-    "dev": "prisma generate && tsc-watch -p tsconfig.json --onSuccess \"node dist/src/main.js\"",
+    "dev": "prisma generate && xmcp build && tsc-watch -p tsconfig.json --onSuccess \"node dist/src/main.js\"",
     "test": "pnpm run test:unit && pnpm run test:integration && pnpm run test:mcp && pnpm run test:e2e",
     "test:unit": "tsx --test test/unit.test.ts",
     "test:mcp": "tsx --test test/mcp.test.ts",
@@ -46,6 +46,7 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "sharp": "^0.35.4",
+    "xmcp": "1.9.0",
     "zod": "^4.1.12"
   },
   "devDependencies": {
@@ -54,6 +55,7 @@
     "@types/multer": "^2.0.0",
     "@types/node": "^22.18.0",
     "@types/pdfkit": "^0.17.3",
+    "@xmcp-dev/compiler": "1.9.0",
     "eslint": "^9.39.1",
     "prisma": "^6.19.0",
     "tsc-watch": "^7.2.1",

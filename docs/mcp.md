@@ -176,3 +176,9 @@ by the professional instead of inventing or replacing it.
 
 This is a commercial note in the scope document, not a price calculation,
 a quotation acceptance workflow, or a change to the legacy v3 quote endpoints.
+
+## Implementation and build
+
+The 15 scope tools are file-based xmcp modules in `apps/api/src/modules/mcp/tools`. HTTP uses the xmcp NestJS adapter behind the existing bearer/OAuth middleware; stdio runs the same compiled tools after verifying `SCOPEPROFIT_API_KEY`. Domain services and Prisma remain unchanged. `export_document` is marked as a write because it can regenerate and persist a document.
+
+`pnpm --filter @scopeprofit/api run build` runs Prisma generation, xmcp compilation and TypeScript compilation. Keep the generated `apps/api/.xmcp/adapter` directory alongside `dist` when deploying outside Docker. It is a build artifact, not committed source. OAuth grants are bound to the MCP resource URL and require the scope permission. Older tokens without the correct resource need a fresh connector authorization; API keys remain valid. Browser requests with a present invalid Origin are rejected; non-browser clients may omit Origin. HTTP request context is isolated per request; the stdio process binds one authenticated professional for its entire lifetime. Never mount that stdio context in a shared HTTP process.

@@ -75,7 +75,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: backend-production
+          include-hidden-files: true
           path: |
             apps/api/dist
+            apps/api/.xmcp/adapter
             apps/api/prisma
           retention-days: 7

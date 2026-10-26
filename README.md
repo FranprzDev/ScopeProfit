@@ -55,12 +55,12 @@ Then connect a client as described in `docs/mcp.md` (ChatGPT, Claude, Claude Cod
 ## Stack
 
 - **API:** NestJS 11 (Node 22, TypeScript), Prisma 6 + PostgreSQL 17
-- **MCP:** `@modelcontextprotocol/sdk` (Streamable HTTP + stdio, OAuth 2.1 authorization server)
+- **MCP:** xmcp 1.9 (file-based tools, Streamable HTTP + stdio) with the existing OAuth 2.1 authorization server
 - **Agent (optional):** LangGraph + LangChain JS with Gemini; clarification gate via Vercel AI Gateway
 - **Documents:** structured Brief → Markdown, `pdfkit` → PDF, `docx` → DOCX
 - **Email:** Brevo (approved document delivery)
 - **Bot:** grammY webhook with `secret_token`
-- **Quality:** unit, integration, MCP (in-memory SDK client) and e2e (HTTP, OAuth, stdio) tests on real PostgreSQL; separate backend and landing CI pipelines
+- **Quality:** unit, integration, MCP (SDK client over xmcp HTTP) and e2e (HTTP, OAuth, stdio) tests on real PostgreSQL; separate backend and landing CI pipelines
 - **Deploy:** Docker Compose with PostgreSQL and persistent volumes
 
 ## Commands

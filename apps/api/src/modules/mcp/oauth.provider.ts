@@ -20,6 +20,8 @@ import { PrismaService } from '../../prisma.service';
 import { hash, token } from '../../security';
 import { API_KEY_PREFIX, ApiKeysService } from './api-keys.service';
 import { consentPage, signConsent } from './oauth-consent';
+import { publicApiUrl } from './export-links';
+import { InvalidTargetError } from '@modelcontextprotocol/sdk/server/auth/errors.js';
 
 export const MCP_SCOPE = 'scope';
 const ACCESS_PREFIX = 'sp_at_';
@@ -71,13 +73,16 @@ export class ScopeProfitOAuthProvider implements OAuthServerProvider {
     params: AuthorizationParams,
     res: Response,
   ): Promise<void> {
+    const expectedResource = new URL('/api/mcp', publicApiUrl()).href;
+    if (params.resource && params.resource.href !== expectedResource)
+      throw new InvalidTargetError('Resource must identify this MCP server');
     const payload = signConsent({
       clientId: client.client_id,
       redirectUri: params.redirectUri,
       codeChallenge: params.codeChallenge,
       state: params.state,
       scopes: params.scopes ?? [MCP_SCOPE],
-      resource: params.resource?.href,
+      resource: expectedResource,
       exp: Date.now() + 10 * 60_000,
     });
     consentPage(res, {
@@ -128,8 +133,11 @@ export class ScopeProfitOAuthProvider implements OAuthServerProvider {
     authorizationCode: string,
     _codeVerifier?: string,
     redirectUri?: string,
+    resource?: URL,
   ): Promise<OAuthTokens> {
     const code = await this.liveToken(authorizationCode, 'code');
+    if (resource && resource.href !== code.resource)
+      throw new InvalidTargetError('Resource does not match the authorization grant');
     if (code.clientId !== client.client_id)
       throw new InvalidGrantError('Authorization code was issued to another client');
     if (redirectUri && redirectUri !== code.redirectUri)
@@ -145,8 +153,14 @@ export class ScopeProfitOAuthProvider implements OAuthServerProvider {
   async exchangeRefreshToken(
     client: OAuthClientInformationFull,
     refreshToken: string,
+    scopes?: string[],
+    resource?: URL,
   ): Promise<OAuthTokens> {
     const refresh = await this.liveToken(refreshToken, 'refresh');
+    if (resource && resource.href !== refresh.resource)
+      throw new InvalidTargetError('Resource does not match the refresh grant');
+    if (scopes?.some((scope) => !refresh.scopes.includes(scope)))
+      throw new InvalidGrantError('Refresh cannot expand the authorized scope');
     if (refresh.clientId !== client.client_id)
       throw new InvalidGrantError('Refresh token was issued to another client');
     const rotated = await this.db.oAuthToken.updateMany({
@@ -165,6 +179,7 @@ export class ScopeProfitOAuthProvider implements OAuthServerProvider {
       return {
         token: raw,
         clientId: 'api-key',
+        resource: new URL('/api/mcp', publicApiUrl()),
         scopes: [MCP_SCOPE],
         expiresAt: Math.floor(Date.now() / 1000) + API_KEY_SESSION_S,
         extra: { userId: user.id, apiKeyId: key.id } satisfies McpPrincipal,

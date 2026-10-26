@@ -20,3 +20,6 @@ verification-screenshots/
 
 # Taste Skill working files (direction sheet, inspector screenshots)
 .taste-skill/
+
+apps/api/.xmcp/
+apps/api/xmcp-env.d.ts
