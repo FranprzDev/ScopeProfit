@@ -43,7 +43,7 @@ async function main() {
   await page.screenshot({ path: path.join(outDir, '01-landing-hero.png') });
 
   // Sections of the MCP-first landing
-  for (const id of ['que-hace', 'herramientas', 'conectar', 'telegram']) {
+  for (const id of ['que-hace', 'herramientas', 'conectar']) {
     const section = page.locator(`#${id}`);
     await section.scrollIntoViewIfNeeded();
     await page.waitForTimeout(300);

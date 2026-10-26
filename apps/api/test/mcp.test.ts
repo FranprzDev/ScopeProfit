@@ -1,10 +1,7 @@
 process.env.ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || Buffer.alloc(32, 7).toString('base64');
 const runId = Date.now();
-const ownerTelegramId = `mcp-owner-${runId}`;
-process.env.TELEGRAM_AUTHORIZED_USER_IDS = [
-  process.env.TELEGRAM_AUTHORIZED_USER_IDS,
-  ownerTelegramId,
-]
+const ownerEmail = `mcp-owner-${runId}@scopeprofit.test`;
+process.env.PROFESSIONAL_EMAILS = [process.env.PROFESSIONAL_EMAILS, ownerEmail]
   .filter(Boolean)
   .join(',');
 process.env.PUBLIC_API_URL = process.env.PUBLIC_API_URL || 'https://api.scopeprofit.test';
@@ -143,7 +140,7 @@ before(async () => {
   const changes = new ChangeRequestsService(db, auth);
   keys = new ApiKeysService(db, auth);
   tools = new ScopeToolsService(db, auth, projects, documents, agent, storage, changes);
-  owner = await auth.telegramUser(ownerTelegramId);
+  owner = await auth.professionalUser(ownerEmail);
 
   const png = await sharp({
     create: { width: 8, height: 8, channels: 3, background: { r: 200, g: 30, b: 30 } },

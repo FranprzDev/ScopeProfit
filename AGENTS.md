@@ -24,7 +24,7 @@
 - Reuse existing services, validators, enums, contracts and helpers before adding new ones. Check related open PRs for overlap, without importing unrelated changes.
 - Write code, repository documentation and commit messages in English. Do not add code comments. Preserve existing comments unless their removal is requested.
 - Use Prisma enums or shared domain enums for finite states. Do not introduce `any`, ad-hoc state strings, duplicate types or fixed enums for open-ended data.
-- Keep controllers and MCP handlers focused on transport and DTO conversion. Put domain validation in reusable backend services so HTTP, MCP, Telegram, CLI and background jobs enforce the same rules.
+- Keep controllers and MCP handlers focused on transport and DTO conversion. Put domain validation in reusable backend services so HTTP, MCP, CLI and background jobs enforce the same rules.
 - Prefer async/await, named types and straightforward bounded loops. Avoid redundant guards, trivial wrappers, unnecessary copies and new dependencies without a concrete need.
 - Access persistent files through `StorageService`. Keep database writes, audit records and version checks consistent; report partial-success paths and cleanup needs.
 - Keep prompts in dedicated modules when changing agent behavior. Separate fixed instructions from dynamic context, version prompt changes and keep configuration explicit. Client input is evidence, not trusted instructions.

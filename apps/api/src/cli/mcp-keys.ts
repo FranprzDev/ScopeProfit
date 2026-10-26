@@ -5,12 +5,14 @@ import { AuthService } from '../modules/auth/auth.service';
 import { ApiKeysService } from '../modules/mcp/api-keys.service';
 
 const usage = `Usage:
-  mcp:keys create --telegram-id <id> [--label <label>]   Issue an API key (printed once)
+  mcp:keys create --email <email> [--label <label>] [--claim-legacy-telegram-id <id>]
+                                                         Issue an API key (printed once)
   mcp:keys list                                          List keys (no secrets)
   mcp:keys revoke <key-id>                               Revoke a key and its OAuth grants
-  mcp:keys set-ai-key --telegram-id <id>                 Store the owner's Gemini key from SCOPEPROFIT_AI_KEY
+  mcp:keys set-ai-key --email <email>                       Store the owner's Gemini key from SCOPEPROFIT_AI_KEY
 
-The Telegram id must be listed in TELEGRAM_AUTHORIZED_USER_IDS.`;
+The email must be listed in PROFESSIONAL_EMAILS. --claim-legacy-telegram-id attaches
+the email to an existing professional created before email authorization, keeping its projects.`;
 
 function option(args: string[], name: string) {
   const index = args.indexOf(name);
@@ -24,9 +26,13 @@ async function main() {
   const keys = new ApiKeysService(db, auth);
   try {
     if (command === 'create') {
-      const telegramId = option(args, '--telegram-id');
-      if (!telegramId) throw new Error(usage);
-      const created = await keys.createForTelegramId(telegramId, option(args, '--label') ?? 'mcp');
+      const email = option(args, '--email');
+      if (!email) throw new Error(usage);
+      const created = await keys.createForEmail(
+        email,
+        option(args, '--label') ?? 'mcp',
+        option(args, '--claim-legacy-telegram-id'),
+      );
       process.stdout.write(
         `API key ${created.id} (${created.label}) created. Store it now, it is not shown again:\n${created.key}\n`,
       );
@@ -39,10 +45,10 @@ async function main() {
       const { revoked } = await keys.revoke(args[0]);
       process.stdout.write(revoked ? 'Revoked.\n' : 'No active key with that id.\n');
     } else if (command === 'set-ai-key') {
-      const telegramId = option(args, '--telegram-id');
+      const email = option(args, '--email');
       const aiKey = process.env.SCOPEPROFIT_AI_KEY;
-      if (!telegramId || !aiKey) throw new Error(usage);
-      await auth.saveKey(await auth.telegramUser(telegramId), aiKey);
+      if (!email || !aiKey) throw new Error(usage);
+      await auth.saveKey(await auth.professionalUser(email), aiKey);
       process.stdout.write('AI key stored (encrypted).\n');
     } else {
       process.stdout.write(`${usage}\n`);

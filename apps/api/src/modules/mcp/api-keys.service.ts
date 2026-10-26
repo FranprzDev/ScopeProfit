@@ -40,9 +40,9 @@ export class ApiKeysService {
     return { id: key.id, label: key.label, prefix: key.prefix, key: raw };
   }
 
-  /** Creates (or reuses) the professional bound to an authorized Telegram id, then issues a key. */
-  async createForTelegramId(telegramId: string, label: string) {
-    const user = await this.auth.telegramUser(telegramId);
+  /** Creates (or reuses) the professional bound to an authorized professional email, then issues a key. */
+  async createForEmail(email: string, label: string, legacyTelegramId?: string) {
+    const user = await this.auth.professionalUser(email, legacyTelegramId);
     return this.create(user, label);
   }
 

@@ -1,7 +1,5 @@
 process.env.ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || Buffer.alloc(32, 7).toString('base64');
-process.env.TELEGRAM_AUTHORIZED_USER_IDS = process.env.TELEGRAM_AUTHORIZED_USER_IDS || '111';
-process.env.TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '1:e2e-placeholder';
-process.env.TELEGRAM_WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET || 'e2e-secret';
+process.env.PROFESSIONAL_EMAILS = process.env.PROFESSIONAL_EMAILS || 'owner-111@scopeprofit.test';
 process.env.WEB_URL = process.env.WEB_URL || 'http://localhost:3000';
 process.env.ADMIN_EDIT_URL_TTL_DAYS = process.env.ADMIN_EDIT_URL_TTL_DAYS || '10';
 
@@ -138,7 +136,7 @@ test(
   { skip: skip ? 'DATABASE_URL not set' : false },
   async () => {
     const owner = await db.user.create({
-      data: { telegramId: `e2e-owner-${Date.now()}`, role: 'professional' },
+      data: { email: `e2e-owner-${Date.now()}@scopeprofit.test`, role: 'professional' },
     });
     const project = await db.project.create({
       data: {
@@ -162,7 +160,7 @@ test(
   { skip: skip ? 'DATABASE_URL not set' : false },
   async () => {
     const owner = await db.user.create({
-      data: { telegramId: `e2e-doc-owner-${Date.now()}`, role: 'professional' },
+      data: { email: `e2e-doc-owner-${Date.now()}@scopeprofit.test`, role: 'professional' },
     });
     const project = await db.project.create({
       data: {
@@ -220,8 +218,8 @@ test(
     assert.equal((await deniedQuote.json()).error.code, 'FORBIDDEN');
 
     const owner = await db.user.upsert({
-      where: { telegramId: '111' },
-      create: { telegramId: '111', role: 'professional' },
+      where: { email: 'owner-111@scopeprofit.test' },
+      create: { email: 'owner-111@scopeprofit.test', role: 'professional' },
       update: { role: 'professional' },
     });
     const ownerSession = token();
@@ -308,8 +306,8 @@ test(
     assert.equal((await denied.json()).error.code, 'FORBIDDEN');
 
     const owner = await db.user.upsert({
-      where: { telegramId: '111' },
-      create: { telegramId: '111', role: 'professional' },
+      where: { email: 'owner-111@scopeprofit.test' },
+      create: { email: 'owner-111@scopeprofit.test', role: 'professional' },
       update: { role: 'professional' },
     });
     const ownerSession = token();
@@ -394,8 +392,8 @@ test(
   { skip: skip ? 'DATABASE_URL not set' : false },
   async () => {
     const owner = await db.user.upsert({
-      where: { telegramId: '111' },
-      create: { telegramId: '111', role: 'professional' },
+      where: { email: 'owner-111@scopeprofit.test' },
+      create: { email: 'owner-111@scopeprofit.test', role: 'professional' },
       update: { role: 'professional' },
     });
     const ownerSession = token();

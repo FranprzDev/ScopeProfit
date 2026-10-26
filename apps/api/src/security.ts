@@ -34,8 +34,13 @@ export function secureEqual(a: string, b: string) {
   const y = Buffer.from(b);
   return x.length === y.length && timingSafeEqual(x, y);
 }
-export const authorizedTelegramIds = () =>
-  (process.env.TELEGRAM_AUTHORIZED_USER_IDS ?? '')
+export const authorizedProfessionalEmails = () =>
+  (process.env.PROFESSIONAL_EMAILS ?? '')
     .split(',')
-    .map((s) => s.trim())
+    .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
+
+export const isAuthorizedProfessional = (user: { role: string; email: string | null }) =>
+  user.role === 'professional' &&
+  !!user.email &&
+  authorizedProfessionalEmails().includes(user.email.toLowerCase());

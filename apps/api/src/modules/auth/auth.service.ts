@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { User } from '@prisma/client';
-import { createHmac, randomUUID } from 'node:crypto';
+import { createHmac } from 'node:crypto';
 import { PrismaService } from '../../prisma.service';
 import { EmailService } from '../../email.service';
 import {
-  authorizedTelegramIds,
+  authorizedProfessionalEmails,
+  isAuthorizedProfessional,
   decrypt,
   encrypt,
   encryptionKey,
@@ -97,10 +98,7 @@ export class AuthService {
     });
     if (!session || session.revokedAt || session.expiresAt < new Date())
       fail('UNAUTHENTICATED', 401);
-    if (
-      session.user.role === 'professional' &&
-      (!session.user.telegramId || !authorizedTelegramIds().includes(session.user.telegramId))
-    )
+    if (session.user.role === 'professional' && !isAuthorizedProfessional(session.user))
       fail('FORBIDDEN', 403);
     return session.user;
   }
@@ -137,33 +135,24 @@ export class AuthService {
     return project;
   }
   professional(user: User) {
-    if (
-      user.role !== 'professional' ||
-      !user.telegramId ||
-      !authorizedTelegramIds().includes(user.telegramId)
-    )
-      fail('FORBIDDEN', 403);
+    if (!isAuthorizedProfessional(user)) fail('FORBIDDEN', 403);
   }
-  async telegramUser(id: string) {
-    if (!authorizedTelegramIds().includes(id)) fail('FORBIDDEN', 403);
+  async professionalUser(rawEmail: string, legacyTelegramId?: string) {
+    const email = rawEmail.trim().toLowerCase();
+    if (!authorizedProfessionalEmails().includes(email)) fail('FORBIDDEN', 403);
+    if (legacyTelegramId) {
+      const legacy = await this.db.user.findUnique({ where: { telegramId: legacyTelegramId } });
+      if (!legacy || legacy.role !== 'professional') fail('LEGACY_PROFESSIONAL_NOT_FOUND', 404);
+      if (legacy.email && legacy.email !== email) fail('LEGACY_PROFESSIONAL_EMAIL_MISMATCH', 409);
+      const taken = await this.db.user.findUnique({ where: { email } });
+      if (taken && taken.id !== legacy.id) fail('EMAIL_ALREADY_IN_USE', 409);
+      return this.db.user.update({ where: { id: legacy.id }, data: { email } });
+    }
     return this.db.user.upsert({
-      where: { telegramId: id },
-      create: { telegramId: id, role: 'professional' },
+      where: { email },
+      create: { email, role: 'professional' },
       update: { role: 'professional' },
     });
-  }
-  async adminLink(user: User, projectId: string) {
-    this.professional(user);
-    const nonce = randomUUID();
-    const exp = Date.now() + Number(process.env.ADMIN_EDIT_URL_TTL_DAYS ?? 10) * 86400000;
-    await this.db.adminNonce.create({
-      data: { nonce, userId: user.id, projectId, expiresAt: new Date(exp) },
-    });
-    const payload = Buffer.from(
-      JSON.stringify({ userId: user.id, projectId, permission: 'edit', exp, nonce }),
-    ).toString('base64url');
-    const signature = createHmac('sha256', encryptionKey()).update(payload).digest('base64url');
-    return `${process.env.WEB_URL}/api/auth/admin/verify?token=${payload}.${signature}`;
   }
   async verifyAdmin(raw: string) {
     const [payload, signature] = raw.split('.');

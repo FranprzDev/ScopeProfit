@@ -18,27 +18,26 @@ All of it in the fixed **template 7.1**, exported to Markdown, PDF and editable 
 ## Architecture (MCP-first)
 
 ```
-ChatGPT · Claude · Cursor · Grok bots · custom agents      Telegram (optional, professional)
-                │  MCP (Streamable HTTP / stdio)                       │ webhook
-                ▼                                                      ▼
+ChatGPT · Claude · Cursor · Grok bots · custom agents
+                │  MCP (Streamable HTTP / stdio)
+                ▼
         Backend API (NestJS) ── scope tools ── LangGraph agent (optional) ── PostgreSQL + persistent storage
 ```
 
 - **MCP server (primary interface)** — `POST /api/mcp` (Streamable HTTP, stateless) and a stdio entrypoint for local hosts. 15 tools: `create_project`, `add_client_input` (text + image URLs), `get_tldr`, `get_scope_document`, `list_pending_questions`, `answer_question`, `update_scope_section`, `approve_scope`, `export_document`, `list_projects`, `archive_project`, `get_project`, `get_conversation`, `log_change_request`, `list_change_requests`.
 - **Auth** — `Authorization: Bearer` with a ScopeProfit API key, or OAuth 2.1 (dynamic client registration + PKCE) for ChatGPT-style connectors. See `docs/mcp.md`.
 - **Backend API** — the only component with database and file-system access. Keeps the versioned Brief (PostgreSQL), renders template 7.1 and the PDF/DOCX artifacts, and runs the optional server-side scope agent.
-- **Telegram bot** — still supported for the professional (`/createproject`, `/projects`, `/tldr`, `/doc`, `/ask`, `/archive`, `/help`, approve/reject buttons). Talks only to `POST /api/telegram/webhook`.
 - **Landing (`apps/landing`)** — static marketing page that explains the MCP-first product and how to connect each client. There is no web app anymore: the Next.js client chat (`apps/app`) was removed; the client conversation now happens in whatever agent uses the MCP server.
 
 ## Quick start (local)
 
 ```bash
 pnpm install
-cp .env.example .env              # fill DATABASE_URL, ENCRYPTION_KEY, TELEGRAM_AUTHORIZED_USER_IDS, PUBLIC_API_URL
+cp .env.example .env              # fill DATABASE_URL, ENCRYPTION_KEY, PROFESSIONAL_EMAILS, PUBLIC_API_URL
 pnpm --filter @scopeprofit/contracts run build
 pnpm run db:migrate
 pnpm --filter @scopeprofit/api run build
-pnpm --filter @scopeprofit/api run mcp:keys create --telegram-id <your-telegram-id> --label local
+pnpm --filter @scopeprofit/api run mcp:keys create --email <your-email> --label local
 pnpm run dev:api                  # MCP endpoint at http://localhost:3001/api/mcp
 pnpm run dev:landing              # landing at http://localhost:3000
 ```
@@ -76,7 +75,7 @@ pnpm run production:preflight
 
 ## Version status
 
-- **v1 — delivered:** projects, Telegram, structured versioned Brief, AI agent, template 7.1, PDF/DOCX, approval and delivery.
+- **v1 — delivered:** projects, structured versioned Brief, AI agent, template 7.1, PDF/DOCX, approval and delivery.
 - **v2 — delivered:** Brief diff, change-request log and classification, strict domain types.
 - **v3 (pricing, quotes, maintenance) — API only.** Its UI lived in the removed web app; it is not exposed as MCP tools yet. See `docs/v3-api-access.md` for how to reach it today.
 - **MCP-first — this release:** MCP server, API keys, OAuth for ChatGPT/Claude connectors, signed exports; web app removed, landing rewritten.

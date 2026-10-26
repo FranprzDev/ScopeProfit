@@ -787,32 +787,6 @@
   color: var(--text-main);
 }
 
-.telegramBox {
-  max-width: 860px;
-  margin: 0 auto;
-  background: var(--nest-dark-elevated);
-  border: 1px solid var(--nest-card-border);
-  border-radius: 16px;
-  padding: 2rem;
-  text-align: center;
-}
-
-.commandList {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  margin-bottom: 1.25rem;
-}
-
-.page .commandChip {
-  padding: 0.35rem 0.75rem;
-  border-radius: 8px;
-  background: rgba(56, 189, 248, 0.1);
-  border: 1px solid rgba(56, 189, 248, 0.25);
-  color: #38bdf8;
-}
-
 @media (max-width: 900px) {
   .connectGrid,
   .codePair {

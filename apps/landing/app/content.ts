@@ -122,7 +122,7 @@ export const TOOL_GROUPS: ToolGroup[] = [
       {
         name: 'update_scope_section',
         kind: ToolKind.Write,
-        text: 'Reemplaza una sección, la valida y regenera el documento. Usa la versión leída para no pisar cambios.',
+        text: 'Reemplaza una sección, la valida y guarda una nueva versión del borrador. Los PDF y DOCX se generan al exportar. Usa la versión leída para no pisar cambios.',
         keywords: ['editar', 'sección', 'cambiar', 'corregir', 'redactar', 'alcance'],
       },
       {
@@ -133,8 +133,8 @@ export const TOOL_GROUPS: ToolGroup[] = [
       },
       {
         name: 'export_document',
-        kind: ToolKind.Read,
-        text: 'Link de descarga firmado y con vencimiento en PDF, DOCX o Markdown.',
+        kind: ToolKind.Write,
+        text: 'Genera el documento si cambió el brief y devuelve un link de descarga firmado y con vencimiento en PDF, DOCX o Markdown.',
         keywords: ['exportar', 'descargar', 'pdf', 'word', 'docx', 'markdown', 'link'],
       },
     ],
@@ -260,24 +260,14 @@ export interface FaqEntry {
   answer: string;
 }
 
-export const TELEGRAM_FAQ: FaqEntry = {
-  question: '¿Qué hacés desde el bot?',
+export const AUTH_FAQ: FaqEntry = {
+  question: '¿Cómo se autentica un cliente MCP?',
   answer:
-    'Creás y listás proyectos, mirás el resumen y el documento, mandás texto o imágenes, archivás y aprobás o rechazás con los botones del bot.',
+    'Con una API key de ScopeProfit en el encabezado Authorization: Bearer, o con OAuth 2.1 (registro dinámico de clientes y PKCE) para conectores como ChatGPT.',
 };
 
 /** Every question answered on the landing. The FAQPage structured data is built from this list only. */
-export const FAQ_ENTRIES: FaqEntry[] = [TELEGRAM_FAQ];
-
-export const TELEGRAM_COMMANDS = [
-  '/createproject',
-  '/projects',
-  '/tldr',
-  '/doc',
-  '/ask',
-  '/archive',
-  '/help',
-];
+export const FAQ_ENTRIES: FaqEntry[] = [AUTH_FAQ];
 
 export const CLAUDE_CODE_SNIPPET = `claude mcp add --transport http scopeprofit \\
   ${MCP_ENDPOINT_PLACEHOLDER} \\
@@ -285,7 +275,7 @@ export const CLAUDE_CODE_SNIPPET = `claude mcp add --transport http scopeprofit 
 
 export const API_KEY_SNIPPET = `pnpm --filter @scopeprofit/api run build
 pnpm --filter @scopeprofit/api run mcp:keys create \\
-  --telegram-id <tu-telegram-id> --label chatgpt`;
+  --email <tu-email> --label chatgpt`;
 
 export const STDIO_SNIPPET = `{
   "mcpServers": {
@@ -295,7 +285,7 @@ export const STDIO_SNIPPET = `{
       "env": {
         "DATABASE_URL": "postgresql://...",
         "ENCRYPTION_KEY": "...",
-        "TELEGRAM_AUTHORIZED_USER_IDS": "123456789",
+        "PROFESSIONAL_EMAILS": "vos@ejemplo.com",
         "STORAGE_ROOT": "/ruta/a/storage",
         "PUBLIC_API_URL": "https://api.<tu-dominio>",
         "SCOPEPROFIT_API_KEY": "sp_live_..."

@@ -26,7 +26,6 @@ import {
   REPO_URL,
   SDK_SNIPPET,
   STDIO_SNIPPET,
-  TELEGRAM_COMMANDS,
   TOOL_GROUPS,
 } from './content';
 import type { Metadata } from 'next';
@@ -88,9 +87,6 @@ export default function Home() {
             <a href="#conectar" className={s.navLink}>
               Conectar
             </a>
-            <a href="#telegram" className={s.navLink}>
-              Telegram
-            </a>
           </nav>
           <div className={s.navActions}>
             <a href={MCP_DOCS_URL} target="_blank" rel="noreferrer" className={s.navCta}>
@@ -142,8 +138,7 @@ export default function Home() {
                   ScopeProfit dejó de tener su propia interfaz web. Ahora es un{' '}
                   <strong>servidor MCP</strong>: la conversación con el material del cliente pasa en
                   el asistente que ya tenés abierto, y ScopeProfit guarda el brief, arma el
-                  documento y exporta PDF y Word. El bot de <strong>Telegram</strong> para el
-                  profesional sigue funcionando.
+                  documento y exporta PDF y Word.
                 </p>
               </div>
             </div>
@@ -311,8 +306,8 @@ export default function Home() {
               </div>
               <h3 className={s.bentoTitle}>0. Creá una API key</h3>
               <p className={s.bentoText}>
-                Las keys (<code>sp_live_…</code>) se asocian a tu Telegram id autorizado. Solo se
-                guarda su hash, y revocar una key corta todos los conectores que la usan.
+                Las keys (<code>sp_live_…</code>) se asocian a tu email de profesional autorizado.
+                Solo se guarda su hash, y revocar una key corta todos los conectores que la usan.
               </p>
               <Code>{API_KEY_SNIPPET}</Code>
             </div>
@@ -394,33 +389,6 @@ export default function Home() {
                 <Code>{CURL_SNIPPET}</Code>
               </div>
             </div>
-          </div>
-        </section>
-
-        <section id="telegram" className={s.section}>
-          <div className={s.sectionHeader}>
-            <span className={s.kicker}>
-              <span className={s.sparkleMark}>✦</span>
-              TELEGRAM
-            </span>
-            <h2 className={s.h2}>El bot de Telegram sigue funcionando</h2>
-            <p className={s.sectionSubtitle}>
-              Si ya trabajabas desde Telegram, no cambia nada: el bot del profesional usa el mismo
-              backend que el servidor MCP.
-            </p>
-          </div>
-          <div className={s.telegramBox}>
-            <div className={s.commandList}>
-              {TELEGRAM_COMMANDS.map((command) => (
-                <code key={command} className={s.commandChip}>
-                  {command}
-                </code>
-              ))}
-            </div>
-            <p className={s.bentoText}>
-              Creás y listás proyectos, mirás el resumen y el documento, mandás texto o imágenes,
-              archivás y aprobás o rechazás con los botones del bot.
-            </p>
           </div>
         </section>
 
