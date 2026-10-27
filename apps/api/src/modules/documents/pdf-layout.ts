@@ -126,13 +126,43 @@ export function renderStyledPdf(
       doc.y = top + rows * 22 + 24;
       metas.length = 0;
     };
-    for (const block of blocks) {
+    const bulletHeight = (text: string) => {
+      const [lead, ...rest] = text.split(' | ');
+      const leadHeight = doc
+        .font('Helvetica-Bold')
+        .fontSize(10)
+        .heightOfString(lead ?? '', {
+          width: width - 18,
+          lineGap: 2,
+        });
+      const detailHeight = rest.length
+        ? doc
+            .font('Helvetica')
+            .fontSize(9)
+            .heightOfString(rest.join('  ·  '), {
+              width: width - 18,
+              lineGap: 2,
+            })
+        : 0;
+      return leadHeight + detailHeight + 8;
+    };
+    for (const [index, block] of blocks.entries()) {
       if (block.kind === MarkdownBlockKind.Meta) {
         metas.push(block);
         continue;
       }
       flushMeta();
       doc.x = left;
+      if (block.kind === MarkdownBlockKind.Section || block.kind === MarkdownBlockKind.Subsection) {
+        let groupHeight = 50;
+        let following = index + 1;
+        while (blocks[following]?.kind === MarkdownBlockKind.Bullet) {
+          groupHeight += bulletHeight(blocks[following]!.text);
+          following++;
+        }
+        if (following > index + 1 && groupHeight <= bottom() - doc.page.margins.top)
+          ensure(groupHeight);
+      }
       switch (block.kind) {
         case MarkdownBlockKind.Title:
           doc.rect(left, doc.y, 6, 34).fill(palette.accent);
@@ -172,7 +202,7 @@ export function renderStyledPdf(
           break;
         case MarkdownBlockKind.Bullet: {
           const [lead, ...rest] = block.text.split(' | ');
-          ensure(rest.length > 0 ? 52 : 24);
+          ensure(bulletHeight(block.text));
           const top = doc.y;
           doc.circle(left + 5, top + 6, 2.2).fill(palette.accent);
           doc
