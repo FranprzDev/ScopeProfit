@@ -11,7 +11,7 @@ ScopeProfit runs as a [Model Context Protocol](https://modelcontextprotocol.io) 
 | Tool                     | Kind        | What it does                                                                                                     |
 | ------------------------ | ----------- | ---------------------------------------------------------------------------------------------------------------- |
 | `list_projects`          | read        | Projects with status, TLDR and blocking-question count (archived hidden unless asked).                           |
-| `create_project`         | write       | New project (`name`, optional `client_email`).                                                                   |
+| `create_project`         | write       | New project (`name`, optional `client_name` and `client_email`).                                                 |
 | `get_project`            | read        | Lifecycle + agent status, brief/document versions, counts. Use it to poll.                                       |
 | `add_client_input`       | write       | Client text and/or public image URLs (JPEG/PNG/WebP, ≤10 MB, ≤5), stored verbatim as citable messages.           |
 | `get_conversation`       | read        | Stored messages with ids (needed to cite requirement sources).                                                   |
@@ -25,23 +25,6 @@ ScopeProfit runs as a [Model Context Protocol](https://modelcontextprotocol.io) 
 | `archive_project`        | destructive | Archives (locks) a project.                                                                                      |
 | `log_change_request`     | write       | Logs a post-scope change, classified `in_scope` / `out_of_scope` / `ambiguous`.                                  |
 | `list_change_requests`   | read        | Change requests of a project.                                                                                    |
-| Tool                     | Kind        | What it does                                                                                           |
-| ------------------------ | ----------- | ------------------------------------------------------------------------------------------------------ |
-| `list_projects`          | read        | Projects with status, TLDR and blocking-question count (archived hidden unless asked).                 |
-| `create_project`         | write       | New project (`name`, optional `client_name` and `client_email`).                                       |
-| `get_project`            | read        | Lifecycle + agent status, brief/document versions, counts. Use it to poll.                             |
-| `add_client_input`       | write       | Client text and/or public image URLs (JPEG/PNG/WebP, ≤10 MB, ≤5), stored verbatim as citable messages. |
-| `get_conversation`       | read        | Stored messages with ids (needed to cite requirement sources).                                         |
-| `get_tldr`               | read        | Summary, requirement count, top blocking questions, red risks, total hour range.                       |
-| `list_pending_questions` | read        | Open questions; `blocksEstimate=true` blocks approval.                                                 |
-| `answer_question`        | write       | Stores the client's answer as a message, removes the question, regenerates the document.               |
-| `get_scope_document`     | read        | Template 7.1 rendered as Markdown + structured brief + `briefVersion`.                                 |
-| `update_scope_section`   | write       | Replaces one section (optimistic lock on `expected_version`), validates it, saves a document draft.    |
-| `approve_scope`          | destructive | Approves the current document version; optionally emails PDF + DOCX to the client (Brevo).             |
-| `export_document`        | write       | Signed, expiring download URL for `pdf`, `docx` or `md`; can regenerate and persist the document.      |
-| `archive_project`        | destructive | Archives (locks) a project.                                                                            |
-| `log_change_request`     | write       | Logs a post-scope change, classified `in_scope` / `out_of_scope` / `ambiguous`.                        |
-| `list_change_requests`   | read        | Change requests of a project.                                                                          |
 
 Domain errors come back as tool results with `isError: true` and a stable code (`VERSION_CONFLICT`, `PROJECT_LOCKED`, `ESTIMATE_BLOCKED`, `INVALID_REQUIREMENT_SOURCE`, …) so the model can recover. Tools carry `readOnlyHint` / `destructiveHint` annotations so hosts can skip or require confirmation.
 
