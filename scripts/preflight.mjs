@@ -8,15 +8,14 @@ if (process.argv.includes('--generate-secrets')) {
   process.exit(0);
 }
 if (existsSync('.env')) process.loadEnvFile('.env');
+const mcpOnly = process.argv.includes('--mcp-only');
 const required = [
   'POSTGRES_PASSWORD',
   'WEB_URL',
   'PUBLIC_API_URL',
   'ENCRYPTION_KEY',
   'SESSION_SECRET',
-  'AI_GATEWAY_API_KEY',
-  'BREVO_API_KEY',
-  'BREVO_SENDER_EMAIL',
+  ...(mcpOnly ? [] : ['AI_GATEWAY_API_KEY', 'BREVO_API_KEY', 'BREVO_SENDER_EMAIL']),
 ];
 const errors = required
   .filter((key) => !process.env[key] || /replace-with|example\.com/.test(process.env[key]))
@@ -25,6 +24,15 @@ if (!/^https:\/\//.test(process.env.WEB_URL || ''))
   errors.push('WEB_URL: production requires HTTPS');
 if (!/^https:\/\//.test(process.env.PUBLIC_API_URL || ''))
   errors.push('PUBLIC_API_URL: production requires HTTPS (MCP endpoint and OAuth issuer)');
+try {
+  const apiUrl = new URL(process.env.PUBLIC_API_URL || '');
+  if (apiUrl.pathname !== '/' || apiUrl.search || apiUrl.hash || apiUrl.username || apiUrl.password)
+    errors.push(
+      'PUBLIC_API_URL: expected an origin without a path, query, fragment or credentials',
+    );
+} catch {
+  errors.push('PUBLIC_API_URL: invalid URL');
+}
 if (
   /^(1|true)$/i.test(process.env.MCP_ALLOW_PRIVATE_IMAGE_URLS || '') ||
   /^(1|true)$/i.test(process.env.MCP_ALLOW_HTTP_IMAGE_URLS || '')
@@ -41,5 +49,7 @@ if (errors.length) {
   process.exit(1);
 }
 process.stdout.write(
-  'Local production configuration passed. Provider credentials, verified sender, HTTPS and real delivery still require live verification.\n',
+  mcpOnly
+    ? 'Local MCP configuration passed. HTTPS, OAuth and a real ChatGPT connection still require live verification. AI analysis and email are not validated.\n'
+    : 'Local production configuration passed. Provider credentials, verified sender, HTTPS and real delivery still require live verification.\n',
 );

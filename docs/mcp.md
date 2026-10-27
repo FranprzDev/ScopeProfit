@@ -70,14 +70,19 @@ Only SHA-256 hashes of keys and tokens are stored.
 
 Replace `https://api.example.com` with your `PUBLIC_API_URL`.
 
-### ChatGPT (developer mode / Apps)
+### ChatGPT (custom MCP plugin)
 
-ChatGPT custom connectors support OAuth or no auth (no static header field), so use OAuth:
+ScopeProfit already exposes its 15 tools over Streamable HTTP with OAuth. It does not need a second MCP implementation or a paid backend AI key when ChatGPT drafts sections itself. A custom connection is not a public app-directory listing.
 
-1. In ChatGPT open **Settings → Apps & Connectors → Advanced** and enable **Developer mode** (paid plan; on Business/Enterprise/Edu a workspace admin must allow custom connectors). Labels change between ChatGPT releases; look for "Create" / "Add custom connector".
-2. Create a connector: name `ScopeProfit`, MCP server URL `https://api.example.com/api/mcp`, authentication **OAuth**. Leave client id/secret empty: ChatGPT registers itself via `/register`.
-3. ChatGPT opens the ScopeProfit consent page: paste an API key created with `mcp:keys create` and click **Allow access**.
-4. In a chat, enable the connector and ask, for example: _"Create a ScopeProfit project for Acme's booking app and add this client brief: …"_.
+OpenAI's current [connection guide](https://help.openai.com/en/articles/12584461-connecting-custom-mcp-servers-in-chatgpt) lists full custom MCP support on ChatGPT web for Business and Enterprise/Edu, subject to workspace permissions. Business requires an admin/owner; Enterprise/Edu may delegate creation through RBAC. Do not assume every Free/Plus account can add this server. Availability and labels can change; check the linked guide and the intended account.
+
+1. Prepare your own backend with the [self-host guide](self-host-chatgpt.md). Use its public HTTPS MCP URL, for example `https://api.example.com/api/mcp`. Do not paste a local stdio command into ChatGPT.
+2. In ChatGPT open **Plugins → + → Add custom MCP server**. Enter a name and the server URL. Use **OAuth**, not unauthenticated access. The current flow does not require enabling Developer Mode first; legacy accounts may show **Apps → Create** instead.
+3. Use dynamic client registration (DCR): ScopeProfit exposes `/register`. The ScopeProfit consent page asks for the API key provisioned by the installation operator. Confirm the API hostname before entering it, then allow access. Do not paste the key into a chat.
+4. Review the discovered tools and install the plugin. Start a chat, type `@` and select it. First ask it to call `list_projects`; confirm only the intended action.
+5. For host-led drafting, explicitly use `add_client_input` with `analyze: false`, then `update_scope_section`. This avoids backend Gemini/gateway calls. Do not request client email delivery unless configured and approved.
+
+OpenAI also documents Secure MCP Tunnel for private/local servers. That is a separate setup, not configured or tested by this repository's HTTPS overlay. Creating this connection, a live OAuth round-trip and directory distribution are separate checks; protocol compatibility alone is not a tested ChatGPT integration.
 
 ### Claude (claude.ai / Claude Desktop connectors)
 
