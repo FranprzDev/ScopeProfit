@@ -10,7 +10,9 @@ export const schema = {
     .string()
     .email()
     .optional()
-    .describe('Client email; the approved PDF/DOCX is emailed here on approve_scope'),
+    .describe(
+      'Client email; used for delivery only when approve_scope explicitly sets send_to_client=true',
+    ),
 };
 
 export const metadata: ToolMetadata = {
