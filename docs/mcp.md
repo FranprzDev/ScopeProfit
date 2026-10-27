@@ -11,7 +11,7 @@ ScopeProfit runs as a [Model Context Protocol](https://modelcontextprotocol.io) 
 | Tool                     | Kind        | What it does                                                                                           |
 | ------------------------ | ----------- | ------------------------------------------------------------------------------------------------------ |
 | `list_projects`          | read        | Projects with status, TLDR and blocking-question count (archived hidden unless asked).                 |
-| `create_project`         | write       | New project (`name`, optional `client_email`).                                                         |
+| `create_project`         | write       | New project (`name`, optional `client_name` and `client_email`).                                       |
 | `get_project`            | read        | Lifecycle + agent status, brief/document versions, counts. Use it to poll.                             |
 | `add_client_input`       | write       | Client text and/or public image URLs (JPEG/PNG/WebP, ≤10 MB, ≤5), stored verbatim as citable messages. |
 | `get_conversation`       | read        | Stored messages with ids (needed to cite requirement sources).                                         |
@@ -27,6 +27,10 @@ ScopeProfit runs as a [Model Context Protocol](https://modelcontextprotocol.io) 
 | `list_change_requests`   | read        | Change requests of a project.                                                                          |
 
 Domain errors come back as tool results with `isError: true` and a stable code (`VERSION_CONFLICT`, `PROJECT_LOCKED`, `ESTIMATE_BLOCKED`, `INVALID_REQUIREMENT_SOURCE`, …) so the model can recover. Tools carry `readOnlyHint` / `destructiveHint` annotations so hosts can skip or require confirmation.
+
+### Client identity
+
+Pass `client_name` to `create_project` when the client or company name is known. It is a display label in scope and quote documents, separate from `client_email`, which remains the delivery destination. Existing projects without a name retain the email or generic fallback; existing document versions remain unchanged. REST project creation accepts `clientName` too. Apply the included database migration before running the new API.
 
 ### Two ways to fill the scope
 

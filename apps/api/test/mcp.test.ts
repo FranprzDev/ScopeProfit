@@ -251,6 +251,7 @@ test('a full scoping flow runs end to end through MCP tools', dbOnly, async () =
   try {
     const created = await data<{ projectId: string }>('create_project', {
       name: 'Turnos para veterinaria',
+      client_name: 'Veterinaria de ejemplo',
       client_email: 'cliente@example.com',
     });
     const projectId = created.projectId;
@@ -420,6 +421,7 @@ test('a full scoping flow runs end to end through MCP tools', dbOnly, async () =
       project_id: projectId,
     });
     assert.equal(doc.template, '7.1');
+    assert.ok(doc.markdown.includes('Cliente: Veterinaria de ejemplo'));
     for (const heading of ['## 1.', '## 2.', '## 3.', '## 4.', '## 5. Alcance', '## 6.', '## 7.'])
       assert.ok(doc.markdown.includes(heading), heading);
     assert.ok(doc.markdown.includes('Fuente: "reserven turnos online"'));

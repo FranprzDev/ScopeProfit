@@ -380,7 +380,7 @@ export class QuotesService {
     const buffers = await renderQuoteProposal(
       buildQuoteProposal(toQuoteDto(quote), {
         projectName: project.name,
-        clientName: project.clientEmail || 'Cliente',
+        clientName: project.clientName || project.clientEmail || 'Cliente',
         author: project.owner.email || 'Profesional',
         date: new Date().toISOString(),
       }),
