@@ -33,6 +33,10 @@ Domain errors come back as tool results with `isError: true` and a stable code (
 1. **Host LLM drafts the scope** (no extra AI key): call `add_client_input` with `analyze: false`, then fill sections with `update_scope_section`. Requirements are rejected unless `source` is an exact quote of the message referenced by `sourceMessageId`.
 2. **Server-side agent** (LangGraph + Gemini, as in v1): keep `analyze: true`; the background worker re-diagnoses the project. Requires the owner's Gemini key (`mcp:keys set-ai-key`) and `AI_GATEWAY_API_KEY`. Poll `get_project` until `agentStatus` is `idle`.
 
+### Review after an answer
+
+`answer_question` records evidence and removes the answered question. Its `reviewRequired` response lists sections to review, including the summary: no other section is automatically rewritten. Update affected sections using the current brief version, then read the entire document back to look for contradictions. The checklist is guidance, not a semantic validator. A valid source quote, zero pending questions or successful tool calls do not prove that the scope is consistent, complete or correctly estimated. The professional must review the content before approval.
+
 ## Authentication
 
 Every request needs `Authorization: Bearer <token>`. Two token types are accepted:

@@ -294,6 +294,22 @@ export class ScopeToolsService {
       projectId: project.id,
       answeredQuestionId: question.id,
       messageId: message.id,
+      reviewRequired: {
+        sections: [
+          'summary',
+          'requirements',
+          'risks',
+          'included',
+          'excluded',
+          'assumptions',
+          'acceptanceCriteria',
+          'estimates',
+          'nextSteps',
+        ] satisfies ScopeSection[],
+        reason:
+          'Only the answered question was removed. Other sections may contradict the new answer.',
+      },
+      next: 'Read the answer and full scope. Update every affected section, including the summary. Read back the whole document to check for contradictions before asking the professional to review it. This checklist is not a semantic validation or approval.',
       ...saved,
     };
   }

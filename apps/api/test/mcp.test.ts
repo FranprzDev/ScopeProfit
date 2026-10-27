@@ -402,12 +402,17 @@ test('a full scoping flow runs end to end through MCP tools', dbOnly, async () =
       'ESTIMATE_BLOCKED',
     );
 
-    const answered = await data<{ briefVersion: number }>('answer_question', {
-      project_id: projectId,
-      question_id: 'Q1',
-      answer: 'Una sola sucursal.',
-    });
+    const answered = await data<{ briefVersion: number; reviewRequired: { sections: string[] } }>(
+      'answer_question',
+      {
+        project_id: projectId,
+        question_id: 'Q1',
+        answer: 'Una sola sucursal.',
+      },
+    );
     assert.equal(answered.briefVersion, version + 1);
+    assert.ok(answered.reviewRequired.sections.includes('summary'));
+    assert.ok(answered.reviewRequired.sections.includes('acceptanceCriteria'));
 
     const tldr = await data<{
       blockingQuestions: number;
