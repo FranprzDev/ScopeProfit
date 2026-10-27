@@ -128,7 +128,7 @@ export const TOOL_GROUPS: ToolGroup[] = [
       {
         name: 'approve_scope',
         kind: ToolKind.Destructive,
-        text: 'Aprueba la versión actual y, si está configurado el email, le manda PDF y DOCX al cliente.',
+        text: 'Aprueba la versión actual sin enviar email. Solo manda PDF y DOCX al cliente si pedís explícitamente ese envío.',
         keywords: ['aprobar', 'alcance', 'enviar', 'cliente', 'email', 'pdf', 'docx'],
       },
       {
