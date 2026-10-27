@@ -466,12 +466,12 @@ test('a full scoping flow runs end to end through MCP tools', dbOnly, async () =
     await data('approve_scope', {
       project_id: projectId,
       document_version: currentDraft.version,
-      send_to_client: false,
     });
     const approvedDraft = await db.documentVersion.findUniqueOrThrow({
       where: { id: currentDraft.id },
     });
     assert.equal(approvedDraft.status, 'approved');
+    assert.equal(approvedDraft.deliveredAt, null);
     assert.deepEqual(approvedDraft.artifacts, {});
     const exported = await data<{ url: string; version: number }>('export_document', {
       project_id: projectId,
@@ -547,7 +547,11 @@ test('a full scoping flow runs end to end through MCP tools', dbOnly, async () =
 test('approve_scope refuses to email when the project has no client email', dbOnly, async () => {
   const created = await data<{ projectId: string }>('create_project', { name: 'Sin email' });
   assert.equal(
-    await errorCode('approve_scope', { project_id: created.projectId, document_version: 1 }),
+    await errorCode('approve_scope', {
+      project_id: created.projectId,
+      document_version: 1,
+      send_to_client: true,
+    }),
     'CLIENT_EMAIL_REQUIRED',
   );
   assert.equal(

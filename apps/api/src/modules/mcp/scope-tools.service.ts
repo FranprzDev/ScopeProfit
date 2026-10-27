@@ -383,7 +383,7 @@ export class ScopeToolsService {
   ) {
     this.auth.professional(user);
     const project = await this.project(user, input.projectId);
-    const sendToClient = input.sendToClient ?? true;
+    const sendToClient = input.sendToClient ?? false;
     if (input.clientEmail && !project.clientEmail)
       await this.db.project.update({
         where: { id: project.id },

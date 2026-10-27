@@ -49,7 +49,7 @@ Then connect a client as described in `docs/mcp.md` (ChatGPT, Claude, Claude Cod
 1. `create_project` → `add_client_input` with the client's words and image URLs.
 2. Either the host LLM drafts the scope with `update_scope_section` (every requirement must quote a stored message), or the server agent does it in the background (`analyze: true`, needs the owner's Gemini key).
 3. `get_tldr` / `list_pending_questions` → `answer_question` until nothing blocks the estimate.
-4. `get_scope_document` to review template 7.1 → `approve_scope` (emails PDF + DOCX to the client when Brevo is configured) → `export_document` for a signed download link.
+4. `get_scope_document` to review template 7.1 → `approve_scope` (locks the reviewed version without email by default; explicit `send_to_client: true` delivers via Brevo) → `export_document` for a signed download link.
 
 ## Stack
 
