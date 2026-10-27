@@ -20,14 +20,14 @@ export const schema = {
     .boolean()
     .optional()
     .describe(
-      'Queue the server-side scope agent (default true). Set false if you will draft the scope yourself.',
+      'Queue the server-side scope agent (default false). Set true only when server-side analysis is configured and requested.',
     ),
 };
 
 export const metadata: ToolMetadata = {
   name: 'add_client_input',
   description:
-    "Add what the client said or shared: free text and/or public image URLs (JPEG, PNG, WebP, max 10 MB, up to 5). Stored verbatim as messages that requirements can cite. Use author='professional' for your own follow-up questions to the client. By default the server-side scope agent re-analyses the project.",
+    "Add what the client said or shared: free text and/or public image URLs (JPEG, PNG, WebP, max 10 MB, up to 5). Stored verbatim as messages that requirements can cite. Use author='professional' for your own follow-up questions to the client. By default the host drafts with update_scope_section without a second AI provider. Set analyze=true to request configured server-side analysis.",
   annotations: { ...{ ...write, openWorldHint: true }, title: 'Add client input' },
 };
 

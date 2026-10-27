@@ -79,15 +79,24 @@ export class ScopeToolsService {
     };
   }
 
-  async createProject(user: User, input: { name: string; clientEmail?: string }) {
+  async createProject(
+    user: User,
+    input: { name: string; clientEmail?: string; clientName?: string },
+  ) {
     const name = input.name.trim();
     if (!name) fail('INVALID_PROJECT_NAME', 400, 'Project name is required');
-    const project = await this.projects.create(user, name.slice(0, 200), input.clientEmail);
+    const project = await this.projects.create(
+      user,
+      name.slice(0, 200),
+      input.clientEmail,
+      input.clientName,
+    );
     return {
       projectId: project.id,
       name: project.name,
       status: project.status,
       clientEmail: project.clientEmail,
+      clientName: project.clientName,
       legacyClientChatUrl: project.clientUrl,
       next: 'Send what the client said (text and image URLs) with add_client_input.',
     };
@@ -105,6 +114,7 @@ export class ScopeToolsService {
       agentStatus: project.agentStatus,
       agentError: project.agentError,
       clientEmail: project.clientEmail,
+      clientName: project.clientName,
       briefVersion: project.brief?.version ?? 0,
       document: latest
         ? {
@@ -112,8 +122,12 @@ export class ScopeToolsService {
             status: latest.status,
             briefVersion: latest.briefVersion,
             upToDate: latest.briefVersion === project.brief?.version,
+            matchesBriefVersion: latest.briefVersion === project.brief?.version,
           }
         : null,
+      inputCoverageVerified: false,
+      reviewGuidance:
+        'Document freshness only compares document and brief versions. Read the conversation and check all affected sections; input coverage is not verified.',
       counts: {
         messages,
         requirements: brief.requirements.length,
@@ -200,7 +214,7 @@ export class ScopeToolsService {
         metadata: { messages: created.length, images: images.length, authorRole },
       },
     });
-    const analyze = input.analyze ?? true;
+    const analyze = input.analyze ?? false;
     if (analyze) await this.agent.enqueue(project.id);
     const fresh = await this.db.project.findUniqueOrThrow({ where: { id: project.id } });
     return {
@@ -294,6 +308,22 @@ export class ScopeToolsService {
       projectId: project.id,
       answeredQuestionId: question.id,
       messageId: message.id,
+      reviewRequired: {
+        sections: [
+          'summary',
+          'requirements',
+          'risks',
+          'included',
+          'excluded',
+          'assumptions',
+          'acceptanceCriteria',
+          'estimates',
+          'nextSteps',
+        ] satisfies ScopeSection[],
+        reason:
+          'Only the answered question was removed. Other sections may contradict the new answer.',
+      },
+      next: 'Read the answer and full scope. Update every affected section, including the summary. Read back the whole document to check for contradictions before asking the professional to review it. This checklist is not a semantic validation or approval.',
       ...saved,
     };
   }
@@ -304,7 +334,7 @@ export class ScopeToolsService {
     const latest = project.document?.versions[0];
     const document = markdown({
       projectName: project.name,
-      clientName: project.clientEmail || 'Cliente',
+      clientName: project.clientName || project.clientEmail || 'Cliente',
       author: user.email || 'Profesional',
       date: new Date().toISOString(),
       version: latest?.version ?? 0,
@@ -318,6 +348,10 @@ export class ScopeToolsService {
       documentVersion: latest?.version ?? null,
       documentStatus: latest?.status ?? null,
       documentUpToDate: latest ? latest.briefVersion === project.brief?.version : false,
+      documentMatchesBriefVersion: latest ? latest.briefVersion === project.brief?.version : false,
+      inputCoverageVerified: false,
+      reviewGuidance:
+        'Document freshness only compares document and brief versions. Read the conversation and check all affected sections; input coverage is not verified.',
       markdown: document,
       brief,
     };
@@ -426,6 +460,9 @@ export class ScopeToolsService {
       projectId: project.id,
       version,
       format: input.format,
+      inputCoverageVerified: false,
+      reviewGuidance:
+        'Exporting does not verify that client inputs are reflected in this document. Review the conversation and the exported version before sharing.',
       ...exportUrl(project.id, version, input.format),
     };
   }

@@ -11,7 +11,7 @@ ScopeProfit runs as a [Model Context Protocol](https://modelcontextprotocol.io) 
 | Tool                     | Kind        | What it does                                                                                                     |
 | ------------------------ | ----------- | ---------------------------------------------------------------------------------------------------------------- |
 | `list_projects`          | read        | Projects with status, TLDR and blocking-question count (archived hidden unless asked).                           |
-| `create_project`         | write       | New project (`name`, optional `client_email`).                                                                   |
+| `create_project`         | write       | New project (`name`, optional `client_name` and `client_email`).                                                 |
 | `get_project`            | read        | Lifecycle + agent status, brief/document versions, counts. Use it to poll.                                       |
 | `add_client_input`       | write       | Client text and/or public image URLs (JPEG/PNG/WebP, ≤10 MB, ≤5), stored verbatim as citable messages.           |
 | `get_conversation`       | read        | Stored messages with ids (needed to cite requirement sources).                                                   |
@@ -28,10 +28,24 @@ ScopeProfit runs as a [Model Context Protocol](https://modelcontextprotocol.io) 
 
 Domain errors come back as tool results with `isError: true` and a stable code (`VERSION_CONFLICT`, `PROJECT_LOCKED`, `ESTIMATE_BLOCKED`, `INVALID_REQUIREMENT_SOURCE`, …) so the model can recover. Tools carry `readOnlyHint` / `destructiveHint` annotations so hosts can skip or require confirmation.
 
+### Client identity
+
+Pass `client_name` to `create_project` when the client or company name is known. It is a display label in scope and quote documents, separate from `client_email`, which remains the delivery destination. Existing projects without a name retain the email or generic fallback; existing document versions remain unchanged. REST project creation accepts `clientName` too. Apply the included database migration before running the new API.
+
 ### Two ways to fill the scope
 
-1. **Host LLM drafts the scope** (no extra AI key): call `add_client_input` with `analyze: false`, then fill sections with `update_scope_section`. Requirements are rejected unless `source` is an exact quote of the message referenced by `sourceMessageId`.
-2. **Server-side agent** (LangGraph + Gemini, as in v1): keep `analyze: true`; the background worker re-diagnoses the project. Requires the owner's Gemini key (`mcp:keys set-ai-key`) and `AI_GATEWAY_API_KEY`. Poll `get_project` until `agentStatus` is `idle`.
+1. **Host LLM drafts the scope** (no extra AI key): call `add_client_input` (default `analyze: false`), then fill sections with `update_scope_section`. Requirements are rejected unless `source` is an exact quote of the message referenced by `sourceMessageId`.
+2. **Server-side agent** (LangGraph + Gemini, as in v1): explicitly set `analyze: true`; the background worker re-diagnoses the project. Requires the owner's Gemini key (`mcp:keys set-ai-key`) and `AI_GATEWAY_API_KEY`. Poll `get_project` until `agentStatus` is `idle`.
+
+### Input analysis default
+
+`add_client_input` stores evidence without queuing server-side analysis unless `analyze: true` is explicitly passed. Existing callers that relied on omitted `analyze` to run the background agent must now pass `true`. This keeps the host-first MCP workflow usable without an extra AI key and avoids a second provider call by default. Configured server-side analysis remains available.
+
+After `answer_question`, review the answer and update affected sections with `update_scope_section` before approval. The tool removes the answered question and saves a draft; it does not infer revised requirements, estimates, assumptions or next steps.
+
+### Review after an answer
+
+`answer_question` records evidence and removes the answered question. Its `reviewRequired` response lists sections to review, including the summary: no other section is automatically rewritten. Update affected sections using the current brief version, then read the entire document back to look for contradictions. The checklist is guidance, not a semantic validator. A valid source quote, zero pending questions or successful tool calls do not prove that the scope is consistent, complete or correctly estimated. The professional must review the content before approval.
 
 ## Authentication
 
@@ -56,14 +70,19 @@ Only SHA-256 hashes of keys and tokens are stored.
 
 Replace `https://api.example.com` with your `PUBLIC_API_URL`.
 
-### ChatGPT (developer mode / Apps)
+### ChatGPT (custom MCP plugin)
 
-ChatGPT custom connectors support OAuth or no auth (no static header field), so use OAuth:
+ScopeProfit already exposes its 15 tools over Streamable HTTP with OAuth. It does not need a second MCP implementation or a paid backend AI key when ChatGPT drafts sections itself. A custom connection is not a public app-directory listing.
 
-1. In ChatGPT open **Settings → Apps & Connectors → Advanced** and enable **Developer mode** (paid plan; on Business/Enterprise/Edu a workspace admin must allow custom connectors). Labels change between ChatGPT releases; look for "Create" / "Add custom connector".
-2. Create a connector: name `ScopeProfit`, MCP server URL `https://api.example.com/api/mcp`, authentication **OAuth**. Leave client id/secret empty: ChatGPT registers itself via `/register`.
-3. ChatGPT opens the ScopeProfit consent page: paste an API key created with `mcp:keys create` and click **Allow access**.
-4. In a chat, enable the connector and ask, for example: _"Create a ScopeProfit project for Acme's booking app and add this client brief: …"_.
+OpenAI's current [connection guide](https://help.openai.com/en/articles/12584461-connecting-custom-mcp-servers-in-chatgpt) lists full custom MCP support on ChatGPT web for Business and Enterprise/Edu, subject to workspace permissions. Business requires an admin/owner; Enterprise/Edu may delegate creation through RBAC. Do not assume every Free/Plus account can add this server. Availability and labels can change; check the linked guide and the intended account.
+
+1. Prepare your own backend with the [self-host guide](self-host-chatgpt.md). Use its public HTTPS MCP URL, for example `https://api.example.com/api/mcp`. Do not paste a local stdio command into ChatGPT.
+2. In ChatGPT open **Plugins → + → Add custom MCP server**. Enter a name and the server URL. Use **OAuth**, not unauthenticated access. The current flow does not require enabling Developer Mode first; legacy accounts may show **Apps → Create** instead.
+3. Use dynamic client registration (DCR): ScopeProfit exposes `/register`. The ScopeProfit consent page asks for the API key provisioned by the installation operator. Confirm the API hostname before entering it, then allow access. Do not paste the key into a chat.
+4. Review the discovered tools and install the plugin. Start a chat, type `@` and select it. First ask it to call `list_projects`; confirm only the intended action.
+5. For host-led drafting, explicitly use `add_client_input` with `analyze: false`, then `update_scope_section`. This avoids backend Gemini/gateway calls. Do not request client email delivery unless configured and approved.
+
+OpenAI also documents Secure MCP Tunnel for private/local servers. That is a separate setup, not configured or tested by this repository's HTTPS overlay. Creating this connection, a live OAuth round-trip and directory distribution are separate checks; protocol compatibility alone is not a tested ChatGPT integration.
 
 ### Claude (claude.ai / Claude Desktop connectors)
 

@@ -17,7 +17,7 @@ export const schema = {
 export const metadata: ToolMetadata = {
   name: 'answer_question',
   description:
-    "Record the client's answer to a pending question: stores it as a client message, removes the question from the brief and regenerates the document.",
+    "Record the client's answer to a pending question: stores it as a client message, removes the question from the brief and saves a draft. Returns reviewRequired sections: review the summary and every other section against the answer, update affected sections, and read back the full document. Other content is not rewritten or semantically validated.",
   annotations: { ...write, title: 'Answer a pending question' },
 };
 

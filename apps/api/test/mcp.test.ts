@@ -251,18 +251,22 @@ test('a full scoping flow runs end to end through MCP tools', dbOnly, async () =
   try {
     const created = await data<{ projectId: string }>('create_project', {
       name: 'Turnos para veterinaria',
+      client_name: 'Veterinaria de ejemplo',
       client_email: 'cliente@example.com',
     });
     const projectId = created.projectId;
 
     const clientText =
       'Quiero que los clientes reserven turnos online y reciban un recordatorio por WhatsApp.';
-    const added = await data<{ added: { messageId: string; kind: string }[] }>('add_client_input', {
-      project_id: projectId,
-      text: clientText,
-      image_urls: [`${imageBase}/redirect`],
-      analyze: false,
-    });
+    const added = await data<{ added: { messageId: string; kind: string }[]; agentStatus: string }>(
+      'add_client_input',
+      {
+        project_id: projectId,
+        text: clientText,
+        image_urls: [`${imageBase}/redirect`],
+      },
+    );
+    assert.equal(added.agentStatus, 'idle');
     assert.deepEqual(
       added.added.map((m) => m.kind),
       ['text', 'image'],
@@ -402,12 +406,17 @@ test('a full scoping flow runs end to end through MCP tools', dbOnly, async () =
       'ESTIMATE_BLOCKED',
     );
 
-    const answered = await data<{ briefVersion: number }>('answer_question', {
-      project_id: projectId,
-      question_id: 'Q1',
-      answer: 'Una sola sucursal.',
-    });
+    const answered = await data<{ briefVersion: number; reviewRequired: { sections: string[] } }>(
+      'answer_question',
+      {
+        project_id: projectId,
+        question_id: 'Q1',
+        answer: 'Una sola sucursal.',
+      },
+    );
     assert.equal(answered.briefVersion, version + 1);
+    assert.ok(answered.reviewRequired.sections.includes('summary'));
+    assert.ok(answered.reviewRequired.sections.includes('acceptanceCriteria'));
 
     const tldr = await data<{
       blockingQuestions: number;
@@ -420,6 +429,7 @@ test('a full scoping flow runs end to end through MCP tools', dbOnly, async () =
       project_id: projectId,
     });
     assert.equal(doc.template, '7.1');
+    assert.ok(doc.markdown.includes('Cliente: Veterinaria de ejemplo'));
     for (const heading of ['## 1.', '## 2.', '## 3.', '## 4.', '## 5. Alcance', '## 6.', '## 7.'])
       assert.ok(doc.markdown.includes(heading), heading);
     assert.ok(doc.markdown.includes('Fuente: "reserven turnos online"'));
