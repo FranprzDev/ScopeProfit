@@ -257,12 +257,15 @@ test('a full scoping flow runs end to end through MCP tools', dbOnly, async () =
 
     const clientText =
       'Quiero que los clientes reserven turnos online y reciban un recordatorio por WhatsApp.';
-    const added = await data<{ added: { messageId: string; kind: string }[] }>('add_client_input', {
-      project_id: projectId,
-      text: clientText,
-      image_urls: [`${imageBase}/redirect`],
-      analyze: false,
-    });
+    const added = await data<{ added: { messageId: string; kind: string }[]; agentStatus: string }>(
+      'add_client_input',
+      {
+        project_id: projectId,
+        text: clientText,
+        image_urls: [`${imageBase}/redirect`],
+      },
+    );
+    assert.equal(added.agentStatus, 'idle');
     assert.deepEqual(
       added.added.map((m) => m.kind),
       ['text', 'image'],

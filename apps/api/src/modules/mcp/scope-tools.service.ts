@@ -200,7 +200,7 @@ export class ScopeToolsService {
         metadata: { messages: created.length, images: images.length, authorRole },
       },
     });
-    const analyze = input.analyze ?? true;
+    const analyze = input.analyze ?? false;
     if (analyze) await this.agent.enqueue(project.id);
     const fresh = await this.db.project.findUniqueOrThrow({ where: { id: project.id } });
     return {
