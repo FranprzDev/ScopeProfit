@@ -30,8 +30,14 @@ Domain errors come back as tool results with `isError: true` and a stable code (
 
 ### Two ways to fill the scope
 
-1. **Host LLM drafts the scope** (no extra AI key): call `add_client_input` with `analyze: false`, then fill sections with `update_scope_section`. Requirements are rejected unless `source` is an exact quote of the message referenced by `sourceMessageId`.
-2. **Server-side agent** (LangGraph + Gemini, as in v1): keep `analyze: true`; the background worker re-diagnoses the project. Requires the owner's Gemini key (`mcp:keys set-ai-key`) and `AI_GATEWAY_API_KEY`. Poll `get_project` until `agentStatus` is `idle`.
+1. **Host LLM drafts the scope** (no extra AI key): call `add_client_input` (default `analyze: false`), then fill sections with `update_scope_section`. Requirements are rejected unless `source` is an exact quote of the message referenced by `sourceMessageId`.
+2. **Server-side agent** (LangGraph + Gemini, as in v1): explicitly set `analyze: true`; the background worker re-diagnoses the project. Requires the owner's Gemini key (`mcp:keys set-ai-key`) and `AI_GATEWAY_API_KEY`. Poll `get_project` until `agentStatus` is `idle`.
+
+### Input analysis default
+
+`add_client_input` stores evidence without queuing server-side analysis unless `analyze: true` is explicitly passed. Existing callers that relied on omitted `analyze` to run the background agent must now pass `true`. This keeps the host-first MCP workflow usable without an extra AI key and avoids a second provider call by default. Configured server-side analysis remains available.
+
+After `answer_question`, review the answer and update affected sections with `update_scope_section` before approval. The tool removes the answered question and saves a draft; it does not infer revised requirements, estimates, assumptions or next steps.
 
 ## Authentication
 
