@@ -44,6 +44,10 @@ pnpm run dev:landing              # landing at http://localhost:3000
 
 Then connect a client as described in `docs/mcp.md` (ChatGPT, Claude, Claude Code, Cursor, OpenAI Responses API, MCP Inspector, raw HTTP).
 
+## Self-hosting for ChatGPT
+
+Use the opt-in HTTPS overlay and host-led drafting setup in [docs/self-host-chatgpt.md](docs/self-host-chatgpt.md). The MCP/OAuth server already exists; creating a custom ChatGPT connection still requires an eligible account/workspace and a verified live endpoint. No hosted backend or public directory listing is included.
+
 ## Typical flow
 
 1. `create_project` → `add_client_input` with the client's words and image URLs.
