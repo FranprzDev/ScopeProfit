@@ -8,23 +8,23 @@ ScopeProfit runs as a [Model Context Protocol](https://modelcontextprotocol.io) 
 
 ## Tools
 
-| Tool                     | Kind        | What it does                                                                                           |
-| ------------------------ | ----------- | ------------------------------------------------------------------------------------------------------ |
-| `list_projects`          | read        | Projects with status, TLDR and blocking-question count (archived hidden unless asked).                 |
-| `create_project`         | write       | New project (`name`, optional `client_email`).                                                         |
-| `get_project`            | read        | Lifecycle + agent status, brief/document versions, counts. Use it to poll.                             |
-| `add_client_input`       | write       | Client text and/or public image URLs (JPEG/PNG/WebP, ≤10 MB, ≤5), stored verbatim as citable messages. |
-| `get_conversation`       | read        | Stored messages with ids (needed to cite requirement sources).                                         |
-| `get_tldr`               | read        | Summary, requirement count, top blocking questions, red risks, total hour range.                       |
-| `list_pending_questions` | read        | Open questions; `blocksEstimate=true` blocks approval.                                                 |
-| `answer_question`        | write       | Stores the client's answer as a message, removes the question, regenerates the document.               |
-| `get_scope_document`     | read        | Template 7.1 rendered as Markdown + structured brief + `briefVersion`.                                 |
-| `update_scope_section`   | write       | Replaces one section (optimistic lock on `expected_version`), validates it, saves a document draft.    |
-| `approve_scope`          | destructive | Approves the current document version; optionally emails PDF + DOCX to the client (Brevo).             |
-| `export_document`        | write       | Signed, expiring download URL for `pdf`, `docx` or `md`; can regenerate and persist the document.      |
-| `archive_project`        | destructive | Archives (locks) a project.                                                                            |
-| `log_change_request`     | write       | Logs a post-scope change, classified `in_scope` / `out_of_scope` / `ambiguous`.                        |
-| `list_change_requests`   | read        | Change requests of a project.                                                                          |
+| Tool                     | Kind        | What it does                                                                                                     |
+| ------------------------ | ----------- | ---------------------------------------------------------------------------------------------------------------- |
+| `list_projects`          | read        | Projects with status, TLDR and blocking-question count (archived hidden unless asked).                           |
+| `create_project`         | write       | New project (`name`, optional `client_email`).                                                                   |
+| `get_project`            | read        | Lifecycle + agent status, brief/document versions, counts. Use it to poll.                                       |
+| `add_client_input`       | write       | Client text and/or public image URLs (JPEG/PNG/WebP, ≤10 MB, ≤5), stored verbatim as citable messages.           |
+| `get_conversation`       | read        | Stored messages with ids (needed to cite requirement sources).                                                   |
+| `get_tldr`               | read        | Summary, requirement count, top blocking questions, red risks, total hour range.                                 |
+| `list_pending_questions` | read        | Open questions; `blocksEstimate=true` blocks approval.                                                           |
+| `answer_question`        | write       | Stores the client's answer as a message, removes the question, regenerates the document.                         |
+| `get_scope_document`     | read        | Template 7.1 rendered as Markdown + structured brief + `briefVersion`.                                           |
+| `update_scope_section`   | write       | Replaces one section (optimistic lock on `expected_version`), validates it, saves a document draft.              |
+| `approve_scope`          | destructive | Approves the current document version without email by default; explicit send_to_client:true delivers via Brevo. |
+| `export_document`        | write       | Signed, expiring download URL for `pdf`, `docx` or `md`; can regenerate and persist the document.                |
+| `archive_project`        | destructive | Archives (locks) a project.                                                                                      |
+| `log_change_request`     | write       | Logs a post-scope change, classified `in_scope` / `out_of_scope` / `ambiguous`.                                  |
+| `list_change_requests`   | read        | Change requests of a project.                                                                                    |
 
 Domain errors come back as tool results with `isError: true` and a stable code (`VERSION_CONFLICT`, `PROJECT_LOCKED`, `ESTIMATE_BLOCKED`, `INVALID_REQUIREMENT_SOURCE`, …) so the model can recover. Tools carry `readOnlyHint` / `destructiveHint` annotations so hosts can skip or require confirmation.
 
@@ -154,6 +154,10 @@ curl -s https://api.example.com/api/mcp \
 - `STORAGE_ROOT` must be a persistent volume (uploads and generated PDF/DOCX).
 - Optional: `MCP_RATE_LIMIT_PER_MINUTE` (default 120 per IP), `MCP_EXPORT_URL_TTL_MINUTES` (default 60), `DIAGRAM_STYLE` (default `clean`; set `sketch` for hand-drawn pencil-style diagrams in exported PDF/DOCX documents).
 - Image URLs are fetched server-side with SSRF guards (public addresses only, https only, ≤3 redirects, ≤10 MB, image content types, re-validated with `sharp`). `MCP_ALLOW_HTTP_IMAGE_URLS` / `MCP_ALLOW_PRIVATE_IMAGE_URLS` exist for local testing only; never enable them in production.
+
+## Approval is separate from delivery
+
+`approve_scope` defaults to approval only: it locks the reviewed document and returns export links without emailing anyone. Pass `send_to_client: true` only after the professional confirms delivery and the client email. Existing clients relying on the old implicit email behavior must now set this flag explicitly. API keys and OAuth do not themselves authorize client communication. REST document approval behavior is unchanged.
 
 ## Optional quotation validity
 

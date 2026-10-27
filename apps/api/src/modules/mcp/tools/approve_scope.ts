@@ -11,14 +11,19 @@ export const schema = {
     .int()
     .min(1)
     .describe('Current document version (get_project or get_scope_document)'),
-  send_to_client: z.boolean().optional().describe('Email PDF + DOCX to the client (default true)'),
+  send_to_client: z
+    .boolean()
+    .optional()
+    .describe(
+      'Email PDF + DOCX only when explicitly requested by the professional (default false)',
+    ),
   client_email: z.string().email().optional().describe('Client email, if the project has none yet'),
 };
 
 export const metadata: ToolMetadata = {
   name: 'approve_scope',
   description:
-    'Approve the current document version. Locks the project and, by default, emails the PDF and editable DOCX to the client. Requires: no blocking questions, no red risk without mitigation, all sections filled. Ask the user for confirmation first.',
+    'Approve the current document version. Locks the project without sending email by default. Set send_to_client=true only after the professional explicitly approves the recipient and delivery. Requires: no blocking questions, no red risk without mitigation, all sections filled. Ask the user for confirmation first.',
   annotations: {
     ...{
       readOnlyHint: false,
