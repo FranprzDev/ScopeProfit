@@ -122,8 +122,12 @@ export class ScopeToolsService {
             status: latest.status,
             briefVersion: latest.briefVersion,
             upToDate: latest.briefVersion === project.brief?.version,
+            matchesBriefVersion: latest.briefVersion === project.brief?.version,
           }
         : null,
+      inputCoverageVerified: false,
+      reviewGuidance:
+        'Document freshness only compares document and brief versions. Read the conversation and check all affected sections; input coverage is not verified.',
       counts: {
         messages,
         requirements: brief.requirements.length,
@@ -344,6 +348,10 @@ export class ScopeToolsService {
       documentVersion: latest?.version ?? null,
       documentStatus: latest?.status ?? null,
       documentUpToDate: latest ? latest.briefVersion === project.brief?.version : false,
+      documentMatchesBriefVersion: latest ? latest.briefVersion === project.brief?.version : false,
+      inputCoverageVerified: false,
+      reviewGuidance:
+        'Document freshness only compares document and brief versions. Read the conversation and check all affected sections; input coverage is not verified.',
       markdown: document,
       brief,
     };
@@ -452,6 +460,9 @@ export class ScopeToolsService {
       projectId: project.id,
       version,
       format: input.format,
+      inputCoverageVerified: false,
+      reviewGuidance:
+        'Exporting does not verify that client inputs are reflected in this document. Review the conversation and the exported version before sharing.',
       ...exportUrl(project.id, version, input.format),
     };
   }
