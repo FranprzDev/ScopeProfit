@@ -95,6 +95,7 @@ export interface Project {
   id: string;
   name: string;
   clientEmail: string | null;
+  clientName: string | null;
   status: ProjectStatus;
   agentStatus: AgentStatus;
   createdAt: string;

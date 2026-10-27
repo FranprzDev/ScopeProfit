@@ -79,15 +79,24 @@ export class ScopeToolsService {
     };
   }
 
-  async createProject(user: User, input: { name: string; clientEmail?: string }) {
+  async createProject(
+    user: User,
+    input: { name: string; clientEmail?: string; clientName?: string },
+  ) {
     const name = input.name.trim();
     if (!name) fail('INVALID_PROJECT_NAME', 400, 'Project name is required');
-    const project = await this.projects.create(user, name.slice(0, 200), input.clientEmail);
+    const project = await this.projects.create(
+      user,
+      name.slice(0, 200),
+      input.clientEmail,
+      input.clientName,
+    );
     return {
       projectId: project.id,
       name: project.name,
       status: project.status,
       clientEmail: project.clientEmail,
+      clientName: project.clientName,
       legacyClientChatUrl: project.clientUrl,
       next: 'Send what the client said (text and image URLs) with add_client_input.',
     };
@@ -105,6 +114,7 @@ export class ScopeToolsService {
       agentStatus: project.agentStatus,
       agentError: project.agentError,
       clientEmail: project.clientEmail,
+      clientName: project.clientName,
       briefVersion: project.brief?.version ?? 0,
       document: latest
         ? {
@@ -304,7 +314,7 @@ export class ScopeToolsService {
     const latest = project.document?.versions[0];
     const document = markdown({
       projectName: project.name,
-      clientName: project.clientEmail || 'Cliente',
+      clientName: project.clientName || project.clientEmail || 'Cliente',
       author: user.email || 'Profesional',
       date: new Date().toISOString(),
       version: latest?.version ?? 0,

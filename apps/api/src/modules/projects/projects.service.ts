@@ -10,13 +10,17 @@ export class ProjectsService {
     private db: PrismaService,
     private auth: AuthService,
   ) {}
-  async create(user: User, name: string, clientEmail?: string) {
+  async create(user: User, name: string, clientEmail?: string, clientName?: string) {
+    const displayName = clientName?.trim();
+    if (displayName !== undefined && (!displayName || displayName.length > 200))
+      fail('INVALID_CLIENT_NAME', 400, 'Client name must be between 1 and 200 characters');
     const raw = token();
     const project = await this.db.project.create({
       data: {
         name,
         ownerId: user.id,
         clientEmail: clientEmail?.toLowerCase(),
+        clientName: displayName,
         brief: { create: { data: emptyBrief() as unknown as Prisma.InputJsonValue } },
         document: { create: {} },
         links: { create: { tokenHash: hash(raw), encryptedToken: encrypt(raw) } },
@@ -59,6 +63,7 @@ export class ProjectsService {
         id: true,
         name: true,
         clientEmail: true,
+        clientName: true,
         status: true,
         agentStatus: true,
         createdAt: true,

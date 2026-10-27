@@ -22,6 +22,7 @@ import { validateBrief } from '../brief/brief.validation';
 class CreateProjectDto {
   @IsString() @MaxLength(200) name!: string;
   @IsOptional() @IsEmail() clientEmail?: string;
+  @IsOptional() @IsString() @MaxLength(200) clientName?: string;
 }
 class LinkActionDto {
   @IsIn(['regenerate', 'revoke', 'expire']) action!: 'regenerate' | 'revoke' | 'expire';
@@ -54,7 +55,7 @@ export class ProjectsController {
 
   @Post() async create(@Req() req: Request, @Body() body: CreateProjectDto) {
     const user = await this.user(req);
-    return ok(await this.projects.create(user, body.name, body.clientEmail));
+    return ok(await this.projects.create(user, body.name, body.clientEmail, body.clientName));
   }
 
   @Get() async list(
@@ -159,6 +160,7 @@ export class ProjectsController {
       id: project.id,
       name: project.name,
       clientEmail: project.clientEmail,
+      clientName: project.clientName,
       status: project.status,
       agentStatus: project.agentStatus,
       createdAt: project.createdAt.toISOString(),
