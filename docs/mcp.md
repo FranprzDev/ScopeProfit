@@ -43,6 +43,10 @@ Pass `client_name` to `create_project` when the client or company name is known.
 
 After `answer_question`, review the answer and update affected sections with `update_scope_section` before approval. The tool removes the answered question and saves a draft; it does not infer revised requirements, estimates, assumptions or next steps.
 
+### Review after an answer
+
+`answer_question` records evidence and removes the answered question. Its `reviewRequired` response lists sections to review, including the summary: no other section is automatically rewritten. Update affected sections using the current brief version, then read the entire document back to look for contradictions. The checklist is guidance, not a semantic validator. A valid source quote, zero pending questions or successful tool calls do not prove that the scope is consistent, complete or correctly estimated. The professional must review the content before approval.
+
 ## Authentication
 
 Every request needs `Authorization: Bearer <token>`. Two token types are accepted:
