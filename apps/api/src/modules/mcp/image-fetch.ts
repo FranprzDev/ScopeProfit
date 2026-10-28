@@ -87,6 +87,8 @@ function send({ url, address }: ValidatedUrl): Promise<IncomingMessage> {
       },
       resolve,
     );
+    const deadline = setTimeout(() => req.destroy(new Error('deadline')), 15_000);
+    req.on('close', () => clearTimeout(deadline));
     req.on('timeout', () => req.destroy(new Error('timeout')));
     req.on('error', reject);
     req.end();
