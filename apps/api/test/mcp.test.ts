@@ -750,3 +750,58 @@ test(
     );
   },
 );
+
+test('mixed inputs are atomic and recheck project lock after image downloads', dbOnly, async () => {
+  process.env.MCP_ALLOW_HTTP_IMAGE_URLS = 'true';
+  process.env.MCP_ALLOW_PRIVATE_IMAGE_URLS = 'true';
+  const invalid = await tools.createProject(owner, { name: 'Restaurant floorplan integrity' });
+  let release: (() => void) | undefined;
+  let reached: (() => void) | undefined;
+  const waiting = new Promise<void>((resolve) => {
+    reached = resolve;
+  });
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const png = await sharp({ create: { width: 8, height: 8, channels: 3, background: '#ff0000' } })
+    .png()
+    .toBuffer();
+  const server = createServer(async (req, res) => {
+    if (req.url === '/delayed') {
+      reached!();
+      await gate;
+    }
+    res.writeHead(200, { 'content-type': 'image/png' });
+    res.end(req.url === '/invalid' ? Buffer.from('not an image') : png);
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  try {
+    await assert.rejects(
+      tools.addClientInput(owner, {
+        projectId: invalid.projectId,
+        text: '40 seats',
+        imageUrls: [base + '/invalid'],
+      }),
+      withCode('INVALID_IMAGE'),
+    );
+    assert.equal(await db.message.count({ where: { projectId: invalid.projectId } }), 0);
+    const locked = await tools.createProject(owner, { name: 'Factory archive during download' });
+    const adding = tools.addClientInput(owner, {
+      projectId: locked.projectId,
+      text: 'Late evidence',
+      imageUrls: [base + '/delayed'],
+    });
+    await waiting;
+    await tools.archiveProject(owner, locked.projectId);
+    release!();
+    await assert.rejects(adding, withCode('PROJECT_LOCKED'));
+    assert.equal(await db.message.count({ where: { projectId: locked.projectId } }), 0);
+    assert.equal(await db.file.count({ where: { projectId: locked.projectId } }), 0);
+  } finally {
+    release!();
+    delete process.env.MCP_ALLOW_HTTP_IMAGE_URLS;
+    delete process.env.MCP_ALLOW_PRIVATE_IMAGE_URLS;
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+});

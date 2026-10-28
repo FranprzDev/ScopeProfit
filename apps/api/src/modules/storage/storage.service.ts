@@ -1,6 +1,6 @@
 import { Injectable, HttpException } from '@nestjs/common';
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdir, readFile, writeFile, rename } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, rename, rm } from 'node:fs/promises';
 import { resolve, relative, dirname, extname } from 'node:path';
 import sharp from 'sharp';
 
@@ -24,6 +24,9 @@ export class StorageService {
       checksum: createHash('sha256').update(content).digest('hex'),
       size: content.length,
     };
+  }
+  remove(path: string) {
+    return rm(this.path(path), { force: true });
   }
   read(path: string) {
     return readFile(this.path(path));
