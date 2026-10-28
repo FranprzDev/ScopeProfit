@@ -17,6 +17,12 @@ export const schema = {
     .describe(
       'Email PDF + DOCX only when explicitly requested by the professional (default false)',
     ),
+  manual_edits_reviewed: z
+    .boolean()
+    .optional()
+    .describe(
+      'Explicit confirmation that the professional reviewed all carried-forward manual terms against this document version; never infer from brief freshness',
+    ),
   client_email: z.string().email().optional().describe('Client email, if the project has none yet'),
 };
 
@@ -42,6 +48,7 @@ export default async function approve_scope(args: InferSchema<typeof schema>) {
       documentVersion: args.document_version,
       sendToClient: args.send_to_client,
       clientEmail: args.client_email,
+      manualEditsReviewed: args.manual_edits_reviewed,
     }),
   );
 }
