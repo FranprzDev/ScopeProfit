@@ -1408,3 +1408,33 @@ test('change-request classifications expose the brief version they describe', db
   assert.equal(listed.changeRequests[0].baseBriefVersion, 1);
   assert.equal(listed.changeRequests[0].classificationCurrent, false);
 });
+
+test(
+  'question wording is not misattributed as verbatim client answer evidence',
+  dbOnly,
+  async () => {
+    const created = await tools.createProject(owner, { name: 'Synthetic data-residency scope' });
+    const updated = await tools.updateScopeSection(owner, {
+      projectId: created.projectId,
+      expectedVersion: 0,
+      section: 'questions',
+      value: [
+        {
+          id: 'Q1',
+          question: 'May records be sent abroad?',
+          reason: 'Data residency',
+          blocksEstimate: true,
+        },
+      ],
+    });
+    const answer = await tools.answerQuestion(owner, {
+      projectId: created.projectId,
+      questionId: 'Q1',
+      answer: 'No, keep all records local.',
+      expectedVersion: updated.briefVersion,
+    });
+    const message = await db.message.findUniqueOrThrow({ where: { id: answer.messageId } });
+    assert.equal(message.authorRole, 'client');
+    assert.equal(message.content, 'No, keep all records local.');
+  },
+);
