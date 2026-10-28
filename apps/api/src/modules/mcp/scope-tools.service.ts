@@ -660,13 +660,20 @@ export class ScopeToolsService {
   }
 
   async listChangeRequests(user: User, projectId: string) {
+    const project = await this.project(user, projectId);
+    const briefVersion = project.brief?.version ?? 0;
     const changes = await this.changes.list(projectId, user);
     return {
       projectId,
+      briefVersion,
+      reviewGuidance:
+        'Classification is a keyword-based suggestion tied to baseBriefVersion, not a semantic verdict. Reassess stale classifications against the current scope before deciding.',
       changeRequests: changes.map((c) => ({
         changeRequestId: c.id,
         request: c.request,
         classification: c.classification,
+        baseBriefVersion: c.baseBriefVersion,
+        classificationCurrent: c.baseBriefVersion === briefVersion,
         status: c.status,
         createdAt: c.createdAt.toISOString(),
       })),

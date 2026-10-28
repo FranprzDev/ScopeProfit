@@ -6,7 +6,8 @@ export const schema = { project_id: projectId };
 
 export const metadata: ToolMetadata = {
   name: 'list_change_requests',
-  description: 'Change requests logged for a project with their classification and status.',
+  description:
+    'Change requests with status, original classification and baseBriefVersion. classificationCurrent=false means the scope changed; reassess against the current brief. Classifications are keyword suggestions, not semantic decisions.',
   annotations: { ...readOnly, title: 'List change requests' },
 };
 
