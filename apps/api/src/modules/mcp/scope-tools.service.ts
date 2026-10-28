@@ -157,63 +157,87 @@ export class ScopeToolsService {
     if (!text && !imageUrls.length) fail('EMPTY_INPUT', 400, 'Provide text, image_urls or both');
     if (text) this.storage.validateText(text);
     const images = await Promise.all(imageUrls.map((url) => fetchImage(url)));
-    const authorRole = input.author ?? 'client';
-    const created: { messageId: string; kind: 'text' | 'image'; fileId?: string }[] = [];
-    if (text) {
-      const message = await this.db.message.create({
-        data: {
-          projectId: project.id,
-          threadId: project.id,
-          authorId: user.id,
-          authorRole,
-          content: text,
-        },
-      });
-      created.push({ messageId: message.id, kind: 'text' });
-    }
+    const prepared = [];
     for (const image of images) {
-      const { mimeType, size } = await this.storage.validateImage({
+      const validated = await this.storage.validateImage({
         buffer: image.buffer,
         mimetype: image.mimeType,
         originalname: image.originalname,
         size: image.buffer.length,
       } as Express.Multer.File);
-      const extension = image.originalname.slice(image.originalname.lastIndexOf('.'));
-      const written = await this.storage.write(
-        `${project.id}/uploads/${randomUUID()}${extension}`,
-        image.buffer,
-      );
-      const message = await this.db.message.create({
-        data: {
-          projectId: project.id,
-          threadId: project.id,
-          authorId: user.id,
-          authorRole,
-          content: '[imagen]',
-        },
-      });
-      const file = await this.db.file.create({
-        data: {
-          projectId: project.id,
-          messageId: message.id,
-          name: image.originalname,
-          mimeType,
-          size,
-          path: written.path,
-          checksum: written.checksum,
-        },
-      });
-      created.push({ messageId: message.id, kind: 'image', fileId: file.id });
+      prepared.push({ ...image, ...validated });
     }
-    await this.db.auditEvent.create({
-      data: {
-        projectId: project.id,
-        actorId: user.id,
-        action: 'mcp.input_added',
-        result: 'success',
-        metadata: { messages: created.length, images: images.length, authorRole },
-      },
-    });
+    const uploads: (Awaited<ReturnType<typeof fetchImage>> &
+      Awaited<ReturnType<StorageService['write']>>)[] = [];
+    const authorRole = input.author ?? 'client';
+    const created = await (async () => {
+      try {
+        for (const image of prepared) {
+          const extension = image.originalname.slice(image.originalname.lastIndexOf('.'));
+          const written = await this.storage.write(
+            `${project.id}/uploads/${randomUUID()}${extension}`,
+            image.buffer,
+          );
+          uploads.push({ ...image, ...written });
+        }
+        return await this.db.$transaction(async (tx) => {
+          const editable = await tx.project.updateMany({
+            where: { id: project.id, status: { notIn: LOCKED } },
+            data: { updatedAt: new Date() },
+          });
+          if (!editable.count) fail('PROJECT_LOCKED', 409, 'Project can no longer be edited');
+          const added: { messageId: string; kind: 'text' | 'image'; fileId?: string }[] = [];
+          if (text) {
+            const message = await tx.message.create({
+              data: {
+                projectId: project.id,
+                threadId: project.id,
+                authorId: user.id,
+                authorRole,
+                content: text,
+              },
+            });
+            added.push({ messageId: message.id, kind: 'text' });
+          }
+          for (const image of uploads) {
+            const message = await tx.message.create({
+              data: {
+                projectId: project.id,
+                threadId: project.id,
+                authorId: user.id,
+                authorRole,
+                content: '[imagen]',
+              },
+            });
+            const file = await tx.file.create({
+              data: {
+                projectId: project.id,
+                messageId: message.id,
+                name: image.originalname,
+                mimeType: image.mimeType,
+                size: image.size,
+                path: image.path,
+                checksum: image.checksum,
+              },
+            });
+            added.push({ messageId: message.id, kind: 'image', fileId: file.id });
+          }
+          await tx.auditEvent.create({
+            data: {
+              projectId: project.id,
+              actorId: user.id,
+              action: 'mcp.input_added',
+              result: 'success',
+              metadata: { messages: added.length, images: images.length, authorRole },
+            },
+          });
+          return added;
+        });
+      } catch (error) {
+        await Promise.all(uploads.map((image) => this.storage.remove(image.path)));
+        throw error;
+      }
+    })();
     const analyze = input.analyze ?? false;
     if (analyze) await this.agent.enqueue(project.id);
     const fresh = await this.db.project.findUniqueOrThrow({ where: { id: project.id } });
