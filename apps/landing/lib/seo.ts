@@ -5,9 +5,9 @@ export const SITE_NAME = 'ScopeProfit';
 export const SITE_LOCALE = 'es_AR';
 export const SITE_LANGUAGE = 'es';
 
-export const TITLE = 'ScopeProfit — Servidor MCP para cerrar el alcance antes de cotizar';
+export const TITLE = 'ScopeProfit | Del pedido al alcance';
 export const DESCRIPTION =
-  'Scope-to-Profit es un servidor MCP: desde ChatGPT, Claude, Cursor o tu propio agente convertís la idea desordenada de un cliente en un documento de alcance versionado, con requerimientos citados, preguntas bloqueantes, riesgos y rango de horas. Exporta PDF y Word.';
+  'ScopeProfit le da herramientas a tu agente de IA para convertir pedidos de clientes en un alcance claro, con requisitos citados y exportación a PDF y Word. Open source y autohospedado.';
 
 type OpenGraph = NonNullable<Metadata['openGraph']>;
 

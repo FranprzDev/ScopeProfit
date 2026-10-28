@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 
-export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://scopeprofit.app';
+export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://scopeprofit.vercel.app';
 
 /** Every public route of the landing. Add a member here before adding a page. */
 export enum SitePath {
@@ -20,7 +20,7 @@ export interface SitePage {
 export const SITE_PAGES: Record<SitePath, SitePage> = {
   [SitePath.Home]: {
     path: SitePath.Home,
-    lastModified: '2026-10-13',
+    lastModified: '2026-10-27',
     changeFrequency: 'weekly',
     priority: 1,
   },
