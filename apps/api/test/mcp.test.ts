@@ -1305,3 +1305,31 @@ test('large screenshot reads return a labeled bounded preview', dbOnly, async ()
   assert.ok(Buffer.from(result.data, 'base64').length < 2 * 1024 * 1024);
   assert.equal(result.originalBytes, original.length);
 });
+
+test('an image trickle cannot extend the request deadline indefinitely', dbOnly, async () => {
+  process.env.MCP_ALLOW_HTTP_IMAGE_URLS = 'true';
+  process.env.MCP_ALLOW_PRIVATE_IMAGE_URLS = 'true';
+  const server = createServer((_req, res) => {
+    res.writeHead(200, { 'content-type': 'image/png' });
+    res.write(Buffer.from([137]));
+    const pulse = setInterval(() => res.write(Buffer.from([0])), 500);
+    const finish = setTimeout(() => res.end(), 18_000);
+    res.on('close', () => {
+      clearInterval(pulse);
+      clearTimeout(finish);
+    });
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const started = Date.now();
+  try {
+    await assert.rejects(
+      fetchImage(`http://127.0.0.1:${(server.address() as AddressInfo).port}/trickle`),
+      withCode('IMAGE_FETCH_FAILED'),
+    );
+    assert.ok(Date.now() - started < 18_000);
+  } finally {
+    delete process.env.MCP_ALLOW_HTTP_IMAGE_URLS;
+    delete process.env.MCP_ALLOW_PRIVATE_IMAGE_URLS;
+    server.close();
+  }
+});
