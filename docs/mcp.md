@@ -224,3 +224,7 @@ The first export or download materializes the saved snapshot. A Markdown-only ex
 When `nextContentOffset` is non-null, call `get_conversation` with the same `project_id`, that `message_id`, and `content_offset: nextContentOffset`. Continue until `nextContentOffset` is null. Concatenate chunks in order to recover exact stored text; a preview is not the entire source. Offsets use UTF-16 code units, not bytes or Unicode code points.
 
 Use `nextCursor` as `before_message_id` for older messages. Message-chunk retrieval and older-page retrieval are separate modes and cannot be combined. Chunks do not change the stored source or source-quote validation.
+
+### Stable project traversal
+
+`list_projects` keeps the default newest-activity-first live view. That view can skip an unseen project if concurrent activity moves it above the cursor. For an exhaustive pass across activity updates, set `order: "created"` on every call and carry `nextCursor` as `cursor`, keeping the same filters. Creation order uses immutable creation time plus ID. Projects created after a pass begins need a fresh pass; changing filters or archiving projects can still change membership.

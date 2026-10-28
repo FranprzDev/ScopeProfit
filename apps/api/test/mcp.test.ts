@@ -983,5 +983,36 @@ test(
     });
     const saved = await db.message.findUniqueOrThrow({ where: { id: answered.messageId } });
     assert.ok(saved.content.endsWith(original));
+
+test(
+  'stable project traversal retains unseen projects after activity updates',
+  dbOnly,
+  async () => {
+    const created = [];
+    for (let i = 0; i < 3; i++)
+      created.push(await tools.createProject(owner, { name: `Stable activity ${i}` }));
+    const first = await tools.listProjects(owner, { order: 'created', limit: 1 });
+    assert.equal(first.projects[0].projectId, created[2].projectId);
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    await tools.addClientInput(owner, {
+      projectId: created[0].projectId,
+      text: 'Later client clarification',
+    });
+    const second = await tools.listProjects(owner, {
+      order: 'created',
+      limit: 1,
+      cursor: first.nextCursor!,
+    });
+    const third = await tools.listProjects(owner, {
+      order: 'created',
+      limit: 1,
+      cursor: second.nextCursor!,
+    });
+    assert.deepEqual(
+      [second.projects[0].projectId, third.projects[0].projectId],
+      [created[1].projectId, created[0].projectId],
+    );
+    const live = await tools.listProjects(owner, { limit: 1 });
+    assert.equal(live.order, 'activity');
   },
 );
