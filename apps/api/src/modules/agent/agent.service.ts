@@ -68,12 +68,20 @@ export class AgentService implements OnModuleInit, OnModuleDestroy {
       await this.db.project.updateMany({
         where: {
           agentStatus: 'running',
+          status: {
+            notIn: [ProjectStatus.approved, ProjectStatus.delivered, ProjectStatus.archived],
+          },
           agentStartedAt: { lt: new Date(Date.now() - 300000) },
         },
         data: { agentStatus: 'pending' },
       });
       const pending = await this.db.project.findMany({
-        where: { agentStatus: 'pending' },
+        where: {
+          agentStatus: 'pending',
+          status: {
+            notIn: [ProjectStatus.approved, ProjectStatus.delivered, ProjectStatus.archived],
+          },
+        },
         take: 5,
         orderBy: { updatedAt: 'asc' },
       });
@@ -91,7 +99,13 @@ export class AgentService implements OnModuleInit, OnModuleDestroy {
   }
   async process(id: string) {
     const claimed = await this.db.project.updateMany({
-      where: { id, agentStatus: 'pending' },
+      where: {
+        id,
+        agentStatus: 'pending',
+        status: {
+          notIn: [ProjectStatus.approved, ProjectStatus.delivered, ProjectStatus.archived],
+        },
+      },
       data: { agentStatus: 'running', agentStartedAt: new Date() },
     });
     if (!claimed.count) return;

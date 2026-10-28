@@ -853,3 +853,15 @@ test(
     assert.ok(exported.buffer.toString().includes(`Autor: ${owner.email}`));
   },
 );
+
+test('the optional analysis worker never claims archived queued projects', dbOnly, async () => {
+  const created = await tools.createProject(owner, { name: 'Archived manufacturing job' });
+  const storage = new StorageService();
+  const worker = new AgentService(db, documents, storage);
+  await worker.enqueue(created.projectId);
+  await tools.archiveProject(owner, created.projectId);
+  await worker.process(created.projectId);
+  const project = await db.project.findUniqueOrThrow({ where: { id: created.projectId } });
+  assert.equal(project.agentStartedAt, null);
+  assert.equal(project.status, ProjectStatus.archived);
+});
