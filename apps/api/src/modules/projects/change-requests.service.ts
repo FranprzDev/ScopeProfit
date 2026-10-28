@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
 import { AuthService } from '../auth/auth.service';
 import { fail } from '../../security';
-import { ChangeClassification, ChangeRequestStatus, User } from '@prisma/client';
+import { ChangeClassification, ChangeRequestStatus, ProjectStatus, User } from '@prisma/client';
 import { validateBrief } from '../brief/brief.validation';
 
 @Injectable()
@@ -26,6 +26,11 @@ export class ChangeRequestsService {
     const excluded = brief.excluded;
     const classification = this.classify(text, included, excluded);
     return this.db.$transaction(async (tx) => {
+      const editable = await tx.project.updateMany({
+        where: { id: projectId, status: { not: ProjectStatus.archived } },
+        data: { updatedAt: new Date() },
+      });
+      if (!editable.count) fail('PROJECT_LOCKED', 409, 'Archived projects are read-only');
       const change = await tx.changeRequest.create({
         data: {
           projectId,
@@ -35,7 +40,6 @@ export class ChangeRequestsService {
           classification,
         },
       });
-      await tx.project.update({ where: { id: projectId }, data: { updatedAt: new Date() } });
       await tx.auditEvent.create({
         data: {
           projectId,
@@ -58,12 +62,16 @@ export class ChangeRequestsService {
     this.auth.professional(user);
     await this.auth.project(user, projectId);
     return this.db.$transaction(async (tx) => {
+      const editable = await tx.project.updateMany({
+        where: { id: projectId, status: { not: ProjectStatus.archived } },
+        data: { updatedAt: new Date() },
+      });
+      if (!editable.count) fail('PROJECT_LOCKED', 409, 'Archived projects are read-only');
       const updated = await tx.changeRequest.updateMany({
         where: { id, projectId, status: ChangeRequestStatus.proposed },
         data: { status },
       });
       if (!updated.count) fail('CHANGE_REQUEST_NOT_FOUND', 404);
-      await tx.project.update({ where: { id: projectId }, data: { updatedAt: new Date() } });
       await tx.auditEvent.create({
         data: {
           projectId,
