@@ -831,6 +831,8 @@ test('TLDR prioritizes blocking questions over optional questions', dbOnly, asyn
   assert.equal(summary.blockingQuestions, 1);
   assert.equal(summary.topQuestions[0].id, 'BLOCK');
   assert.equal(summary.topQuestions[0].blocksEstimate, true);
+});
+
 test('logging a client change refreshes the project activity timestamp', dbOnly, async () => {
   const created = await tools.createProject(owner, {
     name: 'Property maintenance change activity',
