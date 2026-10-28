@@ -216,3 +216,11 @@ The 15 scope tools are file-based xmcp modules in `apps/api/src/modules/mcp/tool
 Updating a section or answering a question saves the brief and a document snapshot in one transaction. The document version still advances, but PDF/DOCX are not rendered while filling sections. `get_scope_document` returns the current Markdown preview without writing export files. Background reanalysis also saves a draft instead of rendering exports.
 
 The first export or download materializes the saved snapshot. A Markdown-only export writes only Markdown; a PDF or DOCX export builds and stores all three formats together. Later exports reuse those files without creating another document version. A failed export leaves the draft intact and can be retried. Historical downloads use their saved snapshot, not the current brief. Approval still validates the selected current version and locks the project; emailing an approved scope generates its attachments if needed.
+
+### Reading long conversations
+
+`get_conversation` bounds each message chunk to 10,000 UTF-16 code units and normally limits a page to 30,000 serialized message characters (a single escaped chunk may be larger). The `limit` argument is a maximum message count, not a guarantee. Every message includes `contentOffset`, `contentLength`, `contentComplete` and `nextContentOffset`.
+
+When `nextContentOffset` is non-null, call `get_conversation` with the same `project_id`, that `message_id`, and `content_offset: nextContentOffset`. Continue until `nextContentOffset` is null. Concatenate chunks in order to recover exact stored text; a preview is not the entire source. Offsets use UTF-16 code units, not bytes or Unicode code points.
+
+Use `nextCursor` as `before_message_id` for older messages. Message-chunk retrieval and older-page retrieval are separate modes and cannot be combined. Chunks do not change the stored source or source-quote validation.
