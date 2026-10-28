@@ -1067,3 +1067,40 @@ test('answering a stale question version does not answer its replacement', dbOnl
     'May records be sent abroad?',
   );
 });
+
+test('concurrent MCP workers initialize checkpoint migrations safely', dbOnly, async () => {
+  const databaseName = `checkpoint_startup_${Date.now()}`;
+  const originalUrl = process.env.DATABASE_URL!;
+  const isolatedUrl = new URL(originalUrl);
+  isolatedUrl.pathname = `/${databaseName}`;
+  await db.$executeRawUnsafe(`CREATE DATABASE ${databaseName}`);
+  const workers = Array.from({ length: 6 }, () => {
+    const connection = new PrismaService({ datasources: { db: { url: isolatedUrl.href } } });
+    const storage = new StorageService();
+    return {
+      connection,
+      worker: new AgentService(
+        connection,
+        new DocumentsService(connection, storage, new EmailService()),
+        storage,
+      ),
+    };
+  });
+  try {
+    process.env.DATABASE_URL = isolatedUrl.href;
+    const results = await Promise.allSettled(workers.map(({ worker }) => worker.onModuleInit()));
+    assert.deepEqual(
+      results.map((result) => result.status),
+      Array(6).fill('fulfilled'),
+    );
+  } finally {
+    process.env.DATABASE_URL = originalUrl;
+    await Promise.all(
+      workers.map(async ({ worker, connection }) => {
+        await worker.onModuleDestroy();
+        await connection.$disconnect();
+      }),
+    );
+    await db.$executeRawUnsafe(`DROP DATABASE ${databaseName}`);
+  }
+});
