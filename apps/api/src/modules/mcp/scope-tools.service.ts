@@ -227,17 +227,43 @@ export class ScopeToolsService {
     };
   }
 
-  async getConversation(user: User, input: { projectId: string; limit?: number }) {
+  async getConversation(
+    user: User,
+    input: { projectId: string; limit?: number; beforeMessageId?: string },
+  ) {
     await this.project(user, input.projectId);
     const limit = Math.min(200, Math.max(1, input.limit ?? 100));
+    const anchor = input.beforeMessageId
+      ? await this.db.message.findFirst({
+          where: { id: input.beforeMessageId, projectId: input.projectId },
+          select: { id: true, createdAt: true },
+        })
+      : null;
+    if (input.beforeMessageId && !anchor)
+      fail('INVALID_CURSOR', 400, 'Cursor must identify a message in this project');
     const messages = await this.db.message.findMany({
-      where: { projectId: input.projectId },
+      where: {
+        projectId: input.projectId,
+        ...(anchor
+          ? {
+              OR: [
+                { createdAt: { lt: anchor.createdAt } },
+                { createdAt: anchor.createdAt, id: { lt: anchor.id } },
+              ],
+            }
+          : {}),
+      },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      take: limit,
+      take: limit + 1,
       include: { files: true },
     });
+    const hasMore = messages.length > limit;
+    if (hasMore) messages.pop();
+    const nextCursor = hasMore ? messages.at(-1)!.id : null;
     return {
       projectId: input.projectId,
+      hasMore,
+      nextCursor,
       messages: messages.reverse().map((m) => ({
         messageId: m.id,
         authorRole: m.authorRole,

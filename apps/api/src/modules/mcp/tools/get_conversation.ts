@@ -13,17 +13,28 @@ export const schema = {
     .max(200)
     .optional()
     .describe('Most recent N messages, default 100'),
+  before_message_id: z
+    .string()
+    .uuid()
+    .optional()
+    .describe(
+      'Return the page of messages older than this message id; omit for the most recent page',
+    ),
 };
 
 export const metadata: ToolMetadata = {
   name: 'get_conversation',
   description:
-    'All stored client/professional/agent messages of a project, oldest first, with message ids. Needed to cite exact sources in requirements.',
+    'A recent page of stored client/professional/agent messages of a project, oldest first within the page, with message ids and a nextCursor used to fetch older messages. Needed to cite exact sources in requirements.',
   annotations: { ...readOnly, title: 'Get project conversation' },
 };
 
 export default async function get_conversation(args: InferSchema<typeof schema>) {
   return executeTool((tools, user) =>
-    tools.getConversation(user, { projectId: args.project_id, limit: args.limit }),
+    tools.getConversation(user, {
+      projectId: args.project_id,
+      limit: args.limit,
+      beforeMessageId: args.before_message_id,
+    }),
   );
 }
