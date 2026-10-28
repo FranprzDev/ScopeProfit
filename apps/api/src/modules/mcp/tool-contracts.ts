@@ -59,8 +59,8 @@ export async function executeTool(
   fn: (tools: ScopeToolsService, user: User) => Promise<ToolResult>,
 ): Promise<CallToolResult> {
   try {
-    const { tools, user } = getScopeToolContext();
-    return result(await fn(tools, user));
+    const { tools, user, authenticate } = getScopeToolContext();
+    return result(await fn(tools, authenticate ? await authenticate() : user));
   } catch (error) {
     return toolError(error);
   }
