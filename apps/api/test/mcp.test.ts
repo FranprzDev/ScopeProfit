@@ -685,3 +685,68 @@ test(
     );
   },
 );
+
+test(
+  'conflicting answers persist only the committed evidence and expose a retryable conflict',
+  dbOnly,
+  async () => {
+    const created = await tools.createProject(owner, { name: 'Health retention race' });
+    await tools.updateScopeSection(owner, {
+      projectId: created.projectId,
+      expectedVersion: 0,
+      section: 'questions',
+      value: [{ id: 'Q1', question: 'Retention period?', reason: 'Policy', blocksEstimate: true }],
+    });
+    const results = await Promise.allSettled(
+      ['30 days', '365 days'].map((answer) =>
+        tools.answerQuestion(owner, { projectId: created.projectId, questionId: 'Q1', answer }),
+      ),
+    );
+    assert.equal(results.filter((result) => result.status === 'fulfilled').length, 1);
+    assert.equal(await db.message.count({ where: { projectId: created.projectId } }), 1);
+    assert.equal((await tools.getProject(owner, created.projectId)).briefVersion, 2);
+    assert.equal(
+      (await tools.listPendingQuestions(owner, { projectId: created.projectId })).questions.length,
+      0,
+    );
+  },
+);
+
+test(
+  'failed approval does not set a destination and mismatched destinations fail explicitly',
+  dbOnly,
+  async () => {
+    const created = await tools.createProject(owner, { name: 'Retail recipient transaction' });
+    await tools.updateScopeSection(owner, {
+      projectId: created.projectId,
+      expectedVersion: 0,
+      section: 'summary',
+      value: 'Inventory',
+    });
+    await assert.rejects(
+      tools.approveScope(owner, {
+        projectId: created.projectId,
+        documentVersion: 999,
+        clientEmail: 'wrong@scopeprofit.test',
+      }),
+      withCode('VERSION_CONFLICT'),
+    );
+    assert.equal((await tools.getProject(owner, created.projectId)).clientEmail, null);
+    await db.project.update({
+      where: { id: created.projectId },
+      data: { clientEmail: 'stored@scopeprofit.test' },
+    });
+    await assert.rejects(
+      tools.approveScope(owner, {
+        projectId: created.projectId,
+        documentVersion: 1,
+        clientEmail: 'different@scopeprofit.test',
+      }),
+      withCode('CLIENT_EMAIL_MISMATCH'),
+    );
+    assert.equal(
+      (await tools.getProject(owner, created.projectId)).clientEmail,
+      'stored@scopeprofit.test',
+    );
+  },
+);
