@@ -5,29 +5,20 @@ export interface IconSize {
   height: number;
 }
 
-const BRAND_CRIMSON = '#b01e2f';
-/** Glyph size relative to the icon edge, taken from the original 64px icon (34 / 64). */
-const GLYPH_RATIO = 34 / 64;
-
-/** The "sp" brand mark used by the favicon and the Apple touch icon. */
 export function renderBrandIcon(size: IconSize): ImageResponse {
   return new ImageResponse(
-    <div
-      style={{
-        width: '100%',
-        height: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: BRAND_CRIMSON,
-        borderRadius: 0,
-        color: '#fff',
-        fontSize: Math.round(size.width * GLYPH_RATIO),
-        fontWeight: 800,
-        fontFamily: 'sans-serif',
-      }}
-    >
-      sp
+    <div style={{ width: '100%', height: '100%', display: 'flex', background: '#110e13' }}>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={size.width}
+        height={size.height}
+        viewBox="0 0 120 136"
+      >
+        <path d="M16 28H61L87 54V69H51L16 34Z" fill="#FF2955" />
+        <path d="M16 48H52L78 74V89H42L16 63Z" fill="#D51F46" />
+        <path d="M16 68H43L69 94V109H33L16 92Z" fill="#A8193A" />
+        <path d="M61 28L102 28V82L87 97V54Z" fill="#FF6B86" />
+      </svg>
     </div>,
     size,
   );

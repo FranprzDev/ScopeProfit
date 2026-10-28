@@ -1,5 +1,13 @@
+@font-face {
+  font-family: 'Boska';
+  src: url('/fonts/boska-regular.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
 :root {
-  --bg: #090a10;
+  --bg: #110e13;
   --surface: #141724;
   --ink: #e2e8f0;
   --muted: #8e96aa;
@@ -11,10 +19,10 @@
   --field-dark: #0b0c0e;
   --field-dark-ink: #eef0f3;
 
-  --step-small: 0.875rem;
+  --step-small: 1rem;
   --step-body: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
-  --step-lead: clamp(1.375rem, 1rem + 1.2vw, 2.25rem);
-  --step-head: clamp(2.5rem, 1.2rem + 4.4vw, 5.5rem);
+  --step-lead: clamp(1.25rem, 1.1rem + 0.5vw, 1.625rem);
+  --step-head: clamp(2.75rem, 1.6rem + 3vw, 4.5rem);
   --step-display: clamp(3.5rem, 9.5vw, 9.375rem);
 
   --margin: clamp(1rem, 0.6rem + 1.6vw, 2rem);
@@ -22,9 +30,10 @@
   --section-space: clamp(6rem, 4rem + 8vw, 12rem);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 
+  --font-editorial: 'Boska';
   --font-display-stack: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-text-stack: var(--font-display-stack);
-  --font-code-stack: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  --font-code-stack: var(--font-text-stack);
 }
 
 *,
@@ -58,6 +67,7 @@ h1,
 h2,
 h3,
 h4 {
+  text-wrap: balance;
   margin: 0;
   font-family: var(--font-display-stack);
   font-weight: 700;
