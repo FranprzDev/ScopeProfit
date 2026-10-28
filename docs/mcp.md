@@ -228,3 +228,7 @@ Use `nextCursor` as `before_message_id` for older messages. Message-chunk retrie
 ### Stable project traversal
 
 `list_projects` keeps the default newest-activity-first live view. That view can skip an unseen project if concurrent activity moves it above the cursor. For an exhaustive pass across activity updates, set `order: "created"` on every call and carry `nextCursor` as `cursor`, keeping the same filters. Creation order uses immutable creation time plus ID. Projects created after a pass begins need a fresh pass; changing filters or archiving projects can still change membership.
+
+### Answering the question you reviewed
+
+`answer_question` requires `expected_version` from the `briefVersion` returned alongside the pending question. If the brief changed, re-read the questions and confirm the answer still matches the current question before retrying. IDs such as Q1 may be reused when replacing questions; an answer to an earlier meaning must not remove its replacement. Existing clients must include this version argument.

@@ -404,10 +404,22 @@ export class ScopeToolsService {
 
   async answerQuestion(
     user: User,
-    input: { projectId: string; questionId: string; answer: string; analyze?: boolean },
+    input: {
+      projectId: string;
+      questionId: string;
+      answer: string;
+      expectedVersion: number;
+      analyze?: boolean;
+    },
   ) {
     const project = await this.editable(user, input.projectId);
     if (!project.brief) fail('BRIEF_NOT_FOUND', 404);
+    if (project.brief.version !== input.expectedVersion)
+      fail(
+        'VERSION_CONFLICT',
+        409,
+        'Question context changed; re-read pending questions before answering',
+      );
     const brief = this.brief(project.brief.data);
     const question = brief.questions.find((q) => q.id === input.questionId);
     if (!question) fail('QUESTION_NOT_FOUND', 404, `No pending question ${input.questionId}`);
