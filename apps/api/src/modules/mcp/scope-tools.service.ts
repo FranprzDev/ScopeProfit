@@ -314,7 +314,10 @@ export class ScopeToolsService {
       tldr: brief.summary || 'No summary yet: add client input first.',
       requirements: brief.requirements.length,
       blockingQuestions: brief.questions.filter((q) => q.blocksEstimate).length,
-      topQuestions: brief.questions.slice(0, 3).map((q) => ({ id: q.id, question: q.question })),
+      topQuestions: [...brief.questions]
+        .sort((a, b) => Number(b.blocksEstimate) - Number(a.blocksEstimate))
+        .slice(0, 3)
+        .map((q) => ({ id: q.id, question: q.question, blocksEstimate: q.blocksEstimate })),
       redRisks: brief.risks.filter((r) => r.severity === 'red').length,
       estimateHours: brief.estimates.length ? total : null,
     };
