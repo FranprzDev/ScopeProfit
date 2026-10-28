@@ -469,7 +469,9 @@ export class ScopeToolsService {
     this.storage.validateText(answer);
     const next = { ...brief, questions: brief.questions.filter((q) => q.id !== question.id) };
     const saved = await this.saveBrief(user, project.id, project.brief.version, next, {
-      content: `${question.id} — ${question.question}\n${answer}`,
+      content: answer,
+      questionId: question.id,
+      question: question.question,
     });
     if (input.analyze) await this.agent.enqueue(project.id);
     return {
@@ -702,7 +704,7 @@ export class ScopeToolsService {
     projectId: string,
     expectedVersion: number,
     brief: BriefData,
-    answer?: { content: string },
+    answer?: { content: string; questionId: string; question: string },
   ) {
     const saved = await this.db.$transaction(
       async (tx) => {
@@ -731,6 +733,21 @@ export class ScopeToolsService {
               },
             })
           : null;
+        if (answer && message)
+          await tx.auditEvent.create({
+            data: {
+              projectId,
+              actorId: user.id,
+              action: 'question.answered',
+              result: 'success',
+              metadata: {
+                questionId: answer.questionId,
+                question: answer.question,
+                briefVersion: expectedVersion,
+                messageId: message.id,
+              },
+            },
+          });
         const document = await this.documents.saveDraft(tx, projectId, user.id);
         return { document, message };
       },
