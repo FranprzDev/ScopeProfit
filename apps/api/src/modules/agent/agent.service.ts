@@ -34,7 +34,13 @@ export class AgentService implements OnModuleInit, OnModuleDestroy {
   ) {}
   async onModuleInit() {
     this.saver = PostgresSaver.fromConnString(process.env.DATABASE_URL!);
-    await this.saver.setup();
+    await this.db.$transaction(
+      async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(1935897199, 1)`;
+        await this.saver!.setup();
+      },
+      { timeout: 60_000 },
+    );
     this.graph = new StateGraph(AgentState)
       .addNode('diagnose', async (state) => ({
         brief: await this.diagnose(state.projectId),
