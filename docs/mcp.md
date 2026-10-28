@@ -86,7 +86,11 @@ OpenAI also documents Secure MCP Tunnel for private/local servers. That is a sep
 
 ### Claude (claude.ai / Claude Desktop connectors)
 
-**Settings → Connectors → Add custom connector**, URL `https://api.example.com/api/mcp`. Either leave OAuth on (same consent page as ChatGPT) or, where your plan offers **Request headers**, set `Authorization: Bearer sp_live_…`.
+Use **Customize → Connectors → Add custom connector**, with URL `https://api.example.com/api/mcp`. Choose OAuth and automatic registration (DCR) for ScopeProfit. Claude's published-identity/CIMD route is not implemented by this server; DCR is the supported path. Leave the client secret empty for a public client. Verify the ScopeProfit API origin before entering its key in consent, not in a chat.
+
+The current [Claude help guide](https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp) lists Free, Pro, Max, Team and Enterprise, with one custom connector on Free. Organization permissions still apply. The [authentication guide](https://claude.com/docs/connectors/building/authentication) limits static request-header credentials to a beta available to selected organizations, so do not assume every account can paste a bearer header.
+
+Remote connectors originate from Anthropic's infrastructure, even on Desktop. A localhost-only server is not reachable through this route. Local Desktop stdio configuration below is a different connection method. The existing SDK OAuth tests are not a completed real Claude connection. Test the actual account before claiming it works.
 
 ### Claude Code
 
@@ -167,6 +171,8 @@ curl -s https://api.example.com/api/mcp \
 `npx @modelcontextprotocol/inspector` → transport _Streamable HTTP_, URL `https://api.example.com/api/mcp`, header `Authorization: Bearer sp_live_…` (or the stdio command above).
 
 ## Deployment requirements
+
+For the API-only Railway recipe, costs, volume permissions and verification boundary, see [Railway MCP deployment](railway-mcp.md).
 
 - The API must be reachable **directly** over HTTPS at `PUBLIC_API_URL` (e.g. `https://api.example.com`). OAuth discovery and endpoints live at the origin root (`/.well-known/*`, `/authorize`, `/token`, `/register`, `/revoke`, `/oauth/consent`), so the API needs its own origin (there is no web app proxying `/api/*` anymore).
 - Behind a reverse proxy set `TRUST_PROXY_HOPS` (usually `1`) so rate limits see client IPs.
