@@ -45,19 +45,45 @@ export class ScopeToolsService {
 
   async listProjects(
     user: User,
-    input: { status?: ProjectStatus; includeArchived?: boolean; limit?: number; cursor?: string },
+    input: {
+      status?: ProjectStatus;
+      includeArchived?: boolean;
+      limit?: number;
+      cursor?: string;
+      order?: 'activity' | 'created';
+    },
   ) {
     this.auth.professional(user);
     const limit = Math.min(100, Math.max(1, input.limit ?? 20));
+    const stable = input.order === 'created';
+    const anchor = input.cursor
+      ? await this.db.project.findUnique({
+          where: { id: input.cursor },
+          select: { id: true, createdAt: true },
+        })
+      : null;
+    if (input.cursor && !anchor) fail('INVALID_CURSOR', 400, 'Project cursor does not exist');
     const items = await this.db.project.findMany({
-      where: input.status
-        ? { status: input.status }
-        : input.includeArchived
-          ? {}
-          : { status: { not: ProjectStatus.archived } },
-      orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
+      where: {
+        ...(input.status
+          ? { status: input.status }
+          : input.includeArchived
+            ? {}
+            : { status: { not: ProjectStatus.archived } }),
+        ...(stable && anchor
+          ? {
+              OR: [
+                { createdAt: { lt: anchor.createdAt } },
+                { createdAt: anchor.createdAt, id: { lt: anchor.id } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: stable
+        ? [{ createdAt: 'desc' }, { id: 'desc' }]
+        : [{ updatedAt: 'desc' }, { id: 'asc' }],
       take: limit + 1,
-      ...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
+      ...(!stable && input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
       include: { brief: true },
     });
     const more = items.length > limit;
@@ -76,6 +102,10 @@ export class ScopeToolsService {
         };
       }),
       nextCursor: more ? items.at(-1)!.id : null,
+      order: input.order ?? 'activity',
+      traversalGuidance: stable
+        ? 'Creation order is stable across project activity. Keep the same filters and order on every page. New projects require a fresh traversal.'
+        : 'Activity order is a live view, not an exhaustive traversal: concurrent activity can move unseen projects above your cursor. Use order=created for stable traversal.',
     };
   }
 
