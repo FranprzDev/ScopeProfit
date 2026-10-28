@@ -380,10 +380,11 @@ export class ScopeToolsService {
     const project = await this.project(user, projectId);
     const brief = this.brief(project.brief?.data);
     const latest = project.document?.versions[0];
+    const owner = await this.db.user.findUniqueOrThrow({ where: { id: project.ownerId } });
     const document = markdown({
       projectName: project.name,
       clientName: project.clientName || project.clientEmail || 'Cliente',
-      author: user.email || 'Profesional',
+      author: owner.email || 'Profesional',
       date: new Date().toISOString(),
       version: latest?.version ?? 0,
       brief,

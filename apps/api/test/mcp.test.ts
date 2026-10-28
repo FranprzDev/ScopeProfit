@@ -832,3 +832,24 @@ test('TLDR prioritizes blocking questions over optional questions', dbOnly, asyn
   assert.equal(summary.topQuestions[0].id, 'BLOCK');
   assert.equal(summary.topQuestions[0].blocksEstimate, true);
 });
+test(
+  'scope preview keeps project-owner attribution when another professional reads it',
+  dbOnly,
+  async () => {
+    const created = await tools.createProject(owner, { name: 'Consulting attribution' });
+    await tools.updateScopeSection(owner, {
+      projectId: created.projectId,
+      expectedVersion: 0,
+      section: 'summary',
+      value: 'Consulting scope',
+    });
+    const reviewer = await db.user.create({
+      data: { email: `reviewer-${Date.now()}@scopeprofit.test`, role: 'professional' },
+    });
+    const preview = await tools.getScopeDocument(reviewer, created.projectId);
+    const exported = await documents.download(created.projectId, 1, 'md');
+    assert.ok(preview.markdown.includes(`Autor: ${owner.email}`));
+    assert.ok(!preview.markdown.includes(`Autor: ${reviewer.email}`));
+    assert.ok(exported.buffer.toString().includes(`Autor: ${owner.email}`));
+  },
+);
