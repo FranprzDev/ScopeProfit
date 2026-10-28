@@ -16,6 +16,7 @@ import express from 'express';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { xmcpAdapter } from '../src/modules/mcp/xmcp-adapter';
 import { scopeToolContext } from '../src/modules/mcp/tool-context';
+import { Prisma, ProjectStatus } from '@prisma/client';
 import type { User } from '@prisma/client';
 import { HttpException } from '@nestjs/common';
 
@@ -621,6 +622,66 @@ test(
         before_message_id: entries[0].id,
       }),
       'INVALID_CURSOR',
+    );
+  },
+);
+
+test(
+  'MCP rejects duplicate questions and refuses approval of legacy blank sections',
+  dbOnly,
+  async () => {
+    const created = await tools.createProject(owner, { name: 'Education admissions integrity' });
+    const question = { id: 'Q1', question: 'Seat count?', reason: '', blocksEstimate: true };
+    assert.equal(
+      await errorCode('update_scope_section', {
+        project_id: created.projectId,
+        expected_version: 0,
+        section: 'questions',
+        value: [question, { ...question, question: 'Age range?' }],
+      }),
+      'INVALID_SECTION_VALUE',
+    );
+    assert.equal((await tools.getProject(owner, created.projectId)).briefVersion, 0);
+    const input = await tools.addClientInput(owner, {
+      projectId: created.projectId,
+      text: 'Appointments',
+    });
+    const { emptyBrief } = await import('@scopeprofit/contracts');
+    const legacy = {
+      ...emptyBrief(),
+      summary: 'Appointments',
+      requirements: [
+        {
+          id: 'R1',
+          description: 'Appointments',
+          type: 'functional',
+          priority: 'must',
+          source: 'Appointments',
+          sourceMessageId: input.added[0].messageId,
+          systemNote: '',
+        },
+      ],
+      included: [' '],
+      excluded: [' '],
+      assumptions: [' '],
+      acceptanceCriteria: [' '],
+      nextSteps: [' '],
+      estimates: [{ module: 'Booking', minHours: 1, maxHours: 2, uncertainty: '' }],
+    };
+    await db.brief.update({
+      where: { projectId: created.projectId },
+      data: { data: legacy as unknown as Prisma.InputJsonValue },
+    });
+    const document = await db.$transaction((tx) =>
+      documents.saveDraft(tx, created.projectId, owner.id),
+    );
+    await assert.rejects(
+      documents.approve(created.projectId, owner.id, document.version, { deliver: false }),
+      withCode('INVALID_BRIEF'),
+    );
+    assert.equal(
+      (await db.project.findUniqueOrThrow({ where: { id: created.projectId } })).status,
+      ProjectStatus.in_review,
     );
   },
 );

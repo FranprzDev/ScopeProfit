@@ -11,7 +11,7 @@ import { DocumentsService } from '../documents/documents.service';
 import { AgentService } from '../agent/agent.service';
 import { StorageService } from '../storage/storage.service';
 import { ChangeRequestsService } from '../projects/change-requests.service';
-import { briefSchema, validateBrief, validateSources } from '../brief/brief.validation';
+import { briefWriteSchema, validateBrief, validateSources } from '../brief/brief.validation';
 import { markdown } from '../documents/render';
 import { fail } from '../../security';
 import { fetchImage } from './image-fetch';
@@ -315,6 +315,8 @@ export class ScopeToolsService {
     const brief = this.brief(project.brief.data);
     const question = brief.questions.find((q) => q.id === input.questionId);
     if (!question) fail('QUESTION_NOT_FOUND', 404, `No pending question ${input.questionId}`);
+    if (brief.questions.filter((item) => item.id === input.questionId).length !== 1)
+      fail('AMBIGUOUS_QUESTION_ID', 409, 'Give pending questions unique ids before answering');
     const answer = input.answer.trim();
     if (!answer) fail('INVALID_TEXT', 400, 'Answer is required');
     this.storage.validateText(answer);
@@ -401,7 +403,7 @@ export class ScopeToolsService {
         409,
         `Brief is at version ${project.brief.version}; re-read it with get_scope_document and retry`,
       );
-    const parsed = briefSchema.shape[input.section].safeParse(input.value);
+    const parsed = briefWriteSchema.shape[input.section].safeParse(input.value);
     if (!parsed.success)
       fail(
         'INVALID_SECTION_VALUE',

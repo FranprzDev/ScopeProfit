@@ -7,6 +7,7 @@ import { EmailService } from '../../email.service';
 import { StorageService } from '../storage/storage.service';
 import { markdown, render, validateEditor } from './render';
 import { ProjectStatus } from '@prisma/client';
+import { validateBriefForSave } from '../brief/brief.validation';
 
 type Artifact = { path: string; checksum: string; size: number };
 type Artifacts = Record<'md' | 'pdf' | 'docx', Artifact>;
@@ -267,7 +268,7 @@ export class DocumentsService {
           ['pending', 'running'].includes(project.agentStatus)
         )
           return fail('PROJECT_NOT_REVIEWABLE', 'Project is not ready for review');
-        const brief = project.brief.data as unknown as BriefData;
+        const brief = validateBriefForSave(project.brief.data);
         if (
           !brief.summary.trim() ||
           !brief.requirements.length ||

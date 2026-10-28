@@ -4,6 +4,9 @@ import { fail } from '../../security';
 import { diagramError } from '../documents/diagram';
 const text = z.string().max(10000);
 const list = z.array(text).max(200);
+const requiredText = text.refine((value) => value.trim().length > 0, 'Must not be blank');
+const uniqueIds = (items: { id: string }[]) =>
+  new Set(items.map((item) => item.id)).size === items.length;
 export const briefSchema = z
   .object({
     quoteValidity: z
@@ -73,6 +76,43 @@ export const briefSchema = z
     nextSteps: list,
   })
   .strict();
+export const briefWriteSchema = briefSchema.extend({
+  requirements: briefSchema.shape.requirements.element
+    .extend({
+      id: requiredText,
+      description: requiredText,
+      source: requiredText,
+    })
+    .array()
+    .max(200)
+    .refine(uniqueIds, 'Requirement ids must be unique'),
+  questions: briefSchema.shape.questions.element
+    .extend({
+      id: requiredText,
+      question: requiredText,
+    })
+    .array()
+    .max(100)
+    .refine(uniqueIds, 'Question ids must be unique'),
+  risks: briefSchema.shape.risks.element
+    .extend({
+      id: requiredText,
+      description: requiredText,
+    })
+    .array()
+    .max(100)
+    .refine(uniqueIds, 'Risk ids must be unique'),
+  included: z.array(requiredText).max(200),
+  excluded: z.array(requiredText).max(200),
+  assumptions: z.array(requiredText).max(200),
+  acceptanceCriteria: z.array(requiredText).max(200),
+  estimates: briefSchema.shape.estimates.element.extend({ module: requiredText }).array().max(100),
+  nextSteps: z.array(requiredText).max(200),
+});
+export function validateBriefForSave(data: unknown): BriefData {
+  if (!briefWriteSchema.safeParse(data).success) fail('INVALID_BRIEF');
+  return validateBrief(data);
+}
 export function validateBrief(data: unknown): BriefData {
   const result = briefSchema.safeParse(data);
   if (!result.success) fail('INVALID_BRIEF');
