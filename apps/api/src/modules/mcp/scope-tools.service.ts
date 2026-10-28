@@ -152,9 +152,10 @@ export class ScopeToolsService {
     },
   ) {
     const project = await this.editable(user, input.projectId);
-    const text = input.text?.trim();
+    const text = input.text;
     const imageUrls = input.imageUrls ?? [];
-    if (!text && !imageUrls.length) fail('EMPTY_INPUT', 400, 'Provide text, image_urls or both');
+    if (!text?.trim() && !imageUrls.length)
+      fail('EMPTY_INPUT', 400, 'Provide text, image_urls or both');
     if (text) this.storage.validateText(text);
     const images = await Promise.all(imageUrls.map((url) => fetchImage(url)));
     const prepared = [];
@@ -382,8 +383,8 @@ export class ScopeToolsService {
     if (!question) fail('QUESTION_NOT_FOUND', 404, `No pending question ${input.questionId}`);
     if (brief.questions.filter((item) => item.id === input.questionId).length !== 1)
       fail('AMBIGUOUS_QUESTION_ID', 409, 'Give pending questions unique ids before answering');
-    const answer = input.answer.trim();
-    if (!answer) fail('INVALID_TEXT', 400, 'Answer is required');
+    const answer = input.answer;
+    if (!answer.trim()) fail('INVALID_TEXT', 400, 'Answer is required');
     this.storage.validateText(answer);
     const next = { ...brief, questions: brief.questions.filter((q) => q.id !== question.id) };
     const saved = await this.saveBrief(user, project.id, project.brief.version, next, {
