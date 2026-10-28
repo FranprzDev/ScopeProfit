@@ -41,9 +41,11 @@ export default function Layout({ children }: Readonly<{ children: React.ReactNod
     <html lang="es">
       <head>
         <JsonLd data={buildSiteJsonLd()} />
-        <Analytics />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }

@@ -1,7 +1,10 @@
 import { readPlausibleConfig } from '@/lib/analytics';
+import { VercelAnalytics } from './vercel-analytics';
 
-/** Renders the Plausible tracker only when analytics is configured; otherwise nothing. */
 export function Analytics() {
+  if (process.env.VERCEL_ENV === 'production') {
+    return <VercelAnalytics />;
+  }
   const config = readPlausibleConfig();
   if (!config) {
     return null;
