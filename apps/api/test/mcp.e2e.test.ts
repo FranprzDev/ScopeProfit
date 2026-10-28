@@ -253,7 +253,7 @@ test(
 
 test('the stdio entrypoint serves the same tools for local MCP clients', dbOnly, async () => {
   const owner = await app.get(AuthService).professionalUser(ownerEmail);
-  const { key } = await app.get(ApiKeysService).create(owner, 'stdio');
+  const { key, id } = await app.get(ApiKeysService).create(owner, 'stdio');
   const env = Object.fromEntries(
     Object.entries(process.env).filter((entry): entry is [string, string] => !!entry[1]),
   );
@@ -271,6 +271,10 @@ test('the stdio entrypoint serves the same tools for local MCP clients', dbOnly,
     assert.equal(tools.length, 15);
     const listed = await client.callTool({ name: 'list_projects', arguments: { limit: 1 } });
     assert.ok(!listed.isError);
+    await app.get(ApiKeysService).revoke(id);
+    const revoked = await client.callTool({ name: 'list_projects', arguments: { limit: 1 } });
+    assert.equal(revoked.isError, true);
+    assert.match(JSON.stringify(revoked.content), /INVALID_API_KEY/);
   } finally {
     await client.close();
   }

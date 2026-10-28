@@ -32,8 +32,13 @@ async function main() {
   process.on('SIGINT', () => void shutdown());
   process.on('SIGTERM', () => void shutdown());
   process.stdin.on('close', () => void shutdown());
-  stdioToolContext.provider({ tools: app.get(ScopeToolsService), user }, () =>
-    createRequire(__filename)(xmcpStdioPath),
+  stdioToolContext.provider(
+    {
+      tools: app.get(ScopeToolsService),
+      user,
+      authenticate: async () => (await app.get(ApiKeysService).verify(raw)).user,
+    },
+    () => createRequire(__filename)(xmcpStdioPath),
   );
 }
 

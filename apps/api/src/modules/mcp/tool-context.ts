@@ -5,6 +5,7 @@ import type { ScopeToolsService } from './scope-tools.service';
 interface ScopeToolContext {
   tools: ScopeToolsService;
   user: User;
+  authenticate?: () => Promise<User>;
 }
 
 export const scopeToolContext = createContext<ScopeToolContext>({
