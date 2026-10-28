@@ -576,3 +576,51 @@ test('MCP and OAuth routes skip the cookie CSRF check, the REST API does not', (
   for (const path of ['/api/projects', '/api/auth/magic-link', '/api/mcp/extra', '/tokens'])
     assert.equal(isMcpRoute(path), false, path);
 });
+
+test(
+  'conversation pages retain old source evidence and reject cross-project cursors',
+  dbOnly,
+  async () => {
+    const project = await tools.createProject(owner, { name: 'Dispatch audit pagination' });
+    const other = await tools.createProject(owner, { name: 'Separate dispatch audit' });
+    const entries = await Promise.all(
+      Array.from({ length: 5 }, (_, index) =>
+        db.message.create({
+          data: {
+            projectId: project.projectId,
+            threadId: project.projectId,
+            authorId: owner.id,
+            authorRole: 'client',
+            content: `Dispatch source ${index}`,
+            createdAt: new Date(1_700_000_000_000),
+          },
+        }),
+      ),
+    );
+    const ids: string[] = [];
+    let cursor: string | undefined;
+    do {
+      const page = await data<{
+        messages: { messageId: string }[];
+        hasMore: boolean;
+        nextCursor: string | null;
+      }>('get_conversation', {
+        project_id: project.projectId,
+        limit: 2,
+        ...(cursor ? { before_message_id: cursor } : {}),
+      });
+      assert.equal(page.hasMore, page.nextCursor !== null);
+      ids.push(...page.messages.map((message) => message.messageId));
+      cursor = page.nextCursor ?? undefined;
+      if (ids.length > entries.length) assert.fail('Conversation cursor did not advance');
+    } while (cursor);
+    assert.deepEqual(ids.sort(), entries.map((entry) => entry.id).sort());
+    assert.equal(
+      await errorCode('get_conversation', {
+        project_id: other.projectId,
+        before_message_id: entries[0].id,
+      }),
+      'INVALID_CURSOR',
+    );
+  },
+);
