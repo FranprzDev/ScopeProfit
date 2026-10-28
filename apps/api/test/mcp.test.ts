@@ -1104,3 +1104,52 @@ test('concurrent MCP workers initialize checkpoint migrations safely', dbOnly, a
     await db.$executeRawUnsafe(`DROP DATABASE ${databaseName}`);
   }
 });
+
+test('archiving an approved scope blocks later approval or delivery attempts', dbOnly, async () => {
+  const created = await tools.createProject(owner, { name: 'Archived legal engagement' });
+  const added = await tools.addClientInput(owner, {
+    projectId: created.projectId,
+    text: 'Review the service contract',
+  });
+  const sections: [Parameters<typeof tools.updateScopeSection>[1]['section'], unknown][] = [
+    ['summary', 'Review the service contract'],
+    [
+      'requirements',
+      [
+        {
+          id: 'R1',
+          description: 'Contract review',
+          type: 'functional',
+          priority: 'must',
+          source: 'Review the service contract',
+          sourceMessageId: added.added[0].messageId,
+          systemNote: '',
+        },
+      ],
+    ],
+    ['included', ['Contract review']],
+    ['excluded', ['Litigation']],
+    ['assumptions', ['One contract']],
+    ['acceptanceCriteria', ['Review delivered']],
+    ['nextSteps', ['Review scope']],
+    ['estimates', [{ module: 'Review', minHours: 2, maxHours: 4, uncertainty: '' }]],
+  ];
+  let version = 0;
+  for (const [section, value] of sections) {
+    const saved = await tools.updateScopeSection(owner, {
+      projectId: created.projectId,
+      expectedVersion: version,
+      section,
+      value,
+    });
+    version = saved.briefVersion;
+  }
+  await tools.approveScope(owner, { projectId: created.projectId, documentVersion: version });
+  await tools.archiveProject(owner, created.projectId);
+  await assert.rejects(
+    tools.approveScope(owner, { projectId: created.projectId, documentVersion: version }),
+    withCode('PROJECT_LOCKED'),
+  );
+  await assert.rejects(documents.deliver(created.projectId, version), withCode('PROJECT_LOCKED'));
+  assert.equal((await tools.getProject(owner, created.projectId)).status, ProjectStatus.archived);
+});
