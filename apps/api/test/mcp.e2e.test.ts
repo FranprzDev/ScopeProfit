@@ -334,3 +334,63 @@ test('native OAuth clients can authorize an ephemeral loopback port', dbOnly, as
   });
   assert.equal(exchanged.status, 200, await exchanged.text());
 });
+
+test('OAuth defaults omitted scope and rejects unsupported permissions', dbOnly, async () => {
+  const owner = await app.get(AuthService).professionalUser(ownerEmail);
+  const { key } = await app.get(ApiKeysService).create(owner, 'default-scope');
+  const registered = await fetch(`${baseUrl}/register`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      client_name: 'Synthetic generic OAuth client',
+      redirect_uris: [REDIRECT],
+      token_endpoint_auth_method: 'none',
+    }),
+  });
+  const { client_id: clientId } = await registered.json();
+  const verifier = randomBytes(32).toString('base64url');
+  const authorize = new URL(`${baseUrl}/authorize`);
+  for (const [name, value] of Object.entries({
+    response_type: 'code',
+    client_id: clientId,
+    redirect_uri: REDIRECT,
+    code_challenge: createHash('sha256').update(verifier).digest('base64url'),
+    code_challenge_method: 'S256',
+    resource: `${baseUrl}/api/mcp`,
+  }))
+    authorize.searchParams.set(name, value);
+  const page = await fetch(authorize, { redirect: 'manual' });
+  assert.equal(page.status, 200);
+  const request = /name="request" value="([^"]+)"/.exec(await page.text())![1];
+  const granted = await fetch(`${baseUrl}/oauth/consent`, {
+    method: 'POST',
+    redirect: 'manual',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ request, api_key: key }),
+  });
+  assert.equal(granted.status, 302);
+  const code = new URL(granted.headers.get('location')!).searchParams.get('code')!;
+  const exchanged = await fetch(`${baseUrl}/token`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'authorization_code',
+      code,
+      client_id: clientId,
+      code_verifier: verifier,
+      redirect_uri: REDIRECT,
+    }),
+  });
+  assert.equal(exchanged.status, 200);
+  const tokens = await exchanged.json();
+  assert.equal(tokens.scope, 'scope');
+  const client = await connect(tokens.access_token);
+  await client.close();
+  authorize.searchParams.set('scope', 'administrator');
+  const unsupported = await fetch(authorize, { redirect: 'manual' });
+  assert.equal(unsupported.status, 302);
+  assert.equal(
+    new URL(unsupported.headers.get('location')!).searchParams.get('error'),
+    'invalid_scope',
+  );
+});
