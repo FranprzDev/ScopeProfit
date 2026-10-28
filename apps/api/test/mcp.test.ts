@@ -961,3 +961,27 @@ test('conversation budget accounts for JSON-escaped control characters', dbOnly,
   assert.equal(messages[0].contentComplete, false);
   assert.equal(messages[0].nextContentOffset, 10_000);
 });
+test(
+  'client evidence preserves whitespace used in code and configuration quotes',
+  dbOnly,
+  async () => {
+    const created = await tools.createProject(owner, { name: 'Configuration evidence' });
+    const original = '    required: true\n    retention: 30\n';
+    await tools.addClientInput(owner, { projectId: created.projectId, text: original });
+    const conversation = await tools.getConversation(owner, { projectId: created.projectId });
+    assert.equal(conversation.messages[0].content, original);
+    await tools.updateScopeSection(owner, {
+      projectId: created.projectId,
+      expectedVersion: 0,
+      section: 'questions',
+      value: [{ id: 'Q1', question: 'Paste configuration', reason: '', blocksEstimate: true }],
+    });
+    const answered = await tools.answerQuestion(owner, {
+      projectId: created.projectId,
+      questionId: 'Q1',
+      answer: original,
+    });
+    const saved = await db.message.findUniqueOrThrow({ where: { id: answered.messageId } });
+    assert.ok(saved.content.endsWith(original));
+  },
+);
