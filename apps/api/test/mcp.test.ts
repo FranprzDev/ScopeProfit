@@ -414,6 +414,7 @@ test('a full scoping flow runs end to end through MCP tools', dbOnly, async () =
         project_id: projectId,
         question_id: 'Q1',
         answer: 'Una sola sucursal.',
+        expected_version: version,
       },
     );
     assert.equal(answered.briefVersion, version + 1);
@@ -700,7 +701,12 @@ test(
     });
     const results = await Promise.allSettled(
       ['30 days', '365 days'].map((answer) =>
-        tools.answerQuestion(owner, { projectId: created.projectId, questionId: 'Q1', answer }),
+        tools.answerQuestion(owner, {
+          projectId: created.projectId,
+          questionId: 'Q1',
+          answer,
+          expectedVersion: 1,
+        }),
       ),
     );
     assert.equal(results.filter((result) => result.status === 'fulfilled').length, 1);
@@ -979,6 +985,7 @@ test(
     const answered = await tools.answerQuestion(owner, {
       projectId: created.projectId,
       questionId: 'Q1',
+      expectedVersion: 1,
       answer: original,
     });
     const saved = await db.message.findUniqueOrThrow({ where: { id: answered.messageId } });
@@ -1023,3 +1030,40 @@ test(
     assert.equal(live.order, 'activity');
   },
 );
+
+test('answering a stale question version does not answer its replacement', dbOnly, async () => {
+  const created = await tools.createProject(owner, { name: 'Medical retention discovery' });
+  await tools.updateScopeSection(owner, {
+    projectId: created.projectId,
+    expectedVersion: 0,
+    section: 'questions',
+    value: [{ id: 'Q1', question: 'Retention days?', reason: '', blocksEstimate: true }],
+  });
+  const seen = await tools.listPendingQuestions(owner, { projectId: created.projectId });
+  await tools.updateScopeSection(owner, {
+    projectId: created.projectId,
+    expectedVersion: 1,
+    section: 'questions',
+    value: [
+      { id: 'Q1', question: 'May records be sent abroad?', reason: '', blocksEstimate: true },
+    ],
+  });
+  const before = await db.message.count({ where: { projectId: created.projectId } });
+  const result = await call('answer_question', {
+    project_id: created.projectId,
+    question_id: 'Q1',
+    answer: '30',
+    expected_version: seen.briefVersion,
+  });
+  assert.equal(result.isError, true);
+  assert.equal(
+    (result.structuredContent as { error: { code: string } }).error.code,
+    'VERSION_CONFLICT',
+  );
+  assert.equal(await db.message.count({ where: { projectId: created.projectId } }), before);
+  assert.equal(
+    (await tools.listPendingQuestions(owner, { projectId: created.projectId })).questions[0]
+      .question,
+    'May records be sent abroad?',
+  );
+});
