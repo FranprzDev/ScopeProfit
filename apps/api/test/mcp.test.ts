@@ -36,6 +36,7 @@ import { exportUrl, verifyExportToken } from '../src/modules/mcp/export-links';
 import { fetchImage, isPublicAddress } from '../src/modules/mcp/image-fetch';
 import { signConsent, verifyConsent } from '../src/modules/mcp/oauth-consent';
 import { isMcpRoute } from '../src/modules/mcp/mcp-http';
+import { hash, encrypt } from '../src/security';
 
 const skip = !process.env.DATABASE_URL;
 const dbOnly = { skip: skip ? 'DATABASE_URL not set' : false };
@@ -864,4 +865,31 @@ test('the optional analysis worker never claims archived queued projects', dbOnl
   const project = await db.project.findUniqueOrThrow({ where: { id: created.projectId } });
   assert.equal(project.agentStartedAt, null);
   assert.equal(project.status, ProjectStatus.archived);
+});
+
+test('scope preview matches the saved version after client identity binding', dbOnly, async () => {
+  const created = await tools.createProject(owner, { name: 'Municipal accessibility audit' });
+  await tools.updateScopeSection(owner, {
+    projectId: created.projectId,
+    expectedVersion: 0,
+    section: 'summary',
+    value: 'Accessible public-service forms',
+  });
+  const rawLink = new URL(created.legacyClientChatUrl, 'https://scopeprofit.test').searchParams.get(
+    'token',
+  )!;
+  const verification = `synthetic-snapshot-${Date.now()}`;
+  await db.magicLink.create({
+    data: {
+      email: 'synthetic-client@scopeprofit.test',
+      projectId: created.projectId,
+      linkToken: encrypt(rawLink),
+      tokenHash: hash(verification),
+      expiresAt: new Date(Date.now() + 60_000),
+    },
+  });
+  await new AuthService(db, new EmailService()).verify(verification);
+  const saved = await documents.download(created.projectId, 1, 'md');
+  const preview = await tools.getScopeDocument(owner, created.projectId);
+  assert.equal(preview.markdown, saved.buffer.toString());
 });

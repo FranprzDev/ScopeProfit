@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { Prisma, ProjectStatus } from '@prisma/client';
 import type { User } from '@prisma/client';
 import { emptyBrief } from '@scopeprofit/contracts';
-import type { BriefData, TiptapNode } from '@scopeprofit/contracts';
+import type { BriefData, DocumentData } from '@scopeprofit/contracts';
 import { PrismaService } from '../../prisma.service';
 import { AuthService } from '../auth/auth.service';
 import { ProjectsService } from '../projects/projects.service';
@@ -381,15 +381,19 @@ export class ScopeToolsService {
     const brief = this.brief(project.brief?.data);
     const latest = project.document?.versions[0];
     const owner = await this.db.user.findUniqueOrThrow({ where: { id: project.ownerId } });
-    const document = markdown({
-      projectName: project.name,
-      clientName: project.clientName || project.clientEmail || 'Cliente',
-      author: owner.email || 'Profesional',
-      date: new Date().toISOString(),
-      version: latest?.version ?? 0,
-      brief,
-      editorContent: (latest?.editorContent as unknown as TiptapNode | null) ?? null,
-    });
+    const document = markdown(
+      latest
+        ? (latest.data as unknown as DocumentData)
+        : {
+            projectName: project.name,
+            clientName: project.clientName || project.clientEmail || 'Cliente',
+            author: owner.email || 'Profesional',
+            date: new Date().toISOString(),
+            version: 0,
+            brief,
+            editorContent: null,
+          },
+    );
     return {
       projectId,
       template: '7.1',
