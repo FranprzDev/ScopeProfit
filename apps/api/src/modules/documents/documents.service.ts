@@ -143,61 +143,80 @@ export class DocumentsService {
     const buffers = await render(data);
     const artifacts = {} as Artifacts;
     const generation = randomUUID();
-    for (const format of ['md', 'pdf', 'docx'] as const)
-      artifacts[format] = await this.storage.write(
-        `${projectId}/documents/${version}/${generation}.${format}`,
-        buffers[format],
+    try {
+      for (const format of ['md', 'pdf', 'docx'] as const)
+        artifacts[format] = await this.storage.write(
+          `${projectId}/documents/${version}/${generation}.${format}`,
+          buffers[format],
+        );
+      return await this.prisma.$transaction(
+        async (tx) => {
+          const live = await tx.project.findUnique({
+            where: { id: projectId },
+            include: { brief: true },
+          });
+          if (
+            !live ||
+            live.brief?.version !== project.brief!.version ||
+            live.status === ProjectStatus.approved ||
+            live.status === ProjectStatus.delivered ||
+            live.status === ProjectStatus.archived
+          )
+            return fail('VERSION_CONFLICT', 'Project changed during generation');
+          const document = await tx.document.upsert({
+            where: { projectId },
+            create: { projectId },
+            update: {},
+          });
+          const updated = await tx.document.updateMany({
+            where: { id: document.id, currentVersion: current },
+            data: { currentVersion: version },
+          });
+          if (updated.count !== 1)
+            return fail('VERSION_CONFLICT', 'Document changed during generation');
+          const saved = await tx.documentVersion.create({
+            data: {
+              documentId: document.id,
+              version,
+              briefVersion: project.brief!.version,
+              data: json(data),
+              editorContent: data.editorContent ? json(data.editorContent) : Prisma.JsonNull,
+              artifacts: json(artifacts),
+            },
+          });
+          await tx.project.update({ where: { id: projectId }, data: { status: 'in_review' } });
+          await tx.auditEvent.create({
+            data: {
+              projectId,
+              actorId,
+              action: validatedEditorContent ? 'document.edited' : 'document.generated',
+              result: 'success',
+              metadata: { version, briefVersion: project.brief!.version },
+            },
+          });
+          return saved;
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
       );
-    return this.prisma.$transaction(
-      async (tx) => {
-        const live = await tx.project.findUnique({
-          where: { id: projectId },
-          include: { brief: true },
-        });
-        if (
-          !live ||
-          live.brief?.version !== project.brief!.version ||
-          live.status === ProjectStatus.approved ||
-          live.status === ProjectStatus.delivered ||
-          live.status === ProjectStatus.archived
-        )
-          return fail('VERSION_CONFLICT', 'Project changed during generation');
-        const document = await tx.document.upsert({
-          where: { projectId },
-          create: { projectId },
-          update: {},
-        });
-        const updated = await tx.document.updateMany({
-          where: { id: document.id, currentVersion: current },
-          data: { currentVersion: version },
-        });
-        if (updated.count !== 1)
-          return fail('VERSION_CONFLICT', 'Document changed during generation');
-        const saved = await tx.documentVersion.create({
-          data: {
-            documentId: document.id,
-            version,
-            briefVersion: project.brief!.version,
-            data: json(data),
-            editorContent: data.editorContent ? json(data.editorContent) : Prisma.JsonNull,
-            artifacts: json(artifacts),
-          },
-        });
-        await tx.project.update({ where: { id: projectId }, data: { status: 'in_review' } });
-        await tx.auditEvent.create({
-          data: {
-            projectId,
-            actorId,
-            action: validatedEditorContent ? 'document.edited' : 'document.generated',
-            result: 'success',
-            metadata: { version, briefVersion: project.brief!.version },
-          },
-        });
-        return saved;
-      },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-    );
+    } catch (error) {
+      const live = await this.prisma.documentVersion.findFirst({
+        where: { version, document: { projectId } },
+        select: { artifacts: true },
+      });
+      const referenced = new Set(
+        Object.values((live?.artifacts ?? {}) as Partial<Artifacts>).map(
+          (artifact) => artifact!.path,
+        ),
+      );
+      await Promise.all(
+        Object.values(artifacts)
+          .filter((artifact) => !referenced.has(artifact.path))
+          .map((artifact) => this.storage.remove(artifact.path)),
+      );
+      throw error;
+    }
   }
+
   async download(projectId: string, version: number, format: 'md' | 'pdf' | 'docx') {
     if (!['md', 'pdf', 'docx'].includes(format))
       return fail('INVALID_FORMAT', 'Unknown document format', 400);

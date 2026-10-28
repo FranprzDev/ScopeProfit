@@ -1361,3 +1361,22 @@ test('archived projects do not accept new change-request activity', dbOnly, asyn
   );
   assert.equal(await db.changeRequest.count({ where: { projectId: created.projectId } }), 1);
 });
+
+test('competing initial MCP exports clean failed generation artifacts', dbOnly, async () => {
+  const created = await tools.createProject(owner, { name: 'Concurrent engineering export' });
+  const results = await Promise.allSettled([
+    tools.exportDocument(owner, { projectId: created.projectId, format: 'md' }),
+    tools.exportDocument(owner, { projectId: created.projectId, format: 'md' }),
+  ]);
+  assert.ok(results.some((result) => result.status === 'fulfilled'));
+  const { readdir } = await import('node:fs/promises');
+  const files = await readdir(join(await storageRoot, created.projectId, 'documents', '1'));
+  const saved = await documents.latest(created.projectId);
+  const artifacts = saved!.artifacts as Record<string, { path: string }>;
+  assert.deepEqual(
+    files.sort(),
+    Object.values(artifacts)
+      .map((artifact) => artifact.path.split('/').pop())
+      .sort(),
+  );
+});
