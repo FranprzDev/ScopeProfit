@@ -831,6 +831,18 @@ test('TLDR prioritizes blocking questions over optional questions', dbOnly, asyn
   assert.equal(summary.blockingQuestions, 1);
   assert.equal(summary.topQuestions[0].id, 'BLOCK');
   assert.equal(summary.topQuestions[0].blocksEstimate, true);
+test('logging a client change refreshes the project activity timestamp', dbOnly, async () => {
+  const created = await tools.createProject(owner, {
+    name: 'Property maintenance change activity',
+  });
+  const old = new Date('2020-01-01T00:00:00Z');
+  await db.project.update({ where: { id: created.projectId }, data: { updatedAt: old } });
+  await tools.logChangeRequest(owner, {
+    projectId: created.projectId,
+    request: 'Add an emergency repair approval flow',
+  });
+  const project = await tools.getProject(owner, created.projectId);
+  assert.ok(new Date(project.updatedAt).getTime() > old.getTime());
 });
 test(
   'scope preview keeps project-owner attribution when another professional reads it',

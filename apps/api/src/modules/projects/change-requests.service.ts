@@ -35,6 +35,7 @@ export class ChangeRequestsService {
           classification,
         },
       });
+      await tx.project.update({ where: { id: projectId }, data: { updatedAt: new Date() } });
       await tx.auditEvent.create({
         data: {
           projectId,
@@ -56,21 +57,24 @@ export class ChangeRequestsService {
   async decide(projectId: string, id: string, status: ChangeRequestStatus, user: User) {
     this.auth.professional(user);
     await this.auth.project(user, projectId);
-    const updated = await this.db.changeRequest.updateMany({
-      where: { id, projectId, status: 'proposed' },
-      data: { status },
+    return this.db.$transaction(async (tx) => {
+      const updated = await tx.changeRequest.updateMany({
+        where: { id, projectId, status: ChangeRequestStatus.proposed },
+        data: { status },
+      });
+      if (!updated.count) fail('CHANGE_REQUEST_NOT_FOUND', 404);
+      await tx.project.update({ where: { id: projectId }, data: { updatedAt: new Date() } });
+      await tx.auditEvent.create({
+        data: {
+          projectId,
+          actorId: user.id,
+          action: `change_request.${status}`,
+          result: 'success',
+          metadata: { changeRequestId: id },
+        },
+      });
+      return tx.changeRequest.findUniqueOrThrow({ where: { id } });
     });
-    if (!updated.count) fail('CHANGE_REQUEST_NOT_FOUND', 404);
-    await this.db.auditEvent.create({
-      data: {
-        projectId,
-        actorId: user.id,
-        action: `change_request.${status}`,
-        result: 'success',
-        metadata: { changeRequestId: id },
-      },
-    });
-    return this.db.changeRequest.findUniqueOrThrow({ where: { id } });
   }
 
   private classify(text: string, included: string[], excluded: string[]) {
