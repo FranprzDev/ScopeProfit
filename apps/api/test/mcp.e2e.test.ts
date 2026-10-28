@@ -279,3 +279,58 @@ test('the stdio entrypoint serves the same tools for local MCP clients', dbOnly,
     await client.close();
   }
 });
+
+test('native OAuth clients can authorize an ephemeral loopback port', dbOnly, async () => {
+  const owner = await app.get(AuthService).professionalUser(ownerEmail);
+  const { key } = await app.get(ApiKeysService).create(owner, 'native-loopback');
+  const registered = await fetch(`${baseUrl}/register`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      client_name: 'Synthetic desktop MCP client',
+      redirect_uris: ['http://127.0.0.1/callback'],
+      token_endpoint_auth_method: 'none',
+      grant_types: ['authorization_code', 'refresh_token'],
+      response_types: ['code'],
+    }),
+  });
+  assert.equal(registered.status, 201);
+  const { client_id: clientId } = await registered.json();
+  const redirect = 'http://127.0.0.1:43127/callback';
+  const verifier = randomBytes(32).toString('base64url');
+  const authorize = new URL(`${baseUrl}/authorize`);
+  for (const [key, value] of Object.entries({
+    response_type: 'code',
+    client_id: clientId,
+    redirect_uri: redirect,
+    code_challenge: createHash('sha256').update(verifier).digest('base64url'),
+    code_challenge_method: 'S256',
+    scope: 'scope',
+    resource: `${baseUrl}/api/mcp`,
+  }))
+    authorize.searchParams.set(key, value);
+  const page = await fetch(authorize, { redirect: 'manual' });
+  assert.equal(page.status, 200);
+  const request = /name="request" value="([^"]+)"/.exec(await page.text())![1];
+  const consent = await fetch(`${baseUrl}/oauth/consent`, {
+    method: 'POST',
+    redirect: 'manual',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ request, api_key: key }),
+  });
+  assert.equal(consent.status, 302, await consent.text());
+  const target = new URL(consent.headers.get('location')!);
+  assert.equal(target.origin + target.pathname, redirect);
+  const exchanged = await fetch(`${baseUrl}/token`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'authorization_code',
+      client_id: clientId,
+      code: target.searchParams.get('code')!,
+      code_verifier: verifier,
+      redirect_uri: redirect,
+    }),
+  });
+  assert.equal(exchanged.status, 200, await exchanged.text());
+});

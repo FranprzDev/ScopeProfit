@@ -6,6 +6,7 @@ import {
   getOAuthProtectedResourceMetadataUrl,
   mcpAuthRouter,
 } from '@modelcontextprotocol/sdk/server/auth/router.js';
+import { redirectUriMatches } from '@modelcontextprotocol/sdk/server/auth/handlers/authorize.js';
 import { requireBearerAuth } from '@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js';
 import { PrismaService } from '../../prisma.service';
 import { ApiKeysService } from './api-keys.service';
@@ -68,7 +69,10 @@ export function mountMcp(app: INestApplication) {
           .type('text')
           .send('Authorization request expired; start again.');
       const client = await provider.clientsStore.getClient(claim.clientId);
-      if (!client || !client.redirect_uris.includes(claim.redirectUri))
+      if (
+        !client ||
+        !client.redirect_uris.some((uri) => redirectUriMatches(claim.redirectUri, uri))
+      )
         return void res.status(400).type('text').send('Unknown client.');
       const apiKey = typeof body.api_key === 'string' ? body.api_key.trim() : '';
       const verified = await keys.verify(apiKey).catch(() => null);
