@@ -253,10 +253,25 @@ export class ScopeToolsService {
 
   async getConversation(
     user: User,
-    input: { projectId: string; limit?: number; beforeMessageId?: string },
+    input: {
+      projectId: string;
+      limit?: number;
+      beforeMessageId?: string;
+      messageId?: string;
+      contentOffset?: number;
+    },
   ) {
     await this.project(user, input.projectId);
-    const limit = Math.min(200, Math.max(1, input.limit ?? 100));
+    if (
+      (input.messageId && input.beforeMessageId) ||
+      (input.contentOffset !== undefined && !input.messageId)
+    )
+      fail(
+        'INVALID_CURSOR',
+        400,
+        'Use message_id with content_offset, or before_message_id for older pages',
+      );
+    const limit = input.messageId ? 1 : Math.min(200, Math.max(1, input.limit ?? 100));
     const anchor = input.beforeMessageId
       ? await this.db.message.findFirst({
           where: { id: input.beforeMessageId, projectId: input.projectId },
@@ -268,6 +283,7 @@ export class ScopeToolsService {
     const messages = await this.db.message.findMany({
       where: {
         projectId: input.projectId,
+        ...(input.messageId ? { id: input.messageId } : {}),
         ...(anchor
           ? {
               OR: [
@@ -281,20 +297,42 @@ export class ScopeToolsService {
       take: limit + 1,
       include: { files: true },
     });
-    const hasMore = messages.length > limit;
-    if (hasMore) messages.pop();
-    const nextCursor = hasMore ? messages.at(-1)!.id : null;
+    if (input.messageId && !messages.length) fail('MESSAGE_NOT_FOUND', 404);
+    const selected = [];
+    let used = 0;
+    for (const message of messages.slice(0, limit)) {
+      const offset = input.messageId ? (input.contentOffset ?? 0) : 0;
+      if (!Number.isInteger(offset) || offset < 0 || offset > message.content.length)
+        fail('INVALID_CONTENT_OFFSET', 400);
+      const end = Math.min(message.content.length, offset + 10_000);
+      const item = {
+        messageId: message.id,
+        authorRole: message.authorRole,
+        content: message.content.slice(offset, end),
+        contentOffset: offset,
+        contentLength: message.content.length,
+        nextContentOffset: end < message.content.length ? end : null,
+        contentComplete: offset === 0 && end === message.content.length,
+        files: message.files.map((file) => ({
+          fileId: file.id,
+          name: file.name,
+          mimeType: file.mimeType,
+        })),
+        createdAt: message.createdAt.toISOString(),
+      };
+      const size = JSON.stringify(item).length;
+      if (selected.length && used + size > 30_000) break;
+      selected.push(item);
+      used += size;
+    }
+    const hasMore = !input.messageId && messages.length > selected.length;
     return {
       projectId: input.projectId,
       hasMore,
-      nextCursor,
-      messages: messages.reverse().map((m) => ({
-        messageId: m.id,
-        authorRole: m.authorRole,
-        content: m.content,
-        files: m.files.map((f) => ({ fileId: f.id, name: f.name, mimeType: f.mimeType })),
-        createdAt: m.createdAt.toISOString(),
-      })),
+      nextCursor: hasMore ? selected.at(-1)!.messageId : null,
+      messages: selected.reverse(),
+      contentGuidance:
+        'Incomplete content is explicitly marked. Retrieve remaining exact text with message_id and nextContentOffset as content_offset. Offsets count UTF-16 code units. Follow nextCursor as before_message_id for older messages.',
     };
   }
 

@@ -907,3 +907,57 @@ test('scope preview matches the saved version after client identity binding', db
   const preview = await tools.getScopeDocument(owner, created.projectId);
   assert.equal(preview.markdown, saved.buffer.toString());
 });
+
+test(
+  'conversation results budget payloads and retain exact long-message retrieval',
+  dbOnly,
+  async () => {
+    const created = await tools.createProject(owner, { name: 'Insurance policy text budget' });
+    const text = 'Policy clause "quoted" \\ newline\n'.repeat(3000) + 'END';
+    const added = await tools.addClientInput(owner, { projectId: created.projectId, text });
+    await tools.addClientInput(owner, { projectId: created.projectId, text });
+    const page = await call('get_conversation', { project_id: created.projectId });
+    assert.ok(!page.isError);
+    assert.ok(JSON.stringify(page).length < 150_000);
+    let offset = 0;
+    let reconstructed = '';
+    do {
+      const part = await tools.getConversation(owner, {
+        projectId: created.projectId,
+        messageId: added.added[0].messageId,
+        contentOffset: offset,
+      });
+      assert.equal(part.messages.length, 1);
+      reconstructed += part.messages[0].content;
+      const next = part.messages[0].nextContentOffset;
+      if (next === null) break;
+      assert.ok(next > offset);
+      offset = next;
+    } while (offset <= text.length);
+    assert.equal(reconstructed, text);
+    const other = await tools.createProject(owner, { name: 'Different policy project' });
+    await assert.rejects(
+      tools.getConversation(owner, {
+        projectId: other.projectId,
+        messageId: added.added[0].messageId,
+      }),
+      withCode('MESSAGE_NOT_FOUND'),
+    );
+  },
+);
+
+test('conversation budget accounts for JSON-escaped control characters', dbOnly, async () => {
+  const created = await tools.createProject(owner, { name: 'Imported helpdesk transcript' });
+  const text = '\u0001'.repeat(100_000);
+  await tools.addClientInput(owner, { projectId: created.projectId, text });
+  await tools.addClientInput(owner, { projectId: created.projectId, text });
+  const page = await call('get_conversation', { project_id: created.projectId });
+  assert.ok(!page.isError);
+  assert.ok(JSON.stringify(page).length < 150_000);
+  const messages = page.structuredContent!.messages as {
+    contentComplete: boolean;
+    nextContentOffset: number;
+  }[];
+  assert.equal(messages[0].contentComplete, false);
+  assert.equal(messages[0].nextContentOffset, 10_000);
+});
