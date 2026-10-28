@@ -983,6 +983,8 @@ test(
     });
     const saved = await db.message.findUniqueOrThrow({ where: { id: answered.messageId } });
     assert.ok(saved.content.endsWith(original));
+  },
+);
 
 test(
   'stable project traversal retains unseen projects after activity updates',
