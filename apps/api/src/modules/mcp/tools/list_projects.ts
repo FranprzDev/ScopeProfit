@@ -31,6 +31,7 @@ export const metadata: ToolMetadata = {
 export default async function list_projects(args: InferSchema<typeof schema>) {
   return executeTool((tools, user) =>
     tools.listProjects(user, {
+      order: args.order,
       status: args.status,
       includeArchived: args.include_archived,
       limit: args.limit,

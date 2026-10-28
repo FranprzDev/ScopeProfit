@@ -991,7 +991,12 @@ test(
     const created = [];
     for (let i = 0; i < 3; i++)
       created.push(await tools.createProject(owner, { name: `Stable activity ${i}` }));
-    const first = await tools.listProjects(owner, { order: 'created', limit: 1 });
+    const first = await data<{
+      projects: { projectId: string }[];
+      nextCursor: string | null;
+      order: string;
+    }>('list_projects', { order: 'created', limit: 1 });
+    assert.equal(first.order, 'created');
     assert.equal(first.projects[0].projectId, created[2].projectId);
     await new Promise((resolve) => setTimeout(resolve, 5));
     await tools.addClientInput(owner, {
