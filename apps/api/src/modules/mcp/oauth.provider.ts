@@ -14,6 +14,7 @@ import type {
 } from '@modelcontextprotocol/sdk/shared/auth.js';
 import {
   InvalidGrantError,
+  InvalidScopeError,
   InvalidTokenError,
 } from '@modelcontextprotocol/sdk/server/auth/errors.js';
 import { PrismaService } from '../../prisma.service';
@@ -73,6 +74,9 @@ export class ScopeProfitOAuthProvider implements OAuthServerProvider {
     params: AuthorizationParams,
     res: Response,
   ): Promise<void> {
+    const scopes = params.scopes?.length ? params.scopes : [MCP_SCOPE];
+    if (scopes.some((scope) => scope !== MCP_SCOPE))
+      throw new InvalidScopeError('Only the scope permission is supported');
     const expectedResource = new URL('/api/mcp', publicApiUrl()).href;
     if (params.resource && params.resource.href !== expectedResource)
       throw new InvalidTargetError('Resource must identify this MCP server');
@@ -81,7 +85,7 @@ export class ScopeProfitOAuthProvider implements OAuthServerProvider {
       redirectUri: params.redirectUri,
       codeChallenge: params.codeChallenge,
       state: params.state,
-      scopes: params.scopes ?? [MCP_SCOPE],
+      scopes,
       resource: expectedResource,
       exp: Date.now() + 10 * 60_000,
     });
