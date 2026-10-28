@@ -156,19 +156,42 @@ export class ScopeProfitOAuthProvider implements OAuthServerProvider {
     scopes?: string[],
     resource?: URL,
   ): Promise<OAuthTokens> {
-    const refresh = await this.liveToken(refreshToken, 'refresh');
+    const refresh = await this.db.oAuthToken.findUnique({
+      where: { tokenHash: hash(refreshToken) },
+    });
+    if (!refresh || refresh.kind !== 'refresh' || refresh.expiresAt.getTime() < Date.now())
+      throw new InvalidGrantError('Invalid or expired refresh token');
     if (resource && resource.href !== refresh.resource)
       throw new InvalidTargetError('Resource does not match the refresh grant');
     if (scopes?.some((scope) => !refresh.scopes.includes(scope)))
       throw new InvalidGrantError('Refresh cannot expand the authorized scope');
     if (refresh.clientId !== client.client_id)
       throw new InvalidGrantError('Refresh token was issued to another client');
-    const rotated = await this.db.oAuthToken.updateMany({
-      where: { tokenHash: refresh.tokenHash, revokedAt: null },
-      data: { revokedAt: new Date() },
+    const tokens = await this.db.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${refresh.grantId}))`;
+      const rotated = await tx.oAuthToken.updateMany({
+        where: { tokenHash: refresh.tokenHash, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+      if (rotated.count !== 1) {
+        await tx.oAuthToken.updateMany({
+          where: { grantId: refresh.grantId, clientId: client.client_id, revokedAt: null },
+          data: { revokedAt: new Date() },
+        });
+        return null;
+      }
+      return this.issueTokens(
+        client.client_id,
+        refresh.apiKeyId,
+        refresh.scopes,
+        refresh.resource,
+        refresh.grantId,
+        tx,
+      );
     });
-    if (rotated.count !== 1) throw new InvalidGrantError('Refresh token already used');
-    return this.issueTokens(client.client_id, refresh.apiKeyId, refresh.scopes, refresh.resource);
+    if (!tokens)
+      throw new InvalidGrantError('Refresh token replay revoked this authorization grant');
+    return tokens;
   }
 
   async verifyAccessToken(raw: string): Promise<AuthInfo> {
@@ -237,11 +260,13 @@ export class ScopeProfitOAuthProvider implements OAuthServerProvider {
     apiKeyId: string,
     scopes: string[],
     resource: string | null,
+    grantId: string = randomUUID(),
+    db: Prisma.TransactionClient = this.db,
   ): Promise<OAuthTokens> {
     const access = `${ACCESS_PREFIX}${token()}`;
     const refresh = `${REFRESH_PREFIX}${token()}`;
-    const base = { clientId, apiKeyId, scopes, resource };
-    await this.db.oAuthToken.createMany({
+    const base = { clientId, apiKeyId, scopes, resource, grantId };
+    await db.oAuthToken.createMany({
       data: [
         {
           ...base,
