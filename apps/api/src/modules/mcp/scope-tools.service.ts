@@ -320,22 +320,15 @@ export class ScopeToolsService {
     const answer = input.answer.trim();
     if (!answer) fail('INVALID_TEXT', 400, 'Answer is required');
     this.storage.validateText(answer);
-    const message = await this.db.message.create({
-      data: {
-        projectId: project.id,
-        threadId: project.id,
-        authorId: user.id,
-        authorRole: 'client',
-        content: `${question.id} — ${question.question}\n${answer}`,
-      },
-    });
     const next = { ...brief, questions: brief.questions.filter((q) => q.id !== question.id) };
-    const saved = await this.saveBrief(user, project.id, project.brief.version, next);
+    const saved = await this.saveBrief(user, project.id, project.brief.version, next, {
+      content: `${question.id} — ${question.question}\n${answer}`,
+    });
     if (input.analyze) await this.agent.enqueue(project.id);
     return {
       projectId: project.id,
       answeredQuestionId: question.id,
-      messageId: message.id,
+      messageId: saved.messageId,
       reviewRequired: {
         sections: [
           'summary',
@@ -446,11 +439,6 @@ export class ScopeToolsService {
     this.auth.professional(user);
     const project = await this.project(user, input.projectId);
     const sendToClient = input.sendToClient ?? false;
-    if (input.clientEmail && !project.clientEmail)
-      await this.db.project.update({
-        where: { id: project.id },
-        data: { clientEmail: input.clientEmail.toLowerCase() },
-      });
     if (sendToClient && !project.clientEmail && !input.clientEmail)
       fail(
         'CLIENT_EMAIL_REQUIRED',
@@ -459,6 +447,7 @@ export class ScopeToolsService {
       );
     const approved = await this.documents.approve(project.id, user.id, input.documentVersion, {
       deliver: sendToClient,
+      clientEmail: input.clientEmail,
     });
     return {
       projectId: project.id,
@@ -549,8 +538,9 @@ export class ScopeToolsService {
     projectId: string,
     expectedVersion: number,
     brief: BriefData,
+    answer?: { content: string },
   ) {
-    const document = await this.db.$transaction(
+    const saved = await this.db.$transaction(
       async (tx) => {
         const updated = await tx.brief.updateMany({
           where: { projectId, version: expectedVersion },
@@ -566,10 +556,26 @@ export class ScopeToolsService {
             actorId: user.id,
           },
         });
-        return this.documents.saveDraft(tx, projectId, user.id);
+        const message = answer
+          ? await tx.message.create({
+              data: {
+                projectId,
+                threadId: projectId,
+                authorId: user.id,
+                authorRole: 'client',
+                content: answer.content,
+              },
+            })
+          : null;
+        const document = await this.documents.saveDraft(tx, projectId, user.id);
+        return { document, message };
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
-    return { briefVersion: expectedVersion + 1, documentVersion: document.version };
+    return {
+      briefVersion: expectedVersion + 1,
+      documentVersion: saved.document.version,
+      ...(saved.message ? { messageId: saved.message.id } : {}),
+    };
   }
 }

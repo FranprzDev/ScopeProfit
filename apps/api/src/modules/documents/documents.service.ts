@@ -7,6 +7,7 @@ import { EmailService } from '../../email.service';
 import { StorageService } from '../storage/storage.service';
 import { markdown, render, validateEditor } from './render';
 import { ProjectStatus } from '@prisma/client';
+import { isEmail } from 'class-validator';
 import { validateBriefForSave } from '../brief/brief.validation';
 
 type Artifact = { path: string; checksum: string; size: number };
@@ -243,7 +244,7 @@ export class DocumentsService {
     projectId: string,
     userId: string,
     version: number,
-    options: { deliver?: boolean } = {},
+    options: { deliver?: boolean; clientEmail?: string } = {},
   ) {
     await this.prisma.$transaction(
       async (tx) => {
@@ -262,7 +263,16 @@ export class DocumentsService {
         });
         if (!saved || saved.briefVersion !== project.brief?.version)
           return fail('VERSION_CONFLICT', 'Document does not match current brief');
-        if (saved.approvedAt) return;
+        const recipient = options.clientEmail?.trim().toLowerCase();
+        if (recipient && !isEmail(recipient))
+          return fail('INVALID_CLIENT_EMAIL', 'Client email is invalid', 400);
+        if (recipient && project.clientEmail && recipient !== project.clientEmail.toLowerCase())
+          return fail('CLIENT_EMAIL_MISMATCH', 'Client email differs from the stored destination');
+        if (saved.approvedAt) {
+          if (recipient && !project.clientEmail)
+            await tx.project.update({ where: { id: projectId }, data: { clientEmail: recipient } });
+          return;
+        }
         if (
           !['in_review', 'changes_requested'].includes(project.status) ||
           ['pending', 'running'].includes(project.agentStatus)
@@ -304,7 +314,13 @@ export class DocumentsService {
             deliveryKey: `scopeprofit-${saved.id}`,
           },
         });
-        await tx.project.update({ where: { id: projectId }, data: { status: 'approved' } });
+        await tx.project.update({
+          where: { id: projectId },
+          data: {
+            status: ProjectStatus.approved,
+            ...(recipient ? { clientEmail: recipient } : {}),
+          },
+        });
         await tx.auditEvent.create({
           data: {
             projectId,

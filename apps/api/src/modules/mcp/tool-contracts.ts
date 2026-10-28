@@ -1,4 +1,5 @@
 import { HttpException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import type { User } from '@prisma/client';
@@ -33,7 +34,10 @@ function result(data: ToolResult): CallToolResult {
 export function toolError(error: unknown): CallToolResult {
   let code = 'INTERNAL_ERROR';
   let message = 'Unable to complete the request';
-  if (error instanceof HttpException) {
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034') {
+    code = 'VERSION_CONFLICT';
+    message = 'Project changed during this request; read its current version and retry';
+  } else if (error instanceof HttpException) {
     const body = error.getResponse();
     if (body && typeof body === 'object') {
       const detail = body as Record<string, unknown>;
