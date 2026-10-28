@@ -153,6 +153,8 @@ export class ScopeToolsService {
             briefVersion: latest.briefVersion,
             upToDate: latest.briefVersion === project.brief?.version,
             matchesBriefVersion: latest.briefVersion === project.brief?.version,
+            manualEditsRequireReview:
+              (latest.data as unknown as DocumentData).manualEditsRequireReview === true,
           }
         : null,
       inputCoverageVerified: false,
@@ -481,6 +483,9 @@ export class ScopeToolsService {
       briefVersion: project.brief?.version ?? 0,
       documentVersion: latest?.version ?? null,
       documentStatus: latest?.status ?? null,
+      manualEditsRequireReview: latest
+        ? (latest.data as unknown as DocumentData).manualEditsRequireReview === true
+        : false,
       documentUpToDate: latest ? latest.briefVersion === project.brief?.version : false,
       documentMatchesBriefVersion: latest ? latest.briefVersion === project.brief?.version : false,
       inputCoverageVerified: false,
@@ -547,6 +552,7 @@ export class ScopeToolsService {
       documentVersion: number;
       sendToClient?: boolean;
       clientEmail?: string;
+      manualEditsReviewed?: boolean;
     },
   ) {
     this.auth.professional(user);
@@ -561,6 +567,7 @@ export class ScopeToolsService {
     const approved = await this.documents.approve(project.id, user.id, input.documentVersion, {
       deliver: sendToClient,
       clientEmail: input.clientEmail,
+      manualEditsReviewed: input.manualEditsReviewed,
     });
     return {
       projectId: project.id,

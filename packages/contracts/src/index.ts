@@ -81,6 +81,7 @@ export interface DocumentData {
   version: number;
   brief: BriefData;
   editorContent: TiptapNode | null;
+  manualEditsRequireReview?: boolean;
 }
 export interface DocumentVersion {
   id: string;

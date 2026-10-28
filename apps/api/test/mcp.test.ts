@@ -1153,3 +1153,80 @@ test('archiving an approved scope blocks later approval or delivery attempts', d
   await assert.rejects(documents.deliver(created.projectId, version), withCode('PROJECT_LOCKED'));
   assert.equal((await tools.getProject(owner, created.projectId)).status, ProjectStatus.archived);
 });
+
+test('carried manual terms require explicit review after brief changes', dbOnly, async () => {
+  const created = await tools.createProject(owner, { name: 'Archived legal engagement' });
+  const added = await tools.addClientInput(owner, {
+    projectId: created.projectId,
+    text: 'Review the service contract',
+  });
+  const sections: [Parameters<typeof tools.updateScopeSection>[1]['section'], unknown][] = [
+    ['summary', 'Review the service contract'],
+    [
+      'requirements',
+      [
+        {
+          id: 'R1',
+          description: 'Contract review',
+          type: 'functional',
+          priority: 'must',
+          source: 'Review the service contract',
+          sourceMessageId: added.added[0].messageId,
+          systemNote: '',
+        },
+      ],
+    ],
+    ['included', ['Contract review']],
+    ['excluded', ['Litigation']],
+    ['assumptions', ['One contract']],
+    ['acceptanceCriteria', ['Review delivered']],
+    ['nextSteps', ['Review scope']],
+    ['estimates', [{ module: 'Review', minHours: 2, maxHours: 4, uncertainty: '' }]],
+  ];
+  let version = 0;
+  for (const [section, value] of sections) {
+    const saved = await tools.updateScopeSection(owner, {
+      projectId: created.projectId,
+      expectedVersion: version,
+      section,
+      value,
+    });
+    version = saved.briefVersion;
+  }
+  const editor = {
+    type: 'doc',
+    content: [
+      { type: 'paragraph', content: [{ type: 'text', text: 'Five floors must be covered' }] },
+    ],
+  };
+  const edited = await documents.generate(created.projectId, owner.id, editor, version);
+  const updated = await tools.updateScopeSection(owner, {
+    projectId: created.projectId,
+    expectedVersion: version,
+    section: 'summary',
+    value: 'One floor only',
+  });
+  const preview = await tools.getScopeDocument(owner, created.projectId);
+  assert.equal(preview.documentMatchesBriefVersion, true);
+  assert.equal(preview.manualEditsRequireReview, true);
+  assert.ok(preview.markdown.includes('Five floors must be covered'));
+  const regenerated = await documents.generate(created.projectId, owner.id);
+  assert.equal(
+    (regenerated.data as { manualEditsRequireReview?: boolean }).manualEditsRequireReview,
+    true,
+  );
+  await assert.rejects(
+    tools.approveScope(owner, {
+      projectId: created.projectId,
+      documentVersion: regenerated.version,
+    }),
+    withCode('MANUAL_EDITS_REVIEW_REQUIRED'),
+  );
+  assert.ok(edited.version < updated.documentVersion);
+  const approved = await tools.approveScope(owner, {
+    projectId: created.projectId,
+    documentVersion: regenerated.version,
+    manualEditsReviewed: true,
+  });
+  assert.equal(approved.status, 'approved');
+});

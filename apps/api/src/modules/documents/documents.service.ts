@@ -52,6 +52,10 @@ export class DocumentsService {
       version: current + 1,
       brief: project.brief.data as unknown as BriefData,
       editorContent: (previous?.editorContent as unknown as TiptapNode) || null,
+      manualEditsRequireReview:
+        !!previous?.editorContent &&
+        (previous.briefVersion !== project.brief.version ||
+          (previous.data as unknown as DocumentData).manualEditsRequireReview === true),
     };
     const document = await tx.document.upsert({
       where: { projectId },
@@ -130,6 +134,11 @@ export class DocumentsService {
       brief: project.brief.data as unknown as BriefData,
       editorContent:
         validatedEditorContent || (previous?.editorContent as unknown as TiptapNode) || null,
+      manualEditsRequireReview:
+        !validatedEditorContent &&
+        !!previous?.editorContent &&
+        (previous.briefVersion !== project.brief.version ||
+          (previous.data as unknown as DocumentData).manualEditsRequireReview === true),
     };
     const buffers = await render(data);
     const artifacts = {} as Artifacts;
@@ -244,7 +253,7 @@ export class DocumentsService {
     projectId: string,
     userId: string,
     version: number,
-    options: { deliver?: boolean; clientEmail?: string } = {},
+    options: { deliver?: boolean; clientEmail?: string; manualEditsReviewed?: boolean } = {},
   ) {
     await this.prisma.$transaction(
       async (tx) => {
@@ -280,6 +289,14 @@ export class DocumentsService {
           ['pending', 'running'].includes(project.agentStatus)
         )
           return fail('PROJECT_NOT_REVIEWABLE', 'Project is not ready for review');
+        if (
+          (saved.data as unknown as DocumentData).manualEditsRequireReview &&
+          !options.manualEditsReviewed
+        )
+          return fail(
+            'MANUAL_EDITS_REVIEW_REQUIRED',
+            'Review carried-forward manual terms against the current brief before approval',
+          );
         const brief = validateBriefForSave(project.brief.data);
         if (
           !brief.summary.trim() ||
@@ -329,7 +346,7 @@ export class DocumentsService {
             actorId: userId,
             action: 'document.approved',
             result: 'success',
-            metadata: { version },
+            metadata: { version, manualEditsReviewed: options.manualEditsReviewed === true },
           },
         });
       },

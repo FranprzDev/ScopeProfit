@@ -232,3 +232,7 @@ Use `nextCursor` as `before_message_id` for older messages. Message-chunk retrie
 ### Answering the question you reviewed
 
 `answer_question` requires `expected_version` from the `briefVersion` returned alongside the pending question. If the brief changed, re-read the questions and confirm the answer still matches the current question before retrying. IDs such as Q1 may be reused when replacing questions; an answer to an earlier meaning must not remove its replacement. Existing clients must include this version argument.
+
+### Manual terms carried into a new brief
+
+Brief edits preserve manual document notes. When those notes are carried to a different brief version, `get_project` and `get_scope_document` expose `manualEditsRequireReview: true`; matching brief versions alone do not mean manual terms are current. Approval returns `MANUAL_EDITS_REVIEW_REQUIRED` until the professional has reviewed all carried-forward terms for the selected document version and explicitly supplies `manual_edits_reviewed: true`. Never infer that confirmation from successful structured updates. A newly saved manual edit is treated as an explicit editor review; export/regeneration alone does not clear this state.
