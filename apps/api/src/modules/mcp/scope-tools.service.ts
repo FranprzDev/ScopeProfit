@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import sharp from 'sharp';
 import { randomUUID } from 'node:crypto';
 import { Prisma, ProjectStatus } from '@prisma/client';
 import type { User } from '@prisma/client';
@@ -366,6 +367,42 @@ export class ScopeToolsService {
       messages: selected.reverse(),
       contentGuidance:
         'Incomplete content is explicitly marked. Retrieve remaining exact text with message_id and nextContentOffset as content_offset. Offsets count UTF-16 code units. Follow nextCursor as before_message_id for older messages.',
+    };
+  }
+
+  async getInputImage(user: User, input: { projectId: string; fileId: string }) {
+    await this.project(user, input.projectId);
+    const file = await this.db.file.findFirst({
+      where: { id: input.fileId, projectId: input.projectId },
+    });
+    if (!file || !file.mimeType.startsWith('image/')) fail('IMAGE_NOT_FOUND', 404);
+    const source = await this.storage.read(file.path);
+    let bytes = source;
+    let mimeType = file.mimeType;
+    let preview = false;
+    if (bytes.length > 2 * 1024 * 1024) {
+      bytes = await sharp(source)
+        .rotate()
+        .resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true })
+        .flatten({ background: '#ffffff' })
+        .jpeg({ quality: 80 })
+        .toBuffer();
+      mimeType = 'image/jpeg';
+      preview = true;
+    }
+    if (bytes.length > 2 * 1024 * 1024) fail('IMAGE_TOO_LARGE', 413);
+    return {
+      projectId: input.projectId,
+      fileId: file.id,
+      name: file.name,
+      mimeType,
+      preview,
+      originalMimeType: file.mimeType,
+      originalBytes: source.length,
+      guidance: preview
+        ? 'Scaled preview, not the original pixels. Confirm small text with the client before citing it.'
+        : 'Original stored image. Image observations are not source quotes; confirm facts as client text before adding requirements.',
+      data: bytes.toString('base64'),
     };
   }
 

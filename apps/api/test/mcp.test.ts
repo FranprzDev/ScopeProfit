@@ -199,6 +199,7 @@ test(
       'create_project',
       'export_document',
       'get_conversation',
+      'get_input_image',
       'get_project',
       'get_scope_document',
       'get_tldr',
@@ -1229,4 +1230,78 @@ test('carried manual terms require explicit review after brief changes', dbOnly,
     manualEditsReviewed: true,
   });
   assert.equal(approved.status, 'approved');
+});
+
+test('stored input screenshots are readable as native MCP images', dbOnly, async () => {
+  process.env.MCP_ALLOW_HTTP_IMAGE_URLS = 'true';
+  process.env.MCP_ALLOW_PRIVATE_IMAGE_URLS = 'true';
+  try {
+    const created = await tools.createProject(owner, { name: 'Design studio sketch evidence' });
+    const added = await tools.addClientInput(owner, {
+      projectId: created.projectId,
+      imageUrls: [`${imageBase}/sketch.png`],
+    });
+    const result = await call('get_input_image', {
+      project_id: created.projectId,
+      file_id: added.added[0].fileId,
+    });
+    assert.ok(!result.isError);
+    const content = result.content as { type: string; data?: string; mimeType?: string }[];
+    const image = content.find((item) => item.type === 'image')!;
+    assert.equal(image.mimeType, 'image/png');
+    const decoded = Buffer.from(image.data!, 'base64');
+    assert.equal((await sharp(decoded).metadata()).width, 8);
+    assert.ok(!JSON.stringify(result.structuredContent).includes(image.data!));
+    const other = await tools.createProject(owner, { name: 'Different studio project' });
+    assert.equal(
+      await errorCode('get_input_image', {
+        project_id: other.projectId,
+        file_id: added.added[0].fileId,
+      }),
+      'IMAGE_NOT_FOUND',
+    );
+  } finally {
+    delete process.env.MCP_ALLOW_HTTP_IMAGE_URLS;
+    delete process.env.MCP_ALLOW_PRIVATE_IMAGE_URLS;
+  }
+});
+
+test('large screenshot reads return a labeled bounded preview', dbOnly, async () => {
+  const created = await tools.createProject(owner, { name: 'Detailed design preview' });
+  const { randomBytes } = await import('node:crypto');
+  const original = await sharp(randomBytes(1000 * 1000 * 3), {
+    raw: { width: 1000, height: 1000, channels: 3 },
+  })
+    .png()
+    .toBuffer();
+  assert.ok(original.length > 2 * 1024 * 1024);
+  const stored = await new StorageService().write(
+    `${created.projectId}/uploads/preview-test.png`,
+    original,
+  );
+  const message = await db.message.create({
+    data: {
+      projectId: created.projectId,
+      threadId: created.projectId,
+      authorRole: 'client',
+      content: '[imagen]',
+    },
+  });
+  const file = await db.file.create({
+    data: {
+      projectId: created.projectId,
+      messageId: message.id,
+      name: 'preview-test.png',
+      mimeType: 'image/png',
+      ...stored,
+    },
+  });
+  const result = await tools.getInputImage(owner, {
+    projectId: created.projectId,
+    fileId: file.id,
+  });
+  assert.equal(result.preview, true);
+  assert.equal(result.mimeType, 'image/jpeg');
+  assert.ok(Buffer.from(result.data, 'base64').length < 2 * 1024 * 1024);
+  assert.equal(result.originalBytes, original.length);
 });
