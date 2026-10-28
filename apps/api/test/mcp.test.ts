@@ -1380,3 +1380,31 @@ test('competing initial MCP exports clean failed generation artifacts', dbOnly, 
       .sort(),
   );
 });
+
+test('change-request classifications expose the brief version they describe', dbOnly, async () => {
+  const created = await tools.createProject(owner, { name: 'Changing delivery integration' });
+  await tools.updateScopeSection(owner, {
+    projectId: created.projectId,
+    expectedVersion: 0,
+    section: 'included',
+    value: ['Online payments'],
+  });
+  await tools.logChangeRequest(owner, {
+    projectId: created.projectId,
+    request: 'Online payments with card checkout',
+  });
+  await tools.updateScopeSection(owner, {
+    projectId: created.projectId,
+    expectedVersion: 1,
+    section: 'included',
+    value: ['Cash only'],
+  });
+  const result = await call('list_change_requests', { project_id: created.projectId });
+  const listed = result.structuredContent as {
+    briefVersion: number;
+    changeRequests: { baseBriefVersion: number; classificationCurrent: boolean }[];
+  };
+  assert.equal(listed.briefVersion, 2);
+  assert.equal(listed.changeRequests[0].baseBriefVersion, 1);
+  assert.equal(listed.changeRequests[0].classificationCurrent, false);
+});
