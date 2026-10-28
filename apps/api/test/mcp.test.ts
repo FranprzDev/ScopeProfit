@@ -805,3 +805,30 @@ test('mixed inputs are atomic and recheck project lock after image downloads', d
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }
 });
+
+test('TLDR prioritizes blocking questions over optional questions', dbOnly, async () => {
+  const created = await tools.createProject(owner, { name: 'Insurance compliance priorities' });
+  await tools.updateScopeSection(owner, {
+    projectId: created.projectId,
+    expectedVersion: 0,
+    section: 'questions',
+    value: [
+      ...Array.from({ length: 3 }, (_, index) => ({
+        id: `Q${index}`,
+        question: 'Optional detail',
+        reason: '',
+        blocksEstimate: false,
+      })),
+      {
+        id: 'BLOCK',
+        question: 'May health data leave the country?',
+        reason: 'Compliance',
+        blocksEstimate: true,
+      },
+    ],
+  });
+  const summary = await tools.getTldr(owner, created.projectId);
+  assert.equal(summary.blockingQuestions, 1);
+  assert.equal(summary.topQuestions[0].id, 'BLOCK');
+  assert.equal(summary.topQuestions[0].blocksEstimate, true);
+});
