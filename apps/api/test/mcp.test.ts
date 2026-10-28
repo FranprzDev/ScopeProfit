@@ -1333,3 +1333,31 @@ test('an image trickle cannot extend the request deadline indefinitely', dbOnly,
     server.close();
   }
 });
+
+test('archived projects do not accept new change-request activity', dbOnly, async () => {
+  const created = await tools.createProject(owner, { name: 'Archived restaurant refit' });
+  const proposed = await tools.logChangeRequest(owner, {
+    projectId: created.projectId,
+    request: 'Move entrance',
+  });
+  await tools.archiveProject(owner, created.projectId);
+  const changes = new ChangeRequestsService(db, new AuthService(db, new EmailService()));
+  const { ChangeRequestStatus } = await import('@prisma/client');
+  await assert.rejects(
+    changes.decide(
+      created.projectId,
+      proposed.changeRequestId,
+      ChangeRequestStatus.accepted,
+      owner,
+    ),
+    withCode('PROJECT_LOCKED'),
+  );
+  await assert.rejects(
+    tools.logChangeRequest(owner, {
+      projectId: created.projectId,
+      request: 'Add a second dining area',
+    }),
+    withCode('PROJECT_LOCKED'),
+  );
+  assert.equal(await db.changeRequest.count({ where: { projectId: created.projectId } }), 1);
+});
