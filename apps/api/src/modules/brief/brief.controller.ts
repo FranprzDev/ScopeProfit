@@ -5,7 +5,7 @@ import { Prisma } from '@prisma/client';
 import { AuthService } from '../auth/auth.service';
 import { AgentService } from '../agent/agent.service';
 import { PrismaService } from '../../prisma.service';
-import { validateBrief, validateSources } from './brief.validation';
+import { validateBrief, validateBriefForSave, validateSources } from './brief.validation';
 import { diffBrief } from './brief-diff';
 import { ok, SESSION_COOKIE } from '../../response';
 import { fail } from '../../security';
@@ -75,7 +75,7 @@ export class BriefController {
       project.status === ProjectStatus.archived
     )
       fail('PROJECT_LOCKED');
-    const brief = validateBrief(body.data);
+    const brief = validateBriefForSave(body.data);
     validateSources(
       brief,
       await this.db.message.findMany({

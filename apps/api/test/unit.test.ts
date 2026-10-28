@@ -5,7 +5,11 @@ import assert from 'node:assert/strict';
 import { HttpException } from '@nestjs/common';
 import { MaintenanceStatus, QuoteStatus } from '@prisma/client';
 import { encrypt, decrypt, hash, secureEqual, isAuthorizedProfessional } from '../src/security';
-import { validateBrief, validateSources } from '../src/modules/brief/brief.validation';
+import {
+  validateBrief,
+  validateBriefForSave,
+  validateSources,
+} from '../src/modules/brief/brief.validation';
 import { validateEditor, markdown } from '../src/modules/documents/render';
 import { emptyBrief } from '@scopeprofit/contracts';
 import { diffBrief } from '../src/modules/brief/brief-diff';
@@ -673,4 +677,26 @@ test('monthRange resolves UTC month boundaries and defaults to the current month
   for (const month of ['2026-13', '2026-00', 'feb-2026', '2026-2']) {
     assert.throws(() => monthRange(month), maintenanceFailure('INVALID_MONTH', 400));
   }
+});
+
+test('brief content rejects blank contractual values and ambiguous identity keys', () => {
+  const question = { id: 'Q1', question: 'How many seats?', reason: '', blocksEstimate: true };
+  const risk = { id: 'R1', description: 'Data loss', impact: '', mitigation: '', severity: 'red' };
+  for (const section of ['included', 'excluded', 'assumptions', 'acceptanceCriteria', 'nextSteps'])
+    assert.throws(() => validateBriefForSave({ ...emptyBrief(), [section]: [' \n '] }));
+  assert.throws(() => validateBriefForSave({ ...emptyBrief(), questions: [question, question] }));
+  assert.throws(() => validateBriefForSave({ ...emptyBrief(), risks: [risk, risk] }));
+  assert.throws(() =>
+    validateBriefForSave({ ...emptyBrief(), questions: [{ ...question, id: ' ' }] }),
+  );
+  assert.throws(() =>
+    validateBriefForSave({
+      ...emptyBrief(),
+      estimates: [{ module: ' ', minHours: 0, maxHours: 0, uncertainty: '' }],
+    }),
+  );
+  assert.equal(
+    validateBriefForSave({ ...emptyBrief(), questions: [question] }).questions.length,
+    1,
+  );
 });

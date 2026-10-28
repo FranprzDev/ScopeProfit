@@ -7,7 +7,12 @@ import { Prisma, ProjectStatus } from '@prisma/client';
 import { BriefData } from '@scopeprofit/contracts';
 import { PrismaService } from '../../prisma.service';
 import { decrypt } from '../../security';
-import { briefSchema, validateBrief, validateSources } from '../brief/brief.validation';
+import {
+  briefSchema,
+  validateBrief,
+  validateBriefForSave,
+  validateSources,
+} from '../brief/brief.validation';
 import { DocumentsService } from '../documents/documents.service';
 import { StorageService } from '../storage/storage.service';
 import { enforceClarificationQuestion, evaluateBriefCompleteness, JEV_MODEL } from './jev-gate';
@@ -128,7 +133,7 @@ export class AgentService implements OnModuleInit, OnModuleDestroy {
           signal: AbortSignal.timeout(120000),
         },
       );
-      const brief = validateBrief(result.brief);
+      const brief = validateBriefForSave(result.brief);
       const saved = await this.db.$transaction(
         async (tx) => {
           const updated = await tx.brief.updateMany({
@@ -280,7 +285,7 @@ export class AgentService implements OnModuleInit, OnModuleDestroy {
         { signal: AbortSignal.timeout(110000) },
       );
     const brief = enforceClarificationQuestion(
-      validateBrief(output),
+      validateBriefForSave(output),
       (project.brief?.data as Partial<BriefData> | null)?.questions ?? [],
       gate.needsMoreInfo,
     );
