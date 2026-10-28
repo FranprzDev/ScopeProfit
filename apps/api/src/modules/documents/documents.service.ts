@@ -256,6 +256,8 @@ export class DocumentsService {
           include: { brief: true, document: true },
         });
         if (!project?.document) return fail('DOCUMENT_NOT_FOUND', 'Document not found', 404);
+        if (project.status === ProjectStatus.archived)
+          return fail('PROJECT_LOCKED', 'Archived projects cannot be approved or delivered');
         if (project.document.currentVersion !== version)
           return fail('VERSION_CONFLICT', 'Approve the current document version');
         const saved = await tx.documentVersion.findUnique({
@@ -347,6 +349,8 @@ export class DocumentsService {
       include: { document: true },
     });
     if (!project?.document) return fail('DOCUMENT_NOT_FOUND', 'Document not found', 404);
+    if (project.status === ProjectStatus.archived)
+      return fail('PROJECT_LOCKED', 'Archived projects cannot be delivered');
     const saved = await this.prisma.documentVersion.findUnique({
       where: { documentId_version: { documentId: project.document.id, version } },
     });
