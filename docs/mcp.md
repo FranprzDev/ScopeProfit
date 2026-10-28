@@ -236,3 +236,7 @@ Use `nextCursor` as `before_message_id` for older messages. Message-chunk retrie
 ### Manual terms carried into a new brief
 
 Brief edits preserve manual document notes. When those notes are carried to a different brief version, `get_project` and `get_scope_document` expose `manualEditsRequireReview: true`; matching brief versions alone do not mean manual terms are current. Approval returns `MANUAL_EDITS_REVIEW_REQUIRED` until the professional has reviewed all carried-forward terms for the selected document version and explicitly supplies `manual_edits_reviewed: true`. Never infer that confirmation from successful structured updates. A newly saved manual edit is treated as an explicit editor review; export/regeneration alone does not clear this state.
+
+### Reading stored image evidence
+
+Use `get_input_image` with the `fileId` returned by `get_conversation`. It returns native MCP image content, not a public download URL or duplicated base64 text. Images above 2 MB return a labeled JPEG preview scaled to at most 1600 x 1600 pixels. Smaller images retain original stored bytes. Confirm small text and image-derived facts with the client before using confirmed text as a requirement source. A connector must support MCP image content to display it; this is not a claim that a live Claude session has been tested.

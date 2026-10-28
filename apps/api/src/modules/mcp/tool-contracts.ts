@@ -57,10 +57,11 @@ export function toolError(error: unknown): CallToolResult {
 
 export async function executeTool(
   fn: (tools: ScopeToolsService, user: User) => Promise<ToolResult>,
+  format: (data: ToolResult) => CallToolResult = result,
 ): Promise<CallToolResult> {
   try {
     const { tools, user, authenticate } = getScopeToolContext();
-    return result(await fn(tools, authenticate ? await authenticate() : user));
+    return format(await fn(tools, authenticate ? await authenticate() : user));
   } catch (error) {
     return toolError(error);
   }
