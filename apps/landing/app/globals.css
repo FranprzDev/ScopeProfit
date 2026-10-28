@@ -1,13 +1,5 @@
-@font-face {
-  font-family: 'Boska';
-  src: url('/fonts/boska-regular.woff2') format('woff2');
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-}
-
 :root {
-  --bg: #110e13;
+  --bg: #090a10;
   --surface: #141724;
   --ink: #e2e8f0;
   --muted: #8e96aa;
@@ -30,7 +22,6 @@
   --section-space: clamp(6rem, 4rem + 8vw, 12rem);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 
-  --font-editorial: 'Boska';
   --font-display-stack: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-text-stack: var(--font-display-stack);
   --font-code-stack: var(--font-text-stack);

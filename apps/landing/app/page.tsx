@@ -34,8 +34,7 @@ export default function Home() {
         <section className={s.hero} aria-labelledby="hero-title">
           <h1 id="hero-title" data-reveal>
             Del pedido
-            <br />
-            al alcance.
+            <span>al alcance.</span>
           </h1>
           <div className={s.heroBottom}>
             <p data-reveal>
