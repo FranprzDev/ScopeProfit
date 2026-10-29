@@ -240,3 +240,9 @@ Brief edits preserve manual document notes. When those notes are carried to a di
 ### Reading stored image evidence
 
 Use `get_input_image` with the `fileId` returned by `get_conversation`. It returns native MCP image content, not a public download URL or duplicated base64 text. Images above 2 MB return a labeled JPEG preview scaled to at most 1600 x 1600 pixels. Smaller images retain original stored bytes. Confirm small text and image-derived facts with the client before using confirmed text as a requirement source. A connector must support MCP image content to display it; this is not a claim that a live Claude session has been tested.
+
+### Refresh-token lineage migration decision
+
+New OAuth grants carry one grant ID across rotating access/refresh token pairs. Reusing a refresh token revokes that grant's active tokens. Rotation and replay handling serialize on the grant ID, and token issuance is in the rotation transaction. A replay forces that connector to authorize again. Other grants and API keys remain independent.
+
+Upgrade decision is pending: historical tokens do not contain a recoverable grant relationship. The proposed schema migration gives existing rows separate IDs, which does not reconstruct historical refresh families. It is not a complete security upgrade for existing grants. Options are to revoke existing OAuth grants and require connector authorization again, or keep them temporarily with the documented replay limitation while arranging a controlled reauthorization window. Do not merge/deploy this migration until the operator explicitly decides how existing connectors are handled. API keys are unaffected, but that does not remove the OAuth reconnect impact.

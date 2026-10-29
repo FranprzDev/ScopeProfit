@@ -360,6 +360,7 @@ model OAuthClient {
  @@map("oauth_clients")
 }
 model OAuthToken {
+ grantId String @default(uuid()) @db.Uuid @map("grant_id")
  tokenHash String @id @map("token_hash")
  kind String
  clientId String @map("client_id")
@@ -374,6 +375,7 @@ model OAuthToken {
  revokedAt DateTime? @map("revoked_at")
  createdAt DateTime @default(now()) @map("created_at")
  @@index([apiKeyId])
+ @@index([grantId])
  @@index([expiresAt])
  @@map("oauth_tokens")
 }

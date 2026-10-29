@@ -245,6 +245,11 @@ test(
       refresh_token: tokens.refresh_token,
     });
     assert.equal(reused.status, 400);
+    const replayDescendant = await token({
+      grant_type: 'refresh_token',
+      refresh_token: rotated.refresh_token,
+    });
+    assert.equal(replayDescendant.status, 400, 'Refresh replay must revoke its active grant');
 
     await app.get(ApiKeysService).revoke(apiKeyId);
     await assert.rejects(connect(rotated.access_token));
