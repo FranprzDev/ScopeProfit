@@ -196,14 +196,41 @@ export function renderStyledPdf(
       flushMeta();
       doc.x = left;
       if (block.kind === MarkdownBlockKind.Section || block.kind === MarkdownBlockKind.Subsection) {
-        let groupHeight = 50;
-        let following = index + 1;
-        while (blocks[following]?.kind === MarkdownBlockKind.Bullet) {
-          groupHeight += bulletHeight(blocks[following]!.text);
-          following++;
+        const headingHeight = block.kind === MarkdownBlockKind.Section ? 60 : 40;
+        const following = blocks[index + 1];
+        if (following) {
+          let followingHeight: number;
+          if (following.kind === MarkdownBlockKind.Bullet) {
+            followingHeight = bulletHeight(following.text);
+          } else if (following.kind === MarkdownBlockKind.Title) {
+            followingHeight = doc
+              .font('Helvetica-Bold')
+              .fontSize(26)
+              .heightOfString(following.text, { width: width - 18 });
+          } else if (following.kind === MarkdownBlockKind.Section) {
+            followingHeight = doc
+              .font('Helvetica-Bold')
+              .fontSize(16)
+              .heightOfString(following.text, { width });
+          } else if (following.kind === MarkdownBlockKind.Subsection) {
+            followingHeight = doc
+              .font('Helvetica-Bold')
+              .fontSize(13)
+              .heightOfString(following.text, { width });
+          } else if (following.kind === MarkdownBlockKind.Figure) {
+            followingHeight = doc
+              .font('Helvetica-Bold')
+              .fontSize(12)
+              .heightOfString(following.title ?? '', { width });
+          } else {
+            followingHeight = doc
+              .font('Helvetica')
+              .fontSize(12)
+              .heightOfString(following.text, { width, lineGap: 3 });
+          }
+          const onePage = bottom() - doc.page.margins.top;
+          ensure(Math.min(headingHeight + followingHeight, onePage));
         }
-        if (following > index + 1 && groupHeight <= bottom() - doc.page.margins.top)
-          ensure(groupHeight);
       }
       switch (block.kind) {
         case MarkdownBlockKind.Title:
