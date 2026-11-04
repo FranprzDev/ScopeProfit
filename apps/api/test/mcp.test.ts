@@ -434,9 +434,17 @@ test('a full scoping flow runs end to end through MCP tools', dbOnly, async () =
     });
     assert.equal(doc.template, '7.1');
     assert.ok(doc.markdown.includes('Cliente: Veterinaria de ejemplo'));
-    for (const heading of ['## 1.', '## 2.', '## 3.', '## 4.', '## 5. Alcance', '## 6.', '## 7.'])
+    for (const heading of [
+      '## 1. Resumen ejecutivo',
+      '## 2. Alcance',
+      '## 3. Requerimientos identificados',
+      '## 4. Riesgos y ambigüedades',
+      '## 5. Estimación orientativa en horas',
+      '## 6. Próximos pasos',
+    ])
       assert.ok(doc.markdown.includes(heading), heading);
-    assert.ok(doc.markdown.includes('Fuente: "reserven turnos online"'));
+    assert.ok(doc.markdown.includes('- Los clientes reservan turnos online'));
+    assert.ok(!doc.markdown.includes('Fuente:'));
 
     const draftVersions = await db.documentVersion.findMany({
       where: { document: { projectId } },
@@ -447,7 +455,7 @@ test('a full scoping flow runs end to end through MCP tools', dbOnly, async () =
     const currentDraft = draftVersions[0];
     const historical = draftVersions.at(-1)!;
     const mdOnly = await documents.download(projectId, historical.version, 'md');
-    assert.ok(mdOnly.buffer.toString().includes('## 5. Alcance'));
+    assert.ok(mdOnly.buffer.toString().includes('## 2. Alcance'));
     const historicalSaved = await db.documentVersion.findUniqueOrThrow({
       where: { id: historical.id },
     });

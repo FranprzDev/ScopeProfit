@@ -160,7 +160,7 @@ test('validateEditor accepts a minimal valid document', () => {
   );
 });
 
-test('markdown renders the fixed 7.1 sections', () => {
+test('markdown numbers only the sections present in the brief', () => {
   const text = markdown({
     projectName: 'Demo',
     clientName: 'Cliente',
@@ -171,15 +171,21 @@ test('markdown renders the fixed 7.1 sections', () => {
     editorContent: null,
   });
   for (const heading of [
-    'Resumen ejecutivo',
+    '## 1. Resumen ejecutivo',
+    '## 2. Alcance',
+    '## 3. Estimación orientativa en horas',
+    '## 4. Próximos pasos',
+  ]) {
+    assert.ok(text.includes(heading), `expected markdown to include "${heading}"`);
+  }
+  for (const absent of [
     'Requerimientos identificados',
     'Preguntas pendientes',
     'Riesgos y ambigüedades',
-    'Alcance',
-    'Estimación',
-    'Próximos pasos',
+    'Sin preguntas pendientes',
+    'Sin riesgos identificados',
   ]) {
-    assert.ok(text.includes(heading), `expected markdown to include "${heading}"`);
+    assert.ok(!text.includes(absent), `expected markdown not to include "${absent}"`);
   }
 });
 
