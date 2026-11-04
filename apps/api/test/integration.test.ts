@@ -159,9 +159,10 @@ test(
     });
     const project = await projects.create(owner, 'Cotización Acme');
 
+    // No rate card yet: prices are never invented, so generation is refused.
     await assert.rejects(
       quotes.generate(owner, project.id),
-      rejectedWith('BRIEF_NO_ESTIMATES', 400),
+      rejectedWith('RATE_CARD_REQUIRED', 400),
     );
     await rateCards.upsert(owner, {
       label: 'Estándar',
