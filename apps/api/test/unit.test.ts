@@ -170,12 +170,7 @@ test('markdown numbers only the sections present in the brief', () => {
     brief: emptyBrief(),
     editorContent: null,
   });
-  for (const heading of [
-    '## 1. Resumen ejecutivo',
-    '## 2. Alcance',
-    '## 3. Estimación orientativa en horas',
-    '## 4. Próximos pasos',
-  ]) {
+  for (const heading of ['## 1. Resumen ejecutivo', '## 2. Alcance', '## 3. Próximos pasos']) {
     assert.ok(text.includes(heading), `expected markdown to include "${heading}"`);
   }
   for (const absent of [
@@ -184,9 +179,69 @@ test('markdown numbers only the sections present in the brief', () => {
     'Riesgos y ambigüedades',
     'Sin preguntas pendientes',
     'Sin riesgos identificados',
+    'Estimación orientativa en horas',
+    'Pendiente de estimación',
   ]) {
     assert.ok(!text.includes(absent), `expected markdown not to include "${absent}"`);
   }
+});
+
+test('markdown keeps the hour estimate section only when estimates exist', () => {
+  const withEstimates = markdown({
+    projectName: 'Demo',
+    clientName: 'Cliente',
+    author: 'Autor',
+    date: new Date().toISOString(),
+    version: 1,
+    brief: {
+      ...emptyBrief(),
+      estimates: [{ module: 'Booking', minHours: 2, maxHours: 4, uncertainty: 'media' }],
+    },
+    editorContent: null,
+  });
+  assert.ok(withEstimates.includes('Estimación orientativa en horas'));
+  assert.ok(withEstimates.includes('Total: 2–4 h'));
+
+  const withAgreementNoEstimates = markdown({
+    projectName: 'Demo',
+    clientName: 'Cliente',
+    author: 'Autor',
+    date: new Date().toISOString(),
+    version: 1,
+    brief: {
+      ...emptyBrief(),
+      agreement: {
+        acceptance: ['Acepto'],
+        signatories: [{ name: 'Cliente', role: 'Cliente' }],
+        paymentDetails: ['CVU 000'],
+      },
+    },
+    editorContent: null,
+  });
+  assert.ok(!withAgreementNoEstimates.includes('Estimación orientativa en horas'));
+});
+
+test('markdown renders an empty assumptions list without placeholder text', () => {
+  const text = markdown({
+    projectName: 'Demo',
+    clientName: 'Cliente',
+    author: 'Autor',
+    date: new Date().toISOString(),
+    version: 1,
+    brief: {
+      ...emptyBrief(),
+      included: ['Material de estudio'],
+      assumptions: [],
+    },
+    editorContent: null,
+  });
+  assert.ok(text.includes('### Qué incluye'));
+  assert.ok(text.includes('- Material de estudio'));
+  assert.ok(text.includes('### Qué necesitamos para empezar'));
+  const assumptionsSection = text.split('### Qué necesitamos para empezar')[1] ?? '';
+  const untilNextHeading = assumptionsSection.split('###')[0] ?? '';
+  assert.ok(!untilNextHeading.includes('Pendiente de definición'));
+  assert.equal(untilNextHeading.trim(), '');
 });
 
 test('diffBrief reports added, removed, and changed entries', () => {
