@@ -435,6 +435,14 @@ export class QuotesService {
     },
   ): Promise<PopulatedQuote> {
     await this.authorize(user, projectId);
+    if (input.fromEstimates && input.lines !== undefined)
+      fail('INVALID_QUOTE_INPUT', 400, 'from_estimates and lines are alternatives; pass only one');
+    const existing = await this.db.quote.findUnique({
+      where: { projectId },
+      select: { status: true },
+    });
+    // Reject non-draft quotes before any write (including the rate-card upsert).
+    if (existing) assertDraftQuote(existing.status);
     if (input.rateCard) {
       const currentDefault = await this.db.rateCard.findFirst({
         where: { ownerId: user.id, isDefault: true },
@@ -446,10 +454,6 @@ export class QuotesService {
         marginPercent: input.rateCard.marginPercent ?? currentDefault?.marginPercent ?? 0,
       });
     }
-    const existing = await this.db.quote.findUnique({
-      where: { projectId },
-      select: { status: true },
-    });
     let quote: PopulatedQuote;
     if (input.fromEstimates) {
       // (Re)generates the draft from the current scope estimates with the default
@@ -460,7 +464,6 @@ export class QuotesService {
         fail('QUOTE_NOT_FOUND', 400, 'No quote exists yet; pass from_estimates or lines');
       quote = await this.createFromLines(user, projectId, input.lines);
     } else {
-      assertDraftQuote(existing.status);
       quote = await this.get(user, projectId);
     }
     const hasFieldUpdates =
@@ -542,17 +545,8 @@ export class QuotesService {
         : { ownerId: user.id, isDefault: true, active: true },
     });
     if (rateCard) return rateCard;
-    if (rateCardId) fail('RATE_CARD_REQUIRED', 400);
-    return this.db.rateCard.create({
-      data: {
-        ownerId: user.id,
-        label: 'Default',
-        hourlyRate: 50,
-        currency: 'USD',
-        marginPercent: 20,
-        isDefault: true,
-        active: true,
-      },
-    });
+    // Prices only ever come from the professional's rate card or explicit lines:
+    // never invent one.
+    fail('RATE_CARD_REQUIRED', 400, 'Set a rate card before generating a quote');
   }
 }

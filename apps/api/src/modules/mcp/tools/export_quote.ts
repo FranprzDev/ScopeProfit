@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import type { InferSchema, ToolMetadata } from 'xmcp';
 
-import { projectId, write, executeTool } from '../tool-contracts';
+import { projectId, readOnly, executeTool } from '../tool-contracts';
 
 export const schema = {
   project_id: projectId,
@@ -13,7 +13,7 @@ export const metadata: ToolMetadata = {
   name: 'export_quote',
   description:
     'Get a temporary signed download URL for the quote of a project as PDF or editable DOCX. Review the quote before sharing the link.',
-  annotations: { ...write, title: 'Export quote' },
+  annotations: { ...readOnly, title: 'Export quote' },
 };
 
 export default async function export_quote(args: InferSchema<typeof schema>) {
