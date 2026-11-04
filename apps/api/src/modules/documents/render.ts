@@ -71,7 +71,7 @@ export function editorText(node: TiptapNode): string {
 function baseMarkdown(data: DocumentData) {
   const b = data.brief;
   const agreement = b.agreement ?? null;
-  const omitEstimates = agreement !== null && b.estimates.length === 0;
+  const omitEstimates = b.estimates.length === 0;
   const validity = b.quoteValidity;
   const expiresOn = validity
     ? new Date(Date.parse(validity.issuedOn) + validity.days * 86400000).toISOString().slice(0, 10)
@@ -82,7 +82,7 @@ function baseMarkdown(data: DocumentData) {
     { title: 'Resumen ejecutivo', body: b.summary },
     {
       title: 'Alcance',
-      body: `### Qué incluye\n${bullet(b.included)}\n### Qué no incluye\n${bullet(b.excluded)}\n### Qué necesitamos para empezar\n${bullet(b.assumptions)}\n### Cuándo se da por terminada la etapa\n${bullet(b.acceptanceCriteria)}`,
+      body: `### Qué incluye\n${bullet(b.included)}\n### Qué no incluye\n${bullet(b.excluded)}\n### Qué necesitamos para empezar\n${b.assumptions.map((value) => `- ${value}`).join('\n')}\n### Cuándo se da por terminada la etapa\n${bullet(b.acceptanceCriteria)}`,
     },
   ];
   if (b.requirements.length > 0)
