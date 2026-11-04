@@ -74,16 +74,27 @@ export function editorText(node: TiptapNode): string {
 }
 function baseMarkdown(data: DocumentData) {
   const b = data.brief;
+  const agreement = b.agreement ?? null;
+  const omitEstimates = agreement !== null && b.estimates.length === 0;
   const validity = b.quoteValidity;
   const expiresOn = validity
     ? new Date(Date.parse(validity.issuedOn) + validity.days * 86400000).toISOString().slice(0, 10)
     : null;
+  const nextStepsNumber = omitEstimates ? 6 : 7;
+  const validityNumber = nextStepsNumber + 1;
+  const agreementNumber = validity ? validityNumber + 1 : nextStepsNumber + 1;
+  const estimateSection = omitEstimates
+    ? ''
+    : `\n\n## 6. Estimación orientativa en horas\n${b.estimates.map((e) => `- ${e.module}: ${e.minHours}–${e.maxHours} h | ${e.uncertainty}`).join('\n')}\nTotal: ${b.estimates.length > 0 ? `${b.estimates.reduce((n, e) => n + e.minHours, 0)}–${b.estimates.reduce((n, e) => n + e.maxHours, 0)} h` : 'Pendiente de estimación'}. Rango orientativo sujeto a los supuestos e incertidumbres indicados; no es un precio.`;
   const validitySection = validity
-    ? `\n\n## 8. Vigencia del presupuesto\nVálido por ${validity.days} días corridos desde la fecha de emisión ${validity.issuedOn}, hasta ${expiresOn}.\nEl presupuesto depende de la disponibilidad del profesional y su carga de proyectos al momento de cotizar. Vencido ese plazo, se requiere una nueva cotización según la disponibilidad y carga de trabajo vigentes: el precio puede subir o bajar. No se aplica ningún cambio automático ni se modifican presupuestos ya aceptados.`
+    ? `\n\n## ${validityNumber}. Vigencia del presupuesto\nVálido por ${validity.days} días corridos desde la fecha de emisión ${validity.issuedOn}, hasta ${expiresOn}.\nEl presupuesto depende de la disponibilidad del profesional y su carga de proyectos al momento de cotizar. Vencido ese plazo, se requiere una nueva cotización según la disponibilidad y carga de trabajo vigentes: el precio puede subir o bajar. No se aplica ningún cambio automático ni se modifican presupuestos ya aceptados.`
+    : '';
+  const agreementSection = agreement
+    ? `\n\n## ${agreementNumber}. Aceptación del acuerdo\n${agreement.acceptance.join('\n')}\n${agreement.signatories.map((s) => `${s.name} (${s.role}) - Firma: ____________ Fecha: ____________`).join('\n')}\n\n## ${agreementNumber + 1}. Datos de cobro\n${agreement.paymentDetails.join('\n')}`
     : '';
   const bullet = (values: string[]) =>
     values.map((value) => `- ${value}`).join('\n') || '- Pendiente de definición';
-  return `# ${data.projectName}\nCliente: ${data.clientName}\nFecha: ${data.date}\nVersión: 0.${data.version}\nAutor: ${data.author}\n\n## 1. Resumen ejecutivo\n${b.summary}\n\n## 2. Requerimientos identificados\n${b.requirements.map((r) => `- ${r.id} | ${r.description} | ${requirementTypeLabels[r.type]} | ${requirementPriorityLabels[r.priority]} | Fuente: "${r.source}" | ${r.systemNote}`).join('\n')}\n\n## 3. Preguntas pendientes\n${b.questions.map((q) => `- ${q.id}: ${q.question} | ${q.reason} | Bloquea estimación: ${q.blocksEstimate ? 'Sí' : 'No'}`).join('\n') || 'Sin preguntas pendientes'}\n\n## 4. Riesgos y ambigüedades\n${b.risks.map((r) => `- ${r.id}: ${r.description} | Impacto: ${r.impact} | Mitigación/supuesto: ${r.mitigation} | Semáforo: ${riskSeverityLabels[r.severity]}`).join('\n') || 'Sin riesgos identificados'}\n\n## 5. Alcance\n### Incluidos\n${bullet(b.included)}\n### Excluidos\n${bullet(b.excluded)}\n### Supuestos\n${bullet(b.assumptions)}\n### Criterios de aceptación\n${bullet(b.acceptanceCriteria)}\n\n## 6. Estimación orientativa en horas\n${b.estimates.map((e) => `- ${e.module}: ${e.minHours}–${e.maxHours} h | ${e.uncertainty}`).join('\n')}\nTotal: ${b.estimates.length > 0 ? `${b.estimates.reduce((n, e) => n + e.minHours, 0)}–${b.estimates.reduce((n, e) => n + e.maxHours, 0)} h` : 'Pendiente de estimación'}. Rango orientativo sujeto a los supuestos e incertidumbres indicados; no es un precio.\n\n## 7. Próximos pasos\n${bullet(b.nextSteps)}${validitySection}${data.editorContent ? `\n\n## Observaciones y edición manual\n${editorText(data.editorContent)}` : ''}\n`;
+  return `# ${data.projectName}\nCliente: ${data.clientName}\nFecha: ${data.date}\nVersión: 0.${data.version}\nAutor: ${data.author}\n\n## 1. Resumen ejecutivo\n${b.summary}\n\n## 2. Requerimientos identificados\n${b.requirements.map((r) => `- ${r.id} | ${r.description} | ${requirementTypeLabels[r.type]} | ${requirementPriorityLabels[r.priority]} | Fuente: "${r.source}" | ${r.systemNote}`).join('\n')}\n\n## 3. Preguntas pendientes\n${b.questions.map((q) => `- ${q.id}: ${q.question} | ${q.reason} | Bloquea estimación: ${q.blocksEstimate ? 'Sí' : 'No'}`).join('\n') || 'Sin preguntas pendientes'}\n\n## 4. Riesgos y ambigüedades\n${b.risks.map((r) => `- ${r.id}: ${r.description} | Impacto: ${r.impact} | Mitigación/supuesto: ${r.mitigation} | Semáforo: ${riskSeverityLabels[r.severity]}`).join('\n') || 'Sin riesgos identificados'}\n\n## 5. Alcance\n### Incluidos\n${bullet(b.included)}\n### Excluidos\n${bullet(b.excluded)}\n### Supuestos\n${bullet(b.assumptions)}\n### Criterios de aceptación\n${bullet(b.acceptanceCriteria)}${estimateSection}\n\n## ${nextStepsNumber}. Próximos pasos\n${bullet(b.nextSteps)}${validitySection}${agreementSection}${data.editorContent ? `\n\n## Observaciones y edición manual\n${editorText(data.editorContent)}` : ''}\n`;
 }
 export function markdown(data: DocumentData) {
   const diagrams = data.brief.diagrams ?? [];

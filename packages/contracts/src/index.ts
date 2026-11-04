@@ -50,6 +50,11 @@ export interface BriefDiagram {
 export interface BriefData {
   quoteValidity?: QuoteValidity | null;
   diagrams?: BriefDiagram[] | null;
+  agreement?: {
+    acceptance: string[];
+    signatories: { name: string; role: string }[];
+    paymentDetails: string[];
+  } | null;
   summary: string;
   requirements: Requirement[];
   questions: Question[];
