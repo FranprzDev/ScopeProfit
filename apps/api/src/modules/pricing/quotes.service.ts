@@ -547,6 +547,6 @@ export class QuotesService {
     if (rateCard) return rateCard;
     // Prices only ever come from the professional's rate card or explicit lines:
     // never invent one.
-    fail('RATE_CARD_REQUIRED', 400, 'Set a rate card before generating a quote');
+    fail('RATE_CARD_REQUIRED', 400);
   }
 }
