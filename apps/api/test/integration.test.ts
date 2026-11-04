@@ -40,7 +40,7 @@ before(async () => {
   auth = new AuthService(db, new EmailService());
   projects = new ProjectsService(db, auth);
   rateCards = new RateCardsService(db, auth);
-  quotes = new QuotesService(db, auth);
+  quotes = new QuotesService(db, auth, rateCards);
   maintenance = new MaintenanceService(db, auth);
 });
 
@@ -159,9 +159,10 @@ test(
     });
     const project = await projects.create(owner, 'Cotización Acme');
 
+    // No rate card yet: prices are never invented, so generation is refused.
     await assert.rejects(
       quotes.generate(owner, project.id),
-      rejectedWith('BRIEF_NO_ESTIMATES', 400),
+      rejectedWith('RATE_CARD_REQUIRED', 400),
     );
     await rateCards.upsert(owner, {
       label: 'Estándar',

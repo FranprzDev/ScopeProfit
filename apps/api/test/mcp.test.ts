@@ -6,6 +6,7 @@ process.env.PUBLIC_API_URL = process.env.PUBLIC_API_URL || 'https://api.scopepro
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer, Server } from 'node:http';
+import { createHmac } from 'node:crypto';
 import { AddressInfo } from 'node:net';
 import { mkdtemp, rm, rename, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -30,6 +31,8 @@ import { DocumentsService } from '../src/modules/documents/documents.service';
 import { AgentService } from '../src/modules/agent/agent.service';
 import { StorageService } from '../src/modules/storage/storage.service';
 import { ChangeRequestsService } from '../src/modules/projects/change-requests.service';
+import { RateCardsService } from '../src/modules/pricing/rate-cards.service';
+import { QuotesService } from '../src/modules/pricing/quotes.service';
 import { ApiKeysService } from '../src/modules/mcp/api-keys.service';
 import { ScopeToolsService } from '../src/modules/mcp/scope-tools.service';
 import { exportUrl, verifyExportToken } from '../src/modules/mcp/export-links';
@@ -99,8 +102,42 @@ test('export links and OAuth consent requests are signed and tamper-proof', () =
   const raw = link.url.split('/').pop()!;
   assert.deepEqual(
     { ...verifyExportToken(raw), exp: 0 },
-    { projectId: '6f7c1d1e-6c4f-4f39-9d1c-2d2a7a1d0c11', version: 3, format: 'pdf', exp: 0 },
+    {
+      projectId: '6f7c1d1e-6c4f-4f39-9d1c-2d2a7a1d0c11',
+      version: 3,
+      format: 'pdf',
+      exp: 0,
+      artifact: 'document',
+    },
   );
+  const quoteLink = exportUrl('6f7c1d1e-6c4f-4f39-9d1c-2d2a7a1d0c11', 0, 'pdf', 'quote');
+  assert.equal(verifyExportToken(quoteLink.url.split('/').pop()!)?.artifact, 'quote');
+  // A legacy payload without artifact still verifies as a document link.
+  const legacyPayload = Buffer.from(
+    JSON.stringify({
+      projectId: '6f7c1d1e-6c4f-4f39-9d1c-2d2a7a1d0c11',
+      version: 3,
+      format: 'pdf',
+      exp: Date.now() + 60_000,
+    }),
+  ).toString('base64url');
+  const legacySignature = createHmac('sha256', Buffer.alloc(32, 7))
+    .update(`document-export:${legacyPayload}`)
+    .digest('base64url');
+  assert.equal(verifyExportToken(`${legacyPayload}.${legacySignature}`)?.artifact, 'document');
+  const badArtifact = Buffer.from(
+    JSON.stringify({
+      projectId: '6f7c1d1e-6c4f-4f39-9d1c-2d2a7a1d0c11',
+      version: 3,
+      format: 'pdf',
+      exp: Date.now() + 60_000,
+      artifact: 'other',
+    }),
+  ).toString('base64url');
+  const badSignature = createHmac('sha256', Buffer.alloc(32, 7))
+    .update(`document-export:${badArtifact}`)
+    .digest('base64url');
+  assert.equal(verifyExportToken(`${badArtifact}.${badSignature}`), null);
   const [payload, signature] = raw.split('.');
   const forged = Buffer.from(
     JSON.stringify({ projectId: 'x', version: 1, format: 'pdf', exp: Date.now() + 1e6 }),
@@ -137,8 +174,10 @@ before(async () => {
   const agent = new AgentService(db, documents, storage);
   const projects = new ProjectsService(db, auth);
   const changes = new ChangeRequestsService(db, auth);
+  const rateCards = new RateCardsService(db, auth);
+  const quotes = new QuotesService(db, auth, rateCards);
   keys = new ApiKeysService(db, auth);
-  tools = new ScopeToolsService(db, auth, projects, documents, agent, storage, changes);
+  tools = new ScopeToolsService(db, auth, projects, documents, agent, storage, changes, quotes);
   owner = await auth.professionalUser(ownerEmail);
 
   const png = await sharp({
@@ -198,15 +237,18 @@ test(
       'archive_project',
       'create_project',
       'export_document',
+      'export_quote',
       'get_conversation',
       'get_input_image',
       'get_project',
+      'get_quote',
       'get_scope_document',
       'get_tldr',
       'list_change_requests',
       'list_pending_questions',
       'list_projects',
       'log_change_request',
+      'save_quote',
       'update_scope_section',
     ]);
     for (const tool of listed) {
@@ -1444,5 +1486,95 @@ test(
     const message = await db.message.findUniqueOrThrow({ where: { id: answer.messageId } });
     assert.equal(message.authorRole, 'client');
     assert.equal(message.content, 'No, keep all records local.');
+  },
+);
+
+test(
+  'quote tools create, price, read and export a draft quote from scope estimates',
+  dbOnly,
+  async () => {
+    const created = await tools.createProject(owner, { name: 'Quote flow' });
+    const { emptyBrief } = await import('@scopeprofit/contracts');
+    await db.brief.update({
+      where: { projectId: created.projectId },
+      data: {
+        data: {
+          ...emptyBrief(),
+          estimates: [{ module: 'Booking', minHours: 10, maxHours: 20, uncertainty: 'media' }],
+        } as unknown as Prisma.InputJsonValue,
+      },
+    });
+
+    const saved = (await tools.saveQuote(owner, {
+      projectId: created.projectId,
+      fromEstimates: true,
+      rateCard: { hourlyRate: 40, currency: 'USD', marginPercent: 25 },
+    })) as unknown as Record<string, unknown>;
+    assert.equal(saved.status, 'draft');
+    assert.equal(saved.currency, 'USD');
+    const lines = saved.lines as Array<Record<string, unknown>>;
+    assert.equal(lines.length, 1);
+    assert.equal(lines[0].hourlyRate, 50);
+    assert.equal(saved.totalMin, 500);
+    assert.equal(saved.totalMax, 1000);
+    assert.match(String(saved.pricingNote), /never suggests prices/);
+
+    const read = (await tools.getQuote(owner, created.projectId)) as unknown as Record<
+      string,
+      unknown
+    >;
+    assert.equal(read.totalMin, 500);
+
+    const exported = (await tools.exportQuote(owner, {
+      projectId: created.projectId,
+      format: 'pdf',
+    })) as { url: string };
+    assert.match(exported.url, /^https:\/\/api\.scopeprofit\.test\/api\/exports\//);
+    const claim = verifyExportToken(exported.url.split('/').pop()!);
+    assert.equal(claim?.artifact, 'quote');
+    assert.equal(claim?.projectId, created.projectId);
+
+    await db.quote.update({
+      where: { projectId: created.projectId },
+      data: { status: 'sent' },
+    });
+    await assert.rejects(
+      tools.saveQuote(owner, { projectId: created.projectId, terms: 'changed' }),
+      withCode('QUOTE_NOT_DRAFT'),
+    );
+  },
+);
+
+test(
+  'save_quote creates a draft from explicit lines and export_quote guards missing quotes',
+  dbOnly,
+  async () => {
+    const created = await tools.createProject(owner, { name: 'Explicit lines quote' });
+    const saved = (await tools.saveQuote(owner, {
+      projectId: created.projectId,
+      rateCard: { hourlyRate: 100, currency: 'ARS', marginPercent: 0 },
+      lines: [{ module: 'CRM', minHours: 5, maxHours: 8 }],
+      milestones: [
+        { name: 'Anticipo', percent: 50 },
+        { name: 'Entrega', percent: 50 },
+      ],
+      terms: 'Pago a 7 días de cada hito.',
+      validUntil: '2026-12-31',
+    })) as unknown as Record<string, unknown>;
+    assert.equal(saved.status, 'draft');
+    assert.equal(saved.currency, 'ARS');
+    assert.equal(saved.totalMin, 500);
+    assert.equal(saved.totalMax, 800);
+    assert.equal((saved.milestones as unknown[]).length, 2);
+
+    const missing = await tools.createProject(owner, { name: 'No quote yet' });
+    await assert.rejects(
+      tools.exportQuote(owner, { projectId: missing.projectId, format: 'pdf' }),
+      withCode('QUOTE_NOT_FOUND'),
+    );
+    await assert.rejects(
+      tools.saveQuote(owner, { projectId: missing.projectId, terms: 'x' }),
+      withCode('QUOTE_NOT_FOUND'),
+    );
   },
 );

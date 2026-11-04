@@ -113,7 +113,7 @@ test('an API key bearer token drives the tools over Streamable HTTP', dbOnly, as
   const client = await connect(apiKey);
   try {
     const { tools } = await client.listTools();
-    assert.equal(tools.length, 16);
+    assert.equal(tools.length, 19);
     const created = await client.callTool({
       name: 'create_project',
       arguments: { name: 'Remote MCP project' },
@@ -268,7 +268,7 @@ test('the stdio entrypoint serves the same tools for local MCP clients', dbOnly,
   );
   try {
     const { tools } = await client.listTools();
-    assert.equal(tools.length, 16);
+    assert.equal(tools.length, 19);
     const listed = await client.callTool({ name: 'list_projects', arguments: { limit: 1 } });
     assert.ok(!listed.isError);
     await app.get(ApiKeysService).revoke(id);

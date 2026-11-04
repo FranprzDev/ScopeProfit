@@ -8,23 +8,30 @@ ScopeProfit runs as a [Model Context Protocol](https://modelcontextprotocol.io) 
 
 ## Tools
 
-| Tool                     | Kind        | What it does                                                                                                     |
-| ------------------------ | ----------- | ---------------------------------------------------------------------------------------------------------------- |
-| `list_projects`          | read        | Projects with status, TLDR and blocking-question count (archived hidden unless asked).                           |
-| `create_project`         | write       | New project (`name`, optional `client_name` and `client_email`).                                                 |
-| `get_project`            | read        | Lifecycle + agent status, brief/document versions, counts. Use it to poll.                                       |
-| `add_client_input`       | write       | Client text and/or public image URLs (JPEG/PNG/WebP, ≤10 MB, ≤5), stored verbatim as citable messages.           |
-| `get_conversation`       | read        | Stored messages with ids (needed to cite requirement sources).                                                   |
-| `get_tldr`               | read        | Summary, requirement count, top blocking questions, red risks, total hour range.                                 |
-| `list_pending_questions` | read        | Open questions; `blocksEstimate=true` blocks approval.                                                           |
-| `answer_question`        | write       | Stores the client's answer as a message, removes the question, regenerates the document.                         |
-| `get_scope_document`     | read        | Template 7.1 rendered as Markdown + structured brief + `briefVersion`.                                           |
-| `update_scope_section`   | write       | Replaces one section (optimistic lock on `expected_version`), validates it, saves a document draft.              |
-| `approve_scope`          | destructive | Approves the current document version without email by default; explicit send_to_client:true delivers via Brevo. |
-| `export_document`        | write       | Signed, expiring download URL for `pdf`, `docx` or `md`; can regenerate and persist the document.                |
-| `archive_project`        | destructive | Archives (locks) a project.                                                                                      |
-| `log_change_request`     | write       | Logs a post-scope change, classified `in_scope` / `out_of_scope` / `ambiguous`.                                  |
-| `list_change_requests`   | read        | Change requests of a project.                                                                                    |
+| Tool                     | Kind        | What it does                                                                                                            |
+| ------------------------ | ----------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `list_projects`          | read        | Projects with status, TLDR and blocking-question count (archived hidden unless asked).                                  |
+| `create_project`         | write       | New project (`name`, optional `client_name` and `client_email`).                                                        |
+| `get_project`            | read        | Lifecycle + agent status, brief/document versions, counts. Use it to poll.                                              |
+| `add_client_input`       | write       | Client text and/or public image URLs (JPEG/PNG/WebP, ≤10 MB, ≤5), stored verbatim as citable messages.                  |
+| `get_conversation`       | read        | Stored messages with ids (needed to cite requirement sources).                                                          |
+| `get_tldr`               | read        | Summary, requirement count, top blocking questions, red risks, total hour range.                                        |
+| `list_pending_questions` | read        | Open questions; `blocksEstimate=true` blocks approval.                                                                  |
+| `answer_question`        | write       | Stores the client's answer as a message, removes the question, regenerates the document.                                |
+| `get_scope_document`     | read        | Template 7.1 rendered as Markdown + structured brief + `briefVersion`.                                                  |
+| `update_scope_section`   | write       | Replaces one section (optimistic lock on `expected_version`), validates it, saves a document draft.                     |
+| `approve_scope`          | destructive | Approves the current document version without email by default; explicit send_to_client:true delivers via Brevo.        |
+| `export_document`        | write       | Signed, expiring download URL for `pdf`, `docx` or `md`; can regenerate and persist the document.                       |
+| `get_quote`              | read        | Quote of a project: status, currency, priced module lines, payment milestones, terms, validity and totals.              |
+| `save_quote`             | write       | Create or update the DRAFT quote from scope estimates or explicit lines, priced only with the professional's rate card. |
+| `export_quote`           | read        | Signed, expiring download URL for the quote as `pdf` or `docx`.                                                         |
+| `archive_project`        | destructive | Archives (locks) a project.                                                                                             |
+| `log_change_request`     | write       | Logs a post-scope change, classified `in_scope` / `out_of_scope` / `ambiguous`.                                         |
+| `list_change_requests`   | read        | Change requests of a project.                                                                                           |
+
+### Quotes
+
+Each project has at most one quote (`draft` -> `sent` -> `accepted`/`rejected`). Build it with `save_quote`: `from_estimates: true` prices the approved scope estimates, or pass explicit `lines` with hour ranges. Amounts are always computed from the professional's own rate card (`rate_card` in the call, or the saved default) - ScopeProfit never suggests prices. `milestones` split payment by percent (they must sum 100) or by fixed amount; `terms` and `valid_until` carry the commercial conditions in plain language. Only draft quotes change: once sent, accepted or rejected, edits return `QUOTE_NOT_DRAFT`. `export_quote` returns a signed, expiring download URL (PDF or DOCX); review the quote before sharing the link.
 
 Domain errors come back as tool results with `isError: true` and a stable code (`VERSION_CONFLICT`, `PROJECT_LOCKED`, `ESTIMATE_BLOCKED`, `INVALID_REQUIREMENT_SOURCE`, …) so the model can recover. Tools carry `readOnlyHint` / `destructiveHint` annotations so hosts can skip or require confirmation.
 
@@ -72,7 +79,7 @@ Replace `https://api.example.com` with your `PUBLIC_API_URL`.
 
 ### ChatGPT (custom MCP plugin)
 
-ScopeProfit already exposes its 15 tools over Streamable HTTP with OAuth. It does not need a second MCP implementation or a paid backend AI key when ChatGPT drafts sections itself. A custom connection is not a public app-directory listing.
+ScopeProfit already exposes its 19 tools over Streamable HTTP with OAuth. It does not need a second MCP implementation or a paid backend AI key when ChatGPT drafts sections itself. A custom connection is not a public app-directory listing.
 
 OpenAI's current [connection guide](https://help.openai.com/en/articles/12584461-connecting-custom-mcp-servers-in-chatgpt) lists full custom MCP support on ChatGPT web for Business and Enterprise/Edu, subject to workspace permissions. Business requires an admin/owner; Enterprise/Edu may delegate creation through RBAC. Do not assume every Free/Plus account can add this server. Availability and labels can change; check the linked guide and the intended account.
 
@@ -207,7 +214,7 @@ a quotation acceptance workflow, or a change to the legacy v3 quote endpoints.
 
 ## Implementation and build
 
-The 15 scope tools are file-based xmcp modules in `apps/api/src/modules/mcp/tools`. HTTP uses the xmcp NestJS adapter behind the existing bearer/OAuth middleware; stdio runs the same compiled tools after verifying `SCOPEPROFIT_API_KEY`. Domain services and Prisma remain unchanged. `export_document` is marked as a write because it can regenerate and persist a document.
+The tools are file-based xmcp modules in `apps/api/src/modules/mcp/tools`. HTTP uses the xmcp NestJS adapter behind the existing bearer/OAuth middleware; stdio runs the same compiled tools after verifying `SCOPEPROFIT_API_KEY`. Domain services and Prisma remain unchanged. `export_document` is marked as a write because it can regenerate and persist a document.
 
 `pnpm --filter @scopeprofit/api run build` runs Prisma generation, xmcp compilation and TypeScript compilation. Keep the generated `apps/api/.xmcp/adapter` directory alongside `dist` when deploying outside Docker. It is a build artifact, not committed source. OAuth grants are bound to the MCP resource URL and require the scope permission. Older tokens without the correct resource need a fresh connector authorization; API keys remain valid. Browser requests with a present invalid Origin are rejected; non-browser clients may omit Origin. HTTP request context is isolated per request; the stdio process binds one authenticated professional for its entire lifetime. Never mount that stdio context in a shared HTTP process.
 

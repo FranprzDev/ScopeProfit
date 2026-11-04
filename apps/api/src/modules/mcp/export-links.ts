@@ -2,7 +2,14 @@ import { createHmac } from 'node:crypto';
 import { encryptionKey, secureEqual } from '../../security';
 
 export type ExportFormat = 'pdf' | 'docx' | 'md';
-export type ExportClaim = { projectId: string; version: number; format: ExportFormat; exp: number };
+export type ExportArtifact = 'document' | 'quote';
+export type ExportClaim = {
+  projectId: string;
+  version: number;
+  format: ExportFormat;
+  exp: number;
+  artifact: ExportArtifact;
+};
 
 const sign = (payload: string) =>
   createHmac('sha256', encryptionKey()).update(`document-export:${payload}`).digest('base64url');
@@ -19,12 +26,18 @@ export const publicApiUrl = () =>
     '',
   );
 
-/** Creates a short-lived, unauthenticated download link for one document artifact. */
-export function exportUrl(projectId: string, version: number, format: ExportFormat) {
+/** Creates a short-lived, unauthenticated download link for one document or quote artifact. */
+export function exportUrl(
+  projectId: string,
+  version: number,
+  format: ExportFormat,
+  artifact: ExportArtifact = 'document',
+) {
   const exp = Date.now() + exportTtlMinutes() * 60_000;
-  const payload = Buffer.from(JSON.stringify({ projectId, version, format, exp })).toString(
-    'base64url',
-  );
+  const claim: Record<string, unknown> = { projectId, version, format, exp };
+  // Document links keep the exact legacy payload so existing signatures stay valid.
+  if (artifact !== 'document') claim.artifact = artifact;
+  const payload = Buffer.from(JSON.stringify(claim)).toString('base64url');
   return {
     url: `${publicApiUrl()}/api/exports/${payload}.${sign(payload)}`,
     expiresAt: new Date(exp).toISOString(),
@@ -35,16 +48,27 @@ export function verifyExportToken(raw: string): ExportClaim | null {
   const [payload, signature] = raw.split('.');
   if (!payload || !signature || !secureEqual(sign(payload), signature)) return null;
   try {
-    const claim = JSON.parse(Buffer.from(payload, 'base64url').toString()) as ExportClaim;
+    const claim = JSON.parse(Buffer.from(payload, 'base64url').toString()) as Record<
+      string,
+      unknown
+    >;
+    const artifact = claim.artifact === undefined ? 'document' : claim.artifact;
     if (
       typeof claim.projectId !== 'string' ||
       !Number.isInteger(claim.version) ||
-      !['pdf', 'docx', 'md'].includes(claim.format) ||
+      !['pdf', 'docx', 'md'].includes(String(claim.format)) ||
       typeof claim.exp !== 'number' ||
-      claim.exp < Date.now()
+      claim.exp < Date.now() ||
+      (artifact !== 'document' && artifact !== 'quote')
     )
       return null;
-    return claim;
+    return {
+      projectId: claim.projectId,
+      version: claim.version as number,
+      format: claim.format as ExportFormat,
+      exp: claim.exp,
+      artifact,
+    };
   } catch {
     return null;
   }
