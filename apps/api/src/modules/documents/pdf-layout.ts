@@ -17,13 +17,41 @@ export interface MarkdownBlock {
   title?: string;
 }
 
-const palette = {
+export interface PdfPalette {
+  accent: string;
+  accentAlt: string;
+  ink: string;
+  muted: string;
+  band: string;
+  rule: string;
+}
+
+const defaultPalette: PdfPalette = {
   accent: '#1d4ed8',
+  accentAlt: '#1d4ed8',
   ink: '#111827',
   muted: '#4b5563',
   band: '#eff4ff',
   rule: '#d1d5db',
 };
+
+const hexColor = /^#[0-9a-fA-F]{6}$/;
+
+export function exportPalette(): PdfPalette {
+  const read = (name: string, fallback: string) => {
+    const value = process.env[name];
+    return value !== undefined && hexColor.test(value) ? value : fallback;
+  };
+  const accent = read('EXPORT_BRAND_ACCENT', defaultPalette.accent);
+  return {
+    accent,
+    accentAlt: read('EXPORT_BRAND_ACCENT_ALT', accent),
+    ink: read('EXPORT_BRAND_INK', defaultPalette.ink),
+    muted: read('EXPORT_BRAND_MUTED', defaultPalette.muted),
+    band: read('EXPORT_BRAND_BAND', defaultPalette.band),
+    rule: read('EXPORT_BRAND_RULE', defaultPalette.rule),
+  };
+}
 
 const metaPattern = /^(Cliente|Fecha|Versión|Autor): (.*)$/;
 
@@ -38,7 +66,20 @@ function readableDate(line: string): string {
   const moment = new Date(line.slice('Fecha: '.length));
   if (Number.isNaN(moment.getTime())) return line;
   const iso = moment.toISOString();
-  return `Fecha: ${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)} ${iso.slice(11, 16)} UTC`;
+  const utc = `Fecha: ${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)} ${iso.slice(11, 16)} UTC`;
+  const timeZone = process.env.EXPORT_TIMEZONE;
+  if (!timeZone) return utc;
+  try {
+    const local = new Intl.DateTimeFormat('es', {
+      timeZone,
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }).format(moment);
+    return `Fecha: ${local}`;
+  } catch {
+    return utc;
+  }
 }
 
 export function parseMarkdown(md: string): MarkdownBlock[] {
@@ -93,6 +134,7 @@ export function renderStyledPdf(
     doc.on('data', (chunk: Buffer) => chunks.push(chunk));
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
+    const palette = exportPalette();
     const left = doc.page.margins.left;
     const width = doc.page.width - left - doc.page.margins.right;
     const bottom = () => doc.page.height - doc.page.margins.bottom;
@@ -104,33 +146,33 @@ export function renderStyledPdf(
       if (metas.length === 0) return;
       const cell = width / 2;
       const rows = Math.ceil(metas.length / 2);
-      ensure(rows * 22 + 12);
+      ensure(rows * 30 + 12);
       const top = doc.y;
-      doc.rect(left, top, width, rows * 22 + 12).fill(palette.band);
+      doc.rect(left, top, width, rows * 30 + 12).fill(palette.band);
       metas.forEach((block, index) => {
         const match = metaPattern.exec(block.text);
         const x = left + 14 + (index % 2) * cell;
-        const y = top + 10 + Math.floor(index / 2) * 22;
+        const y = top + 10 + Math.floor(index / 2) * 30;
         doc
           .fillColor(palette.muted)
           .font('Helvetica')
-          .fontSize(8)
+          .fontSize(12)
           .text((match?.[1] ?? '').toUpperCase(), x, y, { width: cell - 20, lineBreak: false });
         doc
           .fillColor(palette.ink)
           .font('Helvetica-Bold')
-          .fontSize(10)
-          .text(match?.[2] ?? '', x, y + 9, { width: cell - 20, lineBreak: false });
+          .fontSize(12)
+          .text(match?.[2] ?? '', x, y + 13, { width: cell - 20, lineBreak: false });
       });
       doc.x = left;
-      doc.y = top + rows * 22 + 24;
+      doc.y = top + rows * 30 + 26;
       metas.length = 0;
     };
     const bulletHeight = (text: string) => {
       const [lead, ...rest] = text.split(' | ');
       const leadHeight = doc
         .font('Helvetica-Bold')
-        .fontSize(10)
+        .fontSize(12)
         .heightOfString(lead ?? '', {
           width: width - 18,
           lineGap: 2,
@@ -138,7 +180,7 @@ export function renderStyledPdf(
       const detailHeight = rest.length
         ? doc
             .font('Helvetica')
-            .fontSize(9)
+            .fontSize(12)
             .heightOfString(rest.join('  ·  '), {
               width: width - 18,
               lineGap: 2,
@@ -154,23 +196,50 @@ export function renderStyledPdf(
       flushMeta();
       doc.x = left;
       if (block.kind === MarkdownBlockKind.Section || block.kind === MarkdownBlockKind.Subsection) {
-        let groupHeight = 50;
-        let following = index + 1;
-        while (blocks[following]?.kind === MarkdownBlockKind.Bullet) {
-          groupHeight += bulletHeight(blocks[following]!.text);
-          following++;
+        const headingHeight = block.kind === MarkdownBlockKind.Section ? 60 : 40;
+        const following = blocks[index + 1];
+        if (following) {
+          let followingHeight: number;
+          if (following.kind === MarkdownBlockKind.Bullet) {
+            followingHeight = bulletHeight(following.text);
+          } else if (following.kind === MarkdownBlockKind.Title) {
+            followingHeight = doc
+              .font('Helvetica-Bold')
+              .fontSize(26)
+              .heightOfString(following.text, { width: width - 18 });
+          } else if (following.kind === MarkdownBlockKind.Section) {
+            followingHeight = doc
+              .font('Helvetica-Bold')
+              .fontSize(16)
+              .heightOfString(following.text, { width });
+          } else if (following.kind === MarkdownBlockKind.Subsection) {
+            followingHeight = doc
+              .font('Helvetica-Bold')
+              .fontSize(13)
+              .heightOfString(following.text, { width });
+          } else if (following.kind === MarkdownBlockKind.Figure) {
+            followingHeight = doc
+              .font('Helvetica-Bold')
+              .fontSize(12)
+              .heightOfString(following.title ?? '', { width });
+          } else {
+            followingHeight = doc
+              .font('Helvetica')
+              .fontSize(12)
+              .heightOfString(following.text, { width, lineGap: 3 });
+          }
+          const onePage = bottom() - doc.page.margins.top;
+          ensure(Math.min(headingHeight + followingHeight, onePage));
         }
-        if (following > index + 1 && groupHeight <= bottom() - doc.page.margins.top)
-          ensure(groupHeight);
       }
       switch (block.kind) {
         case MarkdownBlockKind.Title:
-          doc.rect(left, doc.y, 6, 34).fill(palette.accent);
+          doc.rect(left, doc.y, 6, 40).fill(palette.accentAlt);
           doc
             .fillColor(palette.ink)
             .font('Helvetica-Bold')
-            .fontSize(24)
-            .text(block.text, left + 18, doc.y + 4, { width: width - 18 });
+            .fontSize(26)
+            .text(block.text, left + 18, doc.y + 6, { width: width - 18 });
           doc.x = left;
           doc.moveDown(0.8);
           break;
@@ -180,7 +249,7 @@ export function renderStyledPdf(
           doc
             .fillColor(palette.accent)
             .font('Helvetica-Bold')
-            .fontSize(14)
+            .fontSize(16)
             .text(block.text, left, doc.y, { width });
           doc
             .moveTo(left, doc.y + 3)
@@ -196,7 +265,7 @@ export function renderStyledPdf(
           doc
             .fillColor(palette.ink)
             .font('Helvetica-Bold')
-            .fontSize(11)
+            .fontSize(13)
             .text(block.text, left, doc.y, { width });
           doc.moveDown(0.3);
           break;
@@ -204,17 +273,17 @@ export function renderStyledPdf(
           const [lead, ...rest] = block.text.split(' | ');
           ensure(bulletHeight(block.text));
           const top = doc.y;
-          doc.circle(left + 5, top + 6, 2.2).fill(palette.accent);
+          doc.circle(left + 5, top + 6, 2.2).fill(palette.accentAlt);
           doc
             .fillColor(palette.ink)
             .font('Helvetica-Bold')
-            .fontSize(10)
+            .fontSize(12)
             .text(lead ?? '', left + 18, top, { width: width - 18, lineGap: 2 });
           if (rest.length > 0)
             doc
               .fillColor(palette.muted)
               .font('Helvetica')
-              .fontSize(9)
+              .fontSize(12)
               .text(rest.join('  ·  '), left + 18, doc.y, { width: width - 18, lineGap: 2 });
           doc.x = left;
           doc.moveDown(0.5);
@@ -234,7 +303,7 @@ export function renderStyledPdf(
             doc
               .fillColor(palette.ink)
               .font('Helvetica-Bold')
-              .fontSize(11)
+              .fontSize(12)
               .text(block.title, left, doc.y, { width });
           doc.moveDown(0.3);
           const top = doc.y;
@@ -251,7 +320,7 @@ export function renderStyledPdf(
           doc
             .fillColor(palette.ink)
             .font('Helvetica')
-            .fontSize(10)
+            .fontSize(12)
             .text(block.text, left, doc.y, { width, lineGap: 3 });
           doc.moveDown(0.5);
       }
@@ -264,7 +333,7 @@ export function renderStyledPdf(
       doc
         .fillColor(palette.muted)
         .font('Helvetica')
-        .fontSize(8)
+        .fontSize(12)
         .text(`${info.title}  ·  ${index + 1} / ${range.count}`, left, doc.page.height - 40, {
           width,
           align: 'center',

@@ -31,6 +31,14 @@ export const briefSchema = z
       )
       .max(8)
       .nullish(),
+    agreement: z
+      .object({
+        acceptance: list,
+        signatories: z.array(z.object({ name: text, role: text }).strict()).max(200),
+        paymentDetails: list,
+      })
+      .strict()
+      .nullish(),
     summary: text,
     requirements: z
       .array(
@@ -108,6 +116,14 @@ export const briefWriteSchema = briefSchema.extend({
   acceptanceCriteria: z.array(requiredText).max(200),
   estimates: briefSchema.shape.estimates.element.extend({ module: requiredText }).array().max(100),
   nextSteps: z.array(requiredText).max(200),
+  agreement: z
+    .object({
+      acceptance: z.array(requiredText).max(200),
+      signatories: z.array(z.object({ name: requiredText, role: requiredText }).strict()).max(200),
+      paymentDetails: z.array(requiredText).max(200),
+    })
+    .strict()
+    .nullish(),
 });
 export function validateBriefForSave(data: unknown): BriefData {
   if (!briefWriteSchema.safeParse(data).success) fail('INVALID_BRIEF');
