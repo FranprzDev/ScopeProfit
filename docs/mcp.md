@@ -24,7 +24,7 @@ ScopeProfit runs as a [Model Context Protocol](https://modelcontextprotocol.io) 
 | `export_document`        | write       | Signed, expiring download URL for `pdf`, `docx` or `md`; can regenerate and persist the document.                       |
 | `get_quote`              | read        | Quote of a project: status, currency, priced module lines, payment milestones, terms, validity and totals.              |
 | `save_quote`             | write       | Create or update the DRAFT quote from scope estimates or explicit lines, priced only with the professional's rate card. |
-| `export_quote`           | write       | Signed, expiring download URL for the quote as `pdf` or `docx`.                                                         |
+| `export_quote`           | read        | Signed, expiring download URL for the quote as `pdf` or `docx`.                                                         |
 | `archive_project`        | destructive | Archives (locks) a project.                                                                                             |
 | `log_change_request`     | write       | Logs a post-scope change, classified `in_scope` / `out_of_scope` / `ambiguous`.                                         |
 | `list_change_requests`   | read        | Change requests of a project.                                                                                           |
