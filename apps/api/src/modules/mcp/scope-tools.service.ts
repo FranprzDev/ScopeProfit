@@ -12,6 +12,7 @@ import { DocumentsService } from '../documents/documents.service';
 import { AgentService } from '../agent/agent.service';
 import { StorageService } from '../storage/storage.service';
 import { ChangeRequestsService } from '../projects/change-requests.service';
+import { QuotesService } from '../pricing/quotes.service';
 import { briefWriteSchema, validateBrief, validateSources } from '../brief/brief.validation';
 import { markdown } from '../documents/render';
 import { fail } from '../../security';
@@ -42,6 +43,7 @@ export class ScopeToolsService {
     private agent: AgentService,
     private storage: StorageService,
     private changes: ChangeRequestsService,
+    private quotes: QuotesService,
   ) {}
 
   async listProjects(
@@ -640,6 +642,48 @@ export class ScopeToolsService {
       reviewGuidance:
         'Exporting does not verify that client inputs are reflected in this document. Review the conversation and the exported version before sharing.',
       ...exportUrl(project.id, version, input.format),
+    };
+  }
+
+  async getQuote(user: User, projectId: string) {
+    await this.project(user, projectId);
+    return { ...(await this.quotes.get(user, projectId)) };
+  }
+
+  async saveQuote(
+    user: User,
+    input: {
+      projectId: string;
+      rateCard?: { hourlyRate: number; currency: string; marginPercent?: number };
+      fromEstimates?: boolean;
+      lines?: unknown;
+      milestones?: unknown;
+      terms?: string | null;
+      validUntil?: string | null;
+    },
+  ) {
+    await this.editable(user, input.projectId);
+    const quote = await this.quotes.upsertDraft(user, input.projectId, input);
+    return {
+      ...quote,
+      pricingNote:
+        "Prices are computed only from the professional's rate card and estimates; ScopeProfit never suggests prices.",
+    };
+  }
+
+  async exportQuote(user: User, input: { projectId: string; format: 'pdf' | 'docx' }) {
+    await this.project(user, input.projectId);
+    const quote = await this.db.quote.findUnique({
+      where: { projectId: input.projectId },
+      select: { id: true },
+    });
+    if (!quote) fail('QUOTE_NOT_FOUND', 404);
+    return {
+      projectId: input.projectId,
+      format: input.format,
+      reviewGuidance:
+        'Exporting does not verify content. Review the quote before sharing the link.',
+      ...exportUrl(input.projectId, 0, input.format, 'quote'),
     };
   }
 

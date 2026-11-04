@@ -40,7 +40,7 @@ before(async () => {
   auth = new AuthService(db, new EmailService());
   projects = new ProjectsService(db, auth);
   rateCards = new RateCardsService(db, auth);
-  quotes = new QuotesService(db, auth);
+  quotes = new QuotesService(db, auth, rateCards);
   maintenance = new MaintenanceService(db, auth);
 });
 

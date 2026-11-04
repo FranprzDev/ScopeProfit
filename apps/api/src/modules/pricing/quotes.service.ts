@@ -28,6 +28,7 @@ import {
   validateQuoteMilestones,
   type QuoteMilestoneInput,
 } from './pricing.validation';
+import { RateCardsService } from './rate-cards.service';
 
 type QuoteWithRelations = QuoteRow & { lines: QuoteLineRow[]; milestones: QuoteMilestoneRow[] };
 
@@ -102,6 +103,7 @@ export class QuotesService {
   constructor(
     private db: PrismaService,
     private auth: AuthService,
+    private rateCards: RateCardsService,
   ) {}
 
   private async authorize(user: User, projectId: string) {
@@ -372,8 +374,28 @@ export class QuotesService {
       include: quoteInclude(),
     });
     if (!quote || (viaLink && quote.status === QuoteStatus.draft)) fail('QUOTE_NOT_FOUND', 404);
+    return this.renderQuoteFile(quote, format);
+  }
+
+  /**
+   * Renders a quote without an access check. Only reachable through a valid signed
+   * export link (MCP export_quote); the link itself is the authorization.
+   */
+  async renderFile(projectId: string, format: 'pdf' | 'docx'): Promise<QuoteFile> {
+    const quote = await this.db.quote.findUnique({
+      where: { projectId },
+      include: quoteInclude(),
+    });
+    if (!quote) fail('QUOTE_NOT_FOUND', 404);
+    return this.renderQuoteFile(quote, format);
+  }
+
+  private async renderQuoteFile(
+    quote: QuoteWithRelations,
+    format: 'pdf' | 'docx',
+  ): Promise<QuoteFile> {
     const project = await this.db.project.findUnique({
-      where: { id: projectId },
+      where: { id: quote.projectId },
       include: { owner: true },
     });
     if (!project) fail('PROJECT_NOT_FOUND', 404);
@@ -387,12 +409,130 @@ export class QuotesService {
     );
     return {
       buffer: format === 'pdf' ? buffers.pdf : buffers.docx,
-      name: `scope-${projectId}-quote.${format}`,
+      name: `scope-${quote.projectId}-quote.${format}`,
       mimeType:
         format === 'pdf'
           ? 'application/pdf'
           : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     };
+  }
+
+  /**
+   * Create-or-update entry point used by the MCP save_quote tool. Prices are only
+   * ever computed from the professional's own rate card and hour estimates or from
+   * explicit lines they provide; this method never suggests prices.
+   */
+  async upsertDraft(
+    user: User,
+    projectId: string,
+    input: {
+      rateCard?: { hourlyRate: number; currency: string; marginPercent?: number };
+      fromEstimates?: boolean;
+      lines?: unknown;
+      milestones?: unknown;
+      terms?: string | null;
+      validUntil?: string | null;
+    },
+  ): Promise<PopulatedQuote> {
+    await this.authorize(user, projectId);
+    if (input.rateCard) {
+      const currentDefault = await this.db.rateCard.findFirst({
+        where: { ownerId: user.id, isDefault: true },
+      });
+      await this.rateCards.upsert(user, {
+        label: currentDefault?.label ?? 'Default',
+        hourlyRate: input.rateCard.hourlyRate,
+        currency: input.rateCard.currency,
+        marginPercent: input.rateCard.marginPercent ?? currentDefault?.marginPercent ?? 0,
+      });
+    }
+    const existing = await this.db.quote.findUnique({
+      where: { projectId },
+      select: { status: true },
+    });
+    let quote: PopulatedQuote;
+    if (input.fromEstimates) {
+      // (Re)generates the draft from the current scope estimates with the default
+      // rate card; rejects non-draft quotes like the REST generate endpoint does.
+      quote = await this.generate(user, projectId);
+    } else if (!existing) {
+      if (input.lines === undefined)
+        fail('QUOTE_NOT_FOUND', 400, 'No quote exists yet; pass from_estimates or lines');
+      quote = await this.createFromLines(user, projectId, input.lines);
+    } else {
+      assertDraftQuote(existing.status);
+      quote = await this.get(user, projectId);
+    }
+    const hasFieldUpdates =
+      input.lines !== undefined ||
+      input.milestones !== undefined ||
+      input.terms !== undefined ||
+      input.validUntil !== undefined;
+    if (hasFieldUpdates)
+      return this.patch(user, projectId, {
+        terms: input.terms,
+        validUntil: input.validUntil,
+        // from_estimates already (re)built the lines from the brief.
+        lines: input.fromEstimates ? undefined : input.lines,
+        milestones: input.milestones,
+      });
+    return quote;
+  }
+
+  private async createFromLines(
+    user: User,
+    projectId: string,
+    linesInput: unknown,
+  ): Promise<PopulatedQuote> {
+    const card = await this.db.rateCard.findFirst({
+      where: { ownerId: user.id, isDefault: true, active: true },
+    });
+    if (!card)
+      fail('RATE_CARD_REQUIRED', 400, 'Set a rate card (rate_card) before pricing explicit lines');
+    const rateCard = {
+      hourlyRate: Number(card.hourlyRate),
+      marginPercent: card.marginPercent,
+      currency: card.currency,
+    };
+    const totals = computeQuoteTotals(validateQuoteLines(linesInput), rateCard);
+    const snapshot: Prisma.InputJsonValue = {
+      id: card.id,
+      label: card.label,
+      hourlyRate: rateCard.hourlyRate,
+      marginPercent: card.marginPercent,
+      currency: card.currency,
+      isDefault: card.isDefault,
+      capturedAt: new Date().toISOString(),
+    };
+    const created = await this.db.$transaction(async (tx) => {
+      const quote = await tx.quote.create({
+        data: {
+          projectId,
+          status: QuoteStatus.draft,
+          currency: totals.currency,
+          subtotalMin: totals.subtotalMin,
+          subtotalMax: totals.subtotalMax,
+          totalMin: totals.totalMin,
+          totalMax: totals.totalMax,
+          rateCardSnapshot: snapshot,
+          lines: {
+            create: totals.lines.map((line, position) => ({ ...line, position })),
+          },
+        },
+        include: quoteInclude(),
+      });
+      await tx.auditEvent.create({
+        data: {
+          projectId,
+          actorId: user.id,
+          action: 'quote.generated',
+          result: 'success',
+          metadata: { quoteId: quote.id, rateCardId: card.id, lineCount: totals.lines.length },
+        },
+      });
+      return quote;
+    });
+    return toQuoteDto(created);
   }
 
   private async findRateCard(user: User, rateCardId?: string) {
