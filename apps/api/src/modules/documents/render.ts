@@ -1,10 +1,6 @@
 import { Document, HeadingLevel, ImageRun, Packer, Paragraph, TextRun } from 'docx';
 import { memoizedDiagramRenderer, renderDiagram, type DiagramRenderer } from './diagram';
-import {
-  requirementTypeLabels,
-  requirementPriorityLabels,
-  riskSeverityLabels,
-} from './brief-labels';
+import { riskSeverityLabels } from './brief-labels';
 import { MarkdownBlockKind, parseMarkdown, renderStyledPdf } from './pdf-layout';
 import type { DocumentData, TiptapNode } from '@scopeprofit/contracts';
 
@@ -80,21 +76,60 @@ function baseMarkdown(data: DocumentData) {
   const expiresOn = validity
     ? new Date(Date.parse(validity.issuedOn) + validity.days * 86400000).toISOString().slice(0, 10)
     : null;
-  const nextStepsNumber = omitEstimates ? 6 : 7;
-  const validityNumber = nextStepsNumber + 1;
-  const agreementNumber = validity ? validityNumber + 1 : nextStepsNumber + 1;
-  const estimateSection = omitEstimates
-    ? ''
-    : `\n\n## 6. Estimación orientativa en horas\n${b.estimates.map((e) => `- ${e.module}: ${e.minHours}–${e.maxHours} h | ${e.uncertainty}`).join('\n')}\nTotal: ${b.estimates.length > 0 ? `${b.estimates.reduce((n, e) => n + e.minHours, 0)}–${b.estimates.reduce((n, e) => n + e.maxHours, 0)} h` : 'Pendiente de estimación'}. Rango orientativo sujeto a los supuestos e incertidumbres indicados; no es un precio.`;
-  const validitySection = validity
-    ? `\n\n## ${validityNumber}. Vigencia del presupuesto\nVálido por ${validity.days} días corridos desde la fecha de emisión ${validity.issuedOn}, hasta ${expiresOn}.\nEl presupuesto depende de la disponibilidad del profesional y su carga de proyectos al momento de cotizar. Vencido ese plazo, se requiere una nueva cotización según la disponibilidad y carga de trabajo vigentes: el precio puede subir o bajar. No se aplica ningún cambio automático ni se modifican presupuestos ya aceptados.`
-    : '';
-  const agreementSection = agreement
-    ? `\n\n## ${agreementNumber}. Aceptación del acuerdo\n${agreement.acceptance.join('\n')}\n${agreement.signatories.map((s) => `${s.name} (${s.role}) - Firma: ____________ Fecha: ____________`).join('\n')}\n\n## ${agreementNumber + 1}. Datos de cobro\n${agreement.paymentDetails.join('\n')}`
-    : '';
   const bullet = (values: string[]) =>
     values.map((value) => `- ${value}`).join('\n') || '- Pendiente de definición';
-  return `# ${data.projectName}\nCliente: ${data.clientName}\nFecha: ${data.date}\nVersión: 0.${data.version}\nAutor: ${data.author}\n\n## 1. Resumen ejecutivo\n${b.summary}\n\n## 2. Requerimientos identificados\n${b.requirements.map((r) => `- ${r.id} | ${r.description} | ${requirementTypeLabels[r.type]} | ${requirementPriorityLabels[r.priority]} | Fuente: "${r.source}" | ${r.systemNote}`).join('\n')}\n\n## 3. Preguntas pendientes\n${b.questions.map((q) => `- ${q.id}: ${q.question} | ${q.reason} | Bloquea estimación: ${q.blocksEstimate ? 'Sí' : 'No'}`).join('\n') || 'Sin preguntas pendientes'}\n\n## 4. Riesgos y ambigüedades\n${b.risks.map((r) => `- ${r.id}: ${r.description} | Impacto: ${r.impact} | Mitigación/supuesto: ${r.mitigation} | Semáforo: ${riskSeverityLabels[r.severity]}`).join('\n') || 'Sin riesgos identificados'}\n\n## 5. Alcance\n### Incluidos\n${bullet(b.included)}\n### Excluidos\n${bullet(b.excluded)}\n### Supuestos\n${bullet(b.assumptions)}\n### Criterios de aceptación\n${bullet(b.acceptanceCriteria)}${estimateSection}\n\n## ${nextStepsNumber}. Próximos pasos\n${bullet(b.nextSteps)}${validitySection}${agreementSection}${data.editorContent ? `\n\n## Observaciones y edición manual\n${editorText(data.editorContent)}` : ''}\n`;
+  const sections: { title: string; body: string }[] = [
+    { title: 'Resumen ejecutivo', body: b.summary },
+    {
+      title: 'Alcance',
+      body: `### Incluidos\n${bullet(b.included)}\n### Excluidos\n${bullet(b.excluded)}\n### Supuestos\n${bullet(b.assumptions)}\n### Criterios de aceptación\n${bullet(b.acceptanceCriteria)}`,
+    },
+  ];
+  if (b.requirements.length > 0)
+    sections.push({
+      title: 'Requerimientos identificados',
+      body: b.requirements.map((r) => `- ${r.description}`).join('\n'),
+    });
+  if (b.questions.length > 0)
+    sections.push({
+      title: 'Preguntas pendientes',
+      body: b.questions
+        .map(
+          (q) =>
+            `- ${q.id}: ${q.question} | ${q.reason} | Bloquea estimación: ${q.blocksEstimate ? 'Sí' : 'No'}`,
+        )
+        .join('\n'),
+    });
+  if (b.risks.length > 0)
+    sections.push({
+      title: 'Riesgos y ambigüedades',
+      body: b.risks
+        .map(
+          (r) =>
+            `- ${r.id}: ${r.description} | Impacto: ${r.impact} | Mitigación/supuesto: ${r.mitigation} | Semáforo: ${riskSeverityLabels[r.severity]}`,
+        )
+        .join('\n'),
+    });
+  if (!omitEstimates)
+    sections.push({
+      title: 'Estimación orientativa en horas',
+      body: `${b.estimates.map((e) => `- ${e.module}: ${e.minHours}–${e.maxHours} h | ${e.uncertainty}`).join('\n')}\nTotal: ${b.estimates.length > 0 ? `${b.estimates.reduce((n, e) => n + e.minHours, 0)}–${b.estimates.reduce((n, e) => n + e.maxHours, 0)} h` : 'Pendiente de estimación'}. Rango orientativo sujeto a los supuestos e incertidumbres indicados; no es un precio.`,
+    });
+  sections.push({ title: 'Próximos pasos', body: bullet(b.nextSteps) });
+  if (validity)
+    sections.push({
+      title: 'Vigencia del presupuesto',
+      body: `Válido por ${validity.days} días corridos desde la fecha de emisión ${validity.issuedOn}, hasta ${expiresOn}.\nEl presupuesto depende de la disponibilidad del profesional y su carga de proyectos al momento de cotizar. Vencido ese plazo, se requiere una nueva cotización según la disponibilidad y carga de trabajo vigentes: el precio puede subir o bajar. No se aplica ningún cambio automático ni se modifican presupuestos ya aceptados.`,
+    });
+  if (agreement) {
+    sections.push({
+      title: 'Aceptación del acuerdo',
+      body: `${agreement.acceptance.join('\n')}\n${agreement.signatories.map((s) => `${s.name} (${s.role}) - Firma: ____________ Fecha: ____________`).join('\n')}`,
+    });
+    sections.push({ title: 'Datos de cobro', body: agreement.paymentDetails.join('\n') });
+  }
+  const numbered = sections.map((s, i) => `\n\n## ${i + 1}. ${s.title}\n${s.body}`).join('');
+  return `# ${data.projectName}\nCliente: ${data.clientName}\nFecha: ${data.date}\nVersión: 0.${data.version}\nAutor: ${data.author}${numbered}${data.editorContent ? `\n\n## Observaciones y edición manual\n${editorText(data.editorContent)}` : ''}\n`;
 }
 export function markdown(data: DocumentData) {
   const diagrams = data.brief.diagrams ?? [];
