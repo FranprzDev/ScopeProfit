@@ -500,8 +500,8 @@ test('the proposal mapping renders percent and amount milestones', () => {
   assert.deepEqual(
     percent.milestones.map((milestone) => [milestone.name, milestone.detail]),
     [
-      ['Arranque', '40 % — 660.00 – 1,320.00 USD'],
-      ['Entrega', '60 % — 990.00 – 1,980.00 USD'],
+      ['Arranque', '40 % - 660.00 – 1,320.00 USD'],
+      ['Entrega', '60 % - 990.00 – 1,980.00 USD'],
     ],
   );
 
@@ -536,13 +536,13 @@ test('the proposal markdown includes the commercial sections and the client data
     ),
   );
   for (const expected of [
-    '# Propuesta comercial — Portal de clientes',
+    '# Propuesta comercial: Portal de clientes',
     'Cliente: cliente@acme.com',
     'Moneda: USD',
-    '## Detalle por módulo',
+    '## Alcance',
     'Total estimado: 1,650.00 – 3,300.00 USD',
     '## Hitos de pago',
-    '- Arranque: 50 % — 825.00 – 1,650.00 USD',
+    '- Arranque: 50 % - 825.00 – 1,650.00 USD',
     '## Condiciones',
     '- Validez de la oferta: 2030-01-01',
     '- Términos y condiciones: Pago contra entrega',
@@ -550,19 +550,21 @@ test('the proposal markdown includes the commercial sections and the client data
     assert.ok(text.includes(expected), `expected the proposal to include "${expected}"`);
 });
 
-test('the proposal markdown falls back when terms, validity, milestones or rate card are missing', () => {
+test('the proposal markdown omits empty milestones, validity and terms sections', () => {
   const text = proposalMarkdown(
     buildQuoteProposal(
       proposalSource({ terms: null, validUntil: null, milestones: [], rateCardSnapshot: null }),
       proposalContext,
     ),
   );
-  for (const expected of [
-    '- Validez de la oferta: Sin vencimiento',
-    '- Términos y condiciones: Sin condiciones adicionales.',
-    '- Sin hitos de pago definidos',
+  for (const absent of [
+    '## Hitos de pago',
+    '## Condiciones',
+    'Sin vencimiento',
+    'Sin condiciones adicionales',
+    'Sin hitos de pago definidos',
   ])
-    assert.ok(text.includes(expected), `expected the proposal to include "${expected}"`);
+    assert.ok(!text.includes(absent), `expected the proposal to omit "${absent}"`);
 });
 
 test('proposal dates are rendered as ISO calendar days', () => {

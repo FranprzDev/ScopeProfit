@@ -46,8 +46,8 @@ export interface QuoteProposalInput {
   subtotal: string;
   total: string;
   milestones: QuoteProposalMilestone[];
-  validUntil: string;
-  terms: string;
+  validUntil: string | null;
+  terms: string | null;
   rateCard: QuoteProposalRateCard | null;
 }
 
@@ -132,15 +132,15 @@ export function buildQuoteProposal(
       name: milestone.name,
       detail:
         milestone.percent !== null
-          ? `${milestone.percent} % — ${priceRange(
+          ? `${milestone.percent} % - ${priceRange(
               round2((milestone.percent / 100) * quote.totalMin),
               round2((milestone.percent / 100) * quote.totalMax),
               currency,
             )}`
           : money(milestone.amount ?? 0, currency),
     })),
-    validUntil: quote.validUntil ? formatDate(quote.validUntil) : 'Sin vencimiento',
-    terms: quote.terms?.trim() || 'Sin condiciones adicionales.',
+    validUntil: quote.validUntil ? formatDate(quote.validUntil) : null,
+    terms: quote.terms?.trim() || null,
     rateCard: snapshot
       ? {
           label: snapshot.label,
@@ -158,29 +158,33 @@ export function buildQuoteProposal(
 
 export function proposalMarkdown(input: QuoteProposalInput): string {
   return [
-    `# Propuesta comercial — ${input.projectName}`,
+    `# Propuesta comercial: ${input.projectName}`,
     `Cliente: ${input.clientName}`,
     `Profesional: ${input.author}`,
     `Fecha: ${input.date}`,
     `Moneda: ${input.currency.toUpperCase()}`,
     '',
-    '## Detalle por módulo',
-    ...input.lines.map(
-      (line) => `- ${line.module} | ${line.hours} | tarifa ${line.hourlyRate} | ${line.price}`,
-    ),
+    '## Alcance',
+    ...input.lines.map((line) => `- ${line.module}: ${line.price}`),
     '',
     `Subtotal: ${input.subtotal}`,
     `Total estimado: ${input.total}`,
     '',
-    '## Hitos de pago',
     ...(input.milestones.length
-      ? input.milestones.map((milestone) => `- ${milestone.name}: ${milestone.detail}`)
-      : ['- Sin hitos de pago definidos']),
-    '',
-    '## Condiciones',
-    `- Validez de la oferta: ${input.validUntil}`,
-    `- Términos y condiciones: ${input.terms}`,
-    '',
+      ? [
+          '## Hitos de pago',
+          ...input.milestones.map((milestone) => `- ${milestone.name}: ${milestone.detail}`),
+          '',
+        ]
+      : []),
+    ...(input.validUntil || input.terms
+      ? [
+          '## Condiciones',
+          ...(input.validUntil ? [`- Validez de la oferta: ${input.validUntil}`] : []),
+          ...(input.terms ? [`- Términos y condiciones: ${input.terms}`] : []),
+          '',
+        ]
+      : []),
   ].join('\n');
 }
 
@@ -190,7 +194,7 @@ export async function renderQuoteProposal(
   const md = proposalMarkdown(input);
   const diagram = memoizedDiagramRenderer();
   const [pdf, docx] = await Promise.all([
-    markdownToPdf(md, { title: `Propuesta — ${input.projectName}`, author: input.author }, diagram),
+    markdownToPdf(md, { title: `Propuesta: ${input.projectName}`, author: input.author }, diagram),
     markdownToDocx(md, diagram),
   ]);
   return { pdf, docx };
