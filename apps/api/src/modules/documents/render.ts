@@ -68,6 +68,11 @@ export function editorText(node: TiptapNode): string {
       : '')
   );
 }
+function formatDateDDMMYYYY(isoDate: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(isoDate);
+  return match ? `${match[3]}/${match[2]}/${match[1]}` : isoDate;
+}
+
 function baseMarkdown(data: DocumentData) {
   const b = data.brief;
   const agreement = b.agreement ?? null;
@@ -119,7 +124,7 @@ function baseMarkdown(data: DocumentData) {
   if (validity)
     sections.push({
       title: 'Vigencia del presupuesto',
-      body: `Válido por ${validity.days} días corridos desde la fecha de emisión ${validity.issuedOn}, hasta ${expiresOn}.\nEl presupuesto depende de la disponibilidad del profesional y su carga de proyectos al momento de cotizar. Vencido ese plazo, se requiere una nueva cotización según la disponibilidad y carga de trabajo vigentes: el precio puede subir o bajar. No se aplica ningún cambio automático ni se modifican presupuestos ya aceptados.`,
+      body: `Válido por ${validity.days} días corridos desde la fecha de emisión ${formatDateDDMMYYYY(validity.issuedOn)}, hasta ${formatDateDDMMYYYY(expiresOn ?? '')}.\nEl presupuesto depende de la disponibilidad del profesional y su carga de proyectos al momento de cotizar. Vencido ese plazo, se requiere una nueva cotización según la disponibilidad y carga de trabajo vigentes: el precio puede subir o bajar. No se aplica ningún cambio automático ni se modifican presupuestos ya aceptados.`,
     });
   if (agreement) {
     if (agreement.acceptance.length > 0 || agreement.signatories.length > 0)
