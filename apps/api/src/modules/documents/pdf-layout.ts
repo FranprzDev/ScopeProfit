@@ -407,7 +407,7 @@ export function renderStyledPdf(
     const bulletHeight = (text: string) => {
       const [lead, ...rest] = text.split(' | ');
       const leadHeight = doc
-        .font('Helvetica-Bold')
+        .font('Helvetica')
         .fontSize(12)
         .heightOfString(lead ?? '', {
           width: width - 18,
@@ -515,7 +515,7 @@ export function renderStyledPdf(
           doc.circle(left + 5, top + 6, 2.2).fill(palette.accentAlt);
           doc
             .fillColor(palette.ink)
-            .font('Helvetica-Bold')
+            .font('Helvetica')
             .fontSize(12)
             .text(lead ?? '', left + 18, top, { width: width - 18, lineGap: 2 });
           if (rest.length > 0)
