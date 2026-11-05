@@ -140,6 +140,30 @@ export const TOOL_GROUPS: ToolGroup[] = [
     ],
   },
   {
+    title: 'Presupuesto',
+    description: 'Del alcance aprobado al documento comercial, siempre con tu tarifa.',
+    tools: [
+      {
+        name: 'save_quote',
+        kind: ToolKind.Write,
+        text: 'Crea o actualiza el borrador del presupuesto a partir de las horas del alcance, calculado solo con tu tarifa. ScopeProfit no sugiere precios.',
+        keywords: ['presupuesto', 'precio', 'tarifa', 'cotizar', 'cobrar', 'monto'],
+      },
+      {
+        name: 'get_quote',
+        kind: ToolKind.Read,
+        text: 'Estado del presupuesto: líneas, hitos de pago, condiciones, validez y totales.',
+        keywords: ['presupuesto', 'totales', 'hitos', 'estado', 'ver'],
+      },
+      {
+        name: 'export_quote',
+        kind: ToolKind.Read,
+        text: 'Link de descarga firmado y con vencimiento del presupuesto en PDF o Word.',
+        keywords: ['presupuesto', 'exportar', 'pdf', 'word', 'descargar', 'link'],
+      },
+    ],
+  },
+  {
     title: 'Cambios después del alcance',
     description: 'Para que lo nuevo no entre como favor.',
     tools: [
@@ -201,12 +225,19 @@ export const STAGES: Stage[] = [
       'cerrás dudas, revisás la plantilla 7.1, aprobás y descargás PDF y DOCX con un link firmado.',
     tools: ['answer_question', 'get_scope_document', 'approve_scope', 'export_document'],
   },
+  {
+    order: 'Si querés',
+    clause:
+      'convertís el alcance aprobado en presupuesto con tu propia tarifa: hitos de pago, condiciones y validez, exportado a PDF o Word.',
+    tools: ['save_quote', 'get_quote', 'export_quote'],
+  },
 ];
 
 export const TOOL_FINDER_EXAMPLES = [
   'exportar en PDF',
   'el cliente pidió algo nuevo',
   'preguntas abiertas',
+  'presupuesto en PDF',
 ];
 export const TOOL_FINDER_DEFAULT = 'aprobar el alcance';
 
@@ -260,6 +291,12 @@ export interface FaqEntry {
   answer: string;
 }
 
+export const PRICE_FAQ: FaqEntry = {
+  question: '¿ScopeProfit sugiere precios?',
+  answer:
+    'No. El documento estima rangos de horas y el presupuesto calcula montos solo con la tarifa que vos cargás. El precio final lo decidís vos.',
+};
+
 export const AUTH_FAQ: FaqEntry = {
   question: '¿Cómo se autentica un cliente MCP?',
   answer:
@@ -267,7 +304,7 @@ export const AUTH_FAQ: FaqEntry = {
 };
 
 /** Every question answered on the landing. The FAQPage structured data is built from this list only. */
-export const FAQ_ENTRIES: FaqEntry[] = [AUTH_FAQ];
+export const FAQ_ENTRIES: FaqEntry[] = [PRICE_FAQ, AUTH_FAQ];
 
 export const CLAUDE_CODE_SNIPPET = `claude mcp add --transport http scopeprofit \\
   ${MCP_ENDPOINT_PLACEHOLDER} \\
