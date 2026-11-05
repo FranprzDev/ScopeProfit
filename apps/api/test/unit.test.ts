@@ -538,7 +538,6 @@ test('the proposal markdown includes the commercial sections and the client data
   for (const expected of [
     '# Propuesta comercial — Portal de clientes',
     'Cliente: cliente@acme.com',
-    'Estado: Enviada',
     'Moneda: USD',
     '## Detalle por módulo',
     'Total estimado: 1,650.00 – 3,300.00 USD',
@@ -547,9 +546,6 @@ test('the proposal markdown includes the commercial sections and the client data
     '## Condiciones',
     '- Validez de la oferta: 2030-01-01',
     '- Términos y condiciones: Pago contra entrega',
-    '## Tarifa aplicada',
-    '- Estándar: 100.00 USD/h + 10 % de margen → 110.00 USD/h',
-    '- Tarifa capturada el 2026-10-01',
   ])
     assert.ok(text.includes(expected), `expected the proposal to include "${expected}"`);
 });
@@ -565,14 +561,8 @@ test('the proposal markdown falls back when terms, validity, milestones or rate 
     '- Validez de la oferta: Sin vencimiento',
     '- Términos y condiciones: Sin condiciones adicionales.',
     '- Sin hitos de pago definidos',
-    '- Sin tarifa asociada',
-    'Estado: Enviada',
   ])
     assert.ok(text.includes(expected), `expected the proposal to include "${expected}"`);
-  const draft = proposalMarkdown(
-    buildQuoteProposal(proposalSource({ status: QuoteStatus.draft }), proposalContext),
-  );
-  assert.ok(draft.includes('Estado: Borrador'));
 });
 
 test('proposal dates are rendered as ISO calendar days', () => {

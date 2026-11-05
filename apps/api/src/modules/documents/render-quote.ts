@@ -67,7 +67,7 @@ const numberFormat = new Intl.NumberFormat('en-US', {
 const num = (value: number) => numberFormat.format(value);
 const money = (value: number, currency: string) => `${num(value)} ${currency.toUpperCase()}`;
 const priceRange = (min: number, max: number, currency: string) =>
-  `${num(min)} – ${num(max)} ${currency.toUpperCase()}`;
+  min === max ? money(min, currency) : `${num(min)} – ${num(max)} ${currency.toUpperCase()}`;
 
 export const statusLabel = (status: QuoteStatus): string => STATUS_LABELS[status];
 
@@ -119,7 +119,10 @@ export function buildQuoteProposal(
     currency,
     lines: quote.lines.map((line) => ({
       module: line.module,
-      hours: `${line.minHours}–${line.maxHours} h`,
+      hours:
+        line.minHours === line.maxHours
+          ? `${line.minHours} h`
+          : `${line.minHours}–${line.maxHours} h`,
       hourlyRate: money(line.hourlyRate, currency),
       price: priceRange(line.priceMin, line.priceMax, currency),
     })),
@@ -159,7 +162,6 @@ export function proposalMarkdown(input: QuoteProposalInput): string {
     `Cliente: ${input.clientName}`,
     `Profesional: ${input.author}`,
     `Fecha: ${input.date}`,
-    `Estado: ${statusLabel(input.status)}`,
     `Moneda: ${input.currency.toUpperCase()}`,
     '',
     '## Detalle por módulo',
@@ -178,14 +180,6 @@ export function proposalMarkdown(input: QuoteProposalInput): string {
     '## Condiciones',
     `- Validez de la oferta: ${input.validUntil}`,
     `- Términos y condiciones: ${input.terms}`,
-    '',
-    '## Tarifa aplicada',
-    ...(input.rateCard
-      ? [
-          `- ${input.rateCard.label}: ${input.rateCard.baseRate}/h + ${input.rateCard.marginPercent} % de margen → ${input.rateCard.effectiveRate}/h`,
-          `- Tarifa capturada el ${input.rateCard.capturedAt}`,
-        ]
-      : ['- Sin tarifa asociada']),
     '',
   ].join('\n');
 }
