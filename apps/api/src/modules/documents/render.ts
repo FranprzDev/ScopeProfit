@@ -82,7 +82,7 @@ function baseMarkdown(data: DocumentData) {
     { title: 'Resumen ejecutivo', body: b.summary },
     {
       title: 'Alcance',
-      body: `### Qué incluye\n${bullet(b.included)}\n### Qué no incluye\n${bullet(b.excluded)}\n### Qué necesitamos para empezar\n${b.assumptions.map((value) => `- ${value}`).join('\n')}\n### Cuándo se da por terminada la etapa\n${bullet(b.acceptanceCriteria)}`,
+      body: `### Qué incluye\n${bullet(b.included)}\n### Qué no incluye\n${bullet(b.excluded)}\n### Qué necesitamos para empezar\n${b.assumptions.map((value) => `- ${value}`).join('\n')}\n### Cuándo se da por terminado el trabajo\n${bullet(b.acceptanceCriteria)}`,
     },
   ];
   if (b.requirements.length > 0)
