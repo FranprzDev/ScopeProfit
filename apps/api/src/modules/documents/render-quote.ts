@@ -67,9 +67,7 @@ const numberFormat = new Intl.NumberFormat('en-US', {
 const num = (value: number) => numberFormat.format(value);
 const money = (value: number, currency: string) => `${num(value)} ${currency.toUpperCase()}`;
 const priceRange = (min: number, max: number, currency: string) =>
-  min === max
-    ? money(min, currency)
-    : `${num(min)} – ${num(max)} ${currency.toUpperCase()}`;
+  min === max ? money(min, currency) : `${num(min)} – ${num(max)} ${currency.toUpperCase()}`;
 
 export const statusLabel = (status: QuoteStatus): string => STATUS_LABELS[status];
 
