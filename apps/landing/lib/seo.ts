@@ -7,7 +7,7 @@ export const SITE_LANGUAGE = 'es';
 
 export const TITLE = 'ScopeProfit | Del pedido al alcance';
 export const DESCRIPTION =
-  'ScopeProfit le da herramientas a tu agente de IA para convertir pedidos de clientes en un alcance claro, con requisitos citados y exportación a PDF y Word. Open source y autohospedado.';
+  'ScopeProfit le da herramientas a tu agente de IA para convertir pedidos de clientes en un alcance claro y un presupuesto con tus tarifas, exportables a PDF y Word. Open source y autohospedado.';
 
 type OpenGraph = NonNullable<Metadata['openGraph']>;
 

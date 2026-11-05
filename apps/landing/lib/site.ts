@@ -20,7 +20,7 @@ export interface SitePage {
 export const SITE_PAGES: Record<SitePath, SitePage> = {
   [SitePath.Home]: {
     path: SitePath.Home,
-    lastModified: '2026-10-27',
+    lastModified: '2026-11-05',
     changeFrequency: 'weekly',
     priority: 1,
   },

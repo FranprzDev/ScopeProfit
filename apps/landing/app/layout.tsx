@@ -1,10 +1,26 @@
 import type { Metadata, Viewport } from 'next';
+import { Instrument_Serif, IBM_Plex_Mono } from 'next/font/google';
 import { Analytics } from '@/components/analytics';
 import { JsonLd } from '@/components/json-ld';
 import { BASE_OPEN_GRAPH, DESCRIPTION, TITLE } from '@/lib/seo';
 import { SITE_URL } from '@/lib/site';
 import { buildSiteJsonLd } from '@/lib/structured-data';
 import './globals.css';
+
+const accentSerif = Instrument_Serif({
+  weight: '400',
+  style: ['normal', 'italic'],
+  subsets: ['latin'],
+  variable: '--font-accent',
+  display: 'swap',
+});
+
+const plexMono = IBM_Plex_Mono({
+  weight: ['400', '500'],
+  subsets: ['latin'],
+  variable: '--font-mono',
+  display: 'swap',
+});
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -42,7 +58,7 @@ export default function Layout({ children }: Readonly<{ children: React.ReactNod
       <head>
         <JsonLd data={buildSiteJsonLd()} />
       </head>
-      <body>
+      <body className={`${accentSerif.variable} ${plexMono.variable}`}>
         {children}
         <Analytics />
       </body>
