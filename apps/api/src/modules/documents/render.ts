@@ -122,11 +122,13 @@ function baseMarkdown(data: DocumentData) {
       body: `Válido por ${validity.days} días corridos desde la fecha de emisión ${validity.issuedOn}, hasta ${expiresOn}.\nEl presupuesto depende de la disponibilidad del profesional y su carga de proyectos al momento de cotizar. Vencido ese plazo, se requiere una nueva cotización según la disponibilidad y carga de trabajo vigentes: el precio puede subir o bajar. No se aplica ningún cambio automático ni se modifican presupuestos ya aceptados.`,
     });
   if (agreement) {
-    sections.push({
-      title: 'Aceptación del acuerdo',
-      body: `${agreement.acceptance.join('\n')}\n${agreement.signatories.map((s) => `${s.name} (${s.role}) - Firma: ____________ Fecha: ____________`).join('\n')}`,
-    });
-    sections.push({ title: 'Datos de cobro', body: agreement.paymentDetails.join('\n') });
+    if (agreement.acceptance.length > 0 || agreement.signatories.length > 0)
+      sections.push({
+        title: 'Aceptación del acuerdo',
+        body: `${agreement.acceptance.join('\n')}\n${agreement.signatories.map((s) => `${s.name} (${s.role}) - Firma: ____________ Fecha: ____________`).join('\n')}`,
+      });
+    if (agreement.paymentDetails.length > 0)
+      sections.push({ title: 'Medios de pago', body: agreement.paymentDetails.join('\n') });
   }
   const numbered = sections.map((s, i) => `\n\n## ${i + 1}. ${s.title}\n${s.body}`).join('');
   return `# ${data.projectName}\nCliente: ${data.clientName}\nFecha: ${data.date}\nVersión: 0.${data.version}\nAutor: ${data.author}${numbered}${data.editorContent ? `\n\n## Observaciones y edición manual\n${editorText(data.editorContent)}` : ''}\n`;
