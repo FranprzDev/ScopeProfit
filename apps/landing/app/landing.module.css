@@ -1093,23 +1093,23 @@
   transform-origin: top;
   transition: transform 1100ms var(--ease-out) 420ms;
 }
-:global(.motion) .heroFlow.is-in::before {
+:global(.motion) .heroFlow:global(.is-in)::before {
   transform: scaleY(1);
 }
 :global(.motion) .heroFlow li::before {
   transform: rotate(45deg) scale(0);
   transition: transform 500ms var(--ease-out);
 }
-:global(.motion) .heroFlow.is-in li::before {
+:global(.motion) .heroFlow:global(.is-in) li::before {
   transform: rotate(45deg) scale(1);
 }
-:global(.motion) .heroFlow.is-in li:nth-child(1)::before {
+:global(.motion) .heroFlow:global(.is-in) li:nth-child(1)::before {
   transition-delay: 380ms;
 }
-:global(.motion) .heroFlow.is-in li:nth-child(2)::before {
+:global(.motion) .heroFlow:global(.is-in) li:nth-child(2)::before {
   transition-delay: 640ms;
 }
-:global(.motion) .heroFlow.is-in li:nth-child(3)::before {
+:global(.motion) .heroFlow:global(.is-in) li:nth-child(3)::before {
   transition-delay: 900ms;
 }
 
