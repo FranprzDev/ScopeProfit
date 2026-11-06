@@ -110,17 +110,19 @@ export default function Home() {
             </p>
           </div>
           <div className={s.exchange} id="como-funciona">
-            <div className={s.request} data-reveal>
-              <h3>El pedido</h3>
-              <blockquote>
+            <div className={s.beat} data-reveal>
+              <p className={s.stepLabel}>El pedido</p>
+              <blockquote className={s.requestQuote}>
                 &quot;Quiero una web para mostrar 12 paquetes de viajes, filtrar por destino y
                 recibir consultas por WhatsApp.&quot;
               </blockquote>
-              <p>Un mensaje es un punto de partida. Todavía hay decisiones por tomar.</p>
+              <p className={s.requestNote}>
+                Un mensaje es un punto de partida. Todavía hay decisiones por tomar.
+              </p>
             </div>
-            <div className={s.answer} data-reveal>
-              <h3>El alcance, al aclararlo</h3>
-              <dl>
+            <div className={s.beat} data-reveal>
+              <p className={s.stepLabel}>El alcance, al aclararlo</p>
+              <dl className={s.answerList}>
                 <div>
                   <dt>Incluye</dt>
                   <dd>Catálogo, filtro por destino y un administrador para cargar paquetes.</dd>
@@ -134,72 +136,16 @@ export default function Home() {
                   <dd>Quién aporta los textos, las fotos y el hosting.</dd>
                 </div>
               </dl>
-              <p>
+              <p className={s.answerNote}>
                 En la prueba, el cliente confirmó que aportaría esos materiales y el hosting. El
                 documento guardó la respuesta.
               </p>
             </div>
           </div>
-          <div className={s.documentIntro}>
-            <p data-reveal>
-              El resultado es un documento versionado, con requisitos citados, riesgos y horas
-              orientativas. Lo exportás a PDF o Word para revisarlo.
-            </p>
-            <p className={s.note}>
-              PDF real de la prueba. Abrí una página para verla completa. Las horas no son un
-              precio.
-            </p>
-          </div>
-          <div className={s.documents}>
-            <figure data-reveal>
-              <a href="/images/demo/resumen.webp" target="_blank" rel="noreferrer">
-                <Image
-                  src="/images/demo/resumen.webp"
-                  alt="Resumen del documento real de Agencia Horizonte, versión 23"
-                  sizes="(max-width: 800px) 45vw, 23vw"
-                  width={920}
-                  height={1300}
-                />
-              </a>
-              <figcaption>Resumen</figcaption>
-            </figure>
-            <figure data-reveal>
-              <a href="/images/demo/requisitos.webp" target="_blank" rel="noreferrer">
-                <Image
-                  src="/images/demo/requisitos.webp"
-                  alt="Requisitos con sus citas del caso ficticio"
-                  sizes="(max-width: 800px) 45vw, 23vw"
-                  width={920}
-                  height={1300}
-                />
-              </a>
-              <figcaption>Requisitos citados</figcaption>
-            </figure>
-            <figure data-reveal>
-              <a href="/images/demo/excluidos.webp" target="_blank" rel="noreferrer">
-                <Image
-                  src="/images/demo/excluidos.webp"
-                  alt="Listado completo de lo excluido y supuestos del proyecto"
-                  sizes="(max-width: 800px) 45vw, 23vw"
-                  width={920}
-                  height={1300}
-                />
-              </a>
-              <figcaption>Fuera del alcance</figcaption>
-            </figure>
-            <figure data-reveal>
-              <a href="/images/demo/horas.webp" target="_blank" rel="noreferrer">
-                <Image
-                  src="/images/demo/horas.webp"
-                  alt="Criterios de aceptación y estimación orientativa en horas, no precios"
-                  sizes="(max-width: 800px) 45vw, 23vw"
-                  width={920}
-                  height={1300}
-                />
-              </a>
-              <figcaption>Horas y criterios</figcaption>
-            </figure>
-          </div>
+          <p className={s.exampleOutro} data-reveal>
+            El resultado es un documento versionado, con requisitos citados, riesgos y horas
+            orientativas. Lo exportás a PDF o Word para revisarlo.
+          </p>
         </section>
 
         <section id="presupuesto" className={s.quote} aria-labelledby="quote-title">
@@ -270,14 +216,17 @@ export default function Home() {
               Lo que <em className={s.accent}>preguntan.</em>
             </h2>
           </div>
-          <dl className={s.faqList}>
+          <div className={s.faqList}>
             {FAQ_ENTRIES.map((entry) => (
-              <div className={s.faqItem} key={entry.question} data-reveal>
-                <dt>{entry.question}</dt>
-                <dd>{entry.answer}</dd>
-              </div>
+              <details className={s.faqItem} key={entry.question} data-reveal>
+                <summary>
+                  {entry.question}
+                  <span className={s.faqIcon} aria-hidden="true" />
+                </summary>
+                <p>{entry.answer}</p>
+              </details>
             ))}
-          </dl>
+          </div>
         </section>
 
         <section className={s.technical} id="herramientas" aria-label="Referencia técnica">
