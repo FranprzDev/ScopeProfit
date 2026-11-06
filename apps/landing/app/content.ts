@@ -294,17 +294,29 @@ export interface FaqEntry {
 export const PRICE_FAQ: FaqEntry = {
   question: '¿ScopeProfit sugiere precios?',
   answer:
-    'No. El documento estima rangos de horas y el presupuesto calcula montos solo con la tarifa que vos cargás. El precio final lo decidís vos.',
+    'No. Estima rangos de horas y calcula montos solo con la tarifa que vos cargás. El precio final lo decidís vos, siempre.',
+};
+
+export const RESULT_FAQ: FaqEntry = {
+  question: '¿Qué me llevo al final?',
+  answer:
+    'Un documento de alcance versionado, con requisitos citados y riesgos, y un presupuesto con tus montos, hitos de pago y condiciones. Ambos se exportan a PDF o Word con un link firmado que vence.',
+};
+
+export const INSTALL_FAQ: FaqEntry = {
+  question: '¿Tengo que instalar algo?',
+  answer:
+    'Sí. ScopeProfit es open source y se autohospeda: instalás el backend, configurás una base de datos y lo conectás a tu agente. Esta web no es un servicio de chat.',
 };
 
 export const AUTH_FAQ: FaqEntry = {
-  question: '¿Cómo se autentica un cliente MCP?',
+  question: '¿Cómo se conecta mi agente?',
   answer:
-    'Con una API key de ScopeProfit en el encabezado Authorization: Bearer, o con OAuth 2.1 (registro dinámico de clientes y PKCE) para conectores como ChatGPT.',
+    'Con una API key de ScopeProfit, o con OAuth 2.1 para conectores como ChatGPT. La guía de instalación muestra ambos caminos.',
 };
 
 /** Every question answered on the landing. The FAQPage structured data is built from this list only. */
-export const FAQ_ENTRIES: FaqEntry[] = [PRICE_FAQ, AUTH_FAQ];
+export const FAQ_ENTRIES: FaqEntry[] = [PRICE_FAQ, RESULT_FAQ, INSTALL_FAQ, AUTH_FAQ];
 
 export const CLAUDE_CODE_SNIPPET = `claude mcp add --transport http scopeprofit \\
   ${MCP_ENDPOINT_PLACEHOLDER} \\
