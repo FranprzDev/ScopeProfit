@@ -957,3 +957,174 @@
     padding-block: 4rem;
   }
 }
+
+/* --- Experience layer: brand curtain, marquee, chapters, choreography --- */
+
+.preloader {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6rem;
+  background: var(--nest-dark);
+  transition: transform 700ms cubic-bezier(0.7, 0, 0.2, 1);
+}
+:global(html.js) .preloader {
+  display: flex;
+  /* Failsafe: if hydration never runs, the curtain still gets out of the way. */
+  animation: preloader-failsafe 500ms ease 4500ms forwards;
+}
+@keyframes preloader-failsafe {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+.preloaderLift {
+  transform: translateY(-100%);
+}
+.preloaderWord {
+  display: flex;
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-white);
+  font-family:
+    var(--font-display),
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  font-size: clamp(2.2rem, 7vw, 4.2rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+.preloaderWord span {
+  display: inline-block;
+  transform: translateY(115%);
+  animation: letter-rise 620ms var(--ease-out) forwards;
+  animation-delay: calc(var(--letter-index) * 38ms);
+}
+@keyframes letter-rise {
+  to {
+    transform: translateY(0);
+  }
+}
+.preloaderMark {
+  width: 0.7rem;
+  height: 0.7rem;
+  background: var(--nest-red);
+  border-radius: 2px;
+  transform: rotate(45deg);
+  animation: mark-in 480ms var(--ease-out) 880ms both;
+}
+@keyframes mark-in {
+  from {
+    opacity: 0;
+    transform: rotate(45deg) scale(0);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(45deg) scale(1);
+  }
+}
+
+.marquee {
+  overflow: hidden;
+  border-top: 1px solid var(--nest-card-border);
+  border-bottom: 1px solid var(--nest-card-border);
+  padding: 1.05rem 0;
+  background: var(--nest-dark-elevated);
+}
+.marqueeTrack {
+  display: flex;
+  width: max-content;
+  animation: marquee-run 30s linear infinite;
+}
+.marqueeTrack span {
+  white-space: nowrap;
+  color: var(--text-dim);
+  font-family:
+    var(--font-display),
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  font-size: clamp(1.05rem, 2vw, 1.5rem);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.marqueeTrack i {
+  color: var(--nest-red);
+  font-style: normal;
+  padding: 0 1.1rem;
+}
+@keyframes marquee-run {
+  to {
+    transform: translateX(-50%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marqueeTrack {
+    animation: none;
+  }
+}
+
+.chapter {
+  margin: 0 0 1.1rem;
+  color: var(--text-dim);
+  font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+.chapter span {
+  color: var(--nest-red);
+  margin-right: 0.7rem;
+}
+
+/* Hero flow choreography: the connector draws down and the diamonds pop in sequence. */
+:global(.motion) .heroFlow::before {
+  transform: scaleY(0);
+  transform-origin: top;
+  transition: transform 1100ms var(--ease-out) 420ms;
+}
+:global(.motion) .heroFlow.is-in::before {
+  transform: scaleY(1);
+}
+:global(.motion) .heroFlow li::before {
+  transform: rotate(45deg) scale(0);
+  transition: transform 500ms var(--ease-out);
+}
+:global(.motion) .heroFlow.is-in li::before {
+  transform: rotate(45deg) scale(1);
+}
+:global(.motion) .heroFlow.is-in li:nth-child(1)::before {
+  transition-delay: 380ms;
+}
+:global(.motion) .heroFlow.is-in li:nth-child(2)::before {
+  transition-delay: 640ms;
+}
+:global(.motion) .heroFlow.is-in li:nth-child(3)::before {
+  transition-delay: 900ms;
+}
+
+/* FAQ answers ease in when opened. */
+.faqItem[open] p {
+  animation: faq-in 420ms var(--ease-out);
+}
+@keyframes faq-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.page ::selection {
+  background: var(--nest-red);
+  color: #fff;
+}

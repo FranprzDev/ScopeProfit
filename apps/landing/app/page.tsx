@@ -4,6 +4,7 @@ import { buildPageMetadata } from '@/lib/seo';
 import { SitePath } from '@/lib/site';
 import { FAQ_ENTRIES, MCP_DOCS_URL, REPO_URL } from './content';
 import { PageMotion } from './page-motion';
+import { Preloader } from './preloader';
 import { ToolFinder } from './tool-finder';
 import s from './landing.module.css';
 
@@ -12,6 +13,7 @@ export const metadata: Metadata = buildPageMetadata(SitePath.Home);
 export default function Home() {
   return (
     <div className={s.page} id="inicio">
+      <Preloader />
       <PageMotion />
       <header className={s.header}>
         <a href="#inicio" className={s.brand} aria-label="ScopeProfit, inicio">
@@ -97,9 +99,23 @@ export default function Home() {
           </p>
         </section>
 
+        <div className={s.marquee} aria-hidden="true">
+          <div className={s.marqueeTrack}>
+            {[0, 1].map((copy) => (
+              <span key={copy}>
+                El pedido, en sus palabras <i>✦</i> El alcance, en claro <i>✦</i> El presupuesto,
+                con tu tarifa <i>✦</i>{' '}
+              </span>
+            ))}
+          </div>
+        </div>
+
         <section id="ejemplo" className={s.example} aria-labelledby="example-title">
           <div className={s.exampleIntro}>
             <div>
+              <p className={s.chapter} data-reveal>
+                <span>01</span> El ejemplo
+              </p>
               <h2 id="example-title" data-reveal>
                 Que quede <em className={s.accent}>claro.</em>
               </h2>
@@ -150,6 +166,9 @@ export default function Home() {
 
         <section id="presupuesto" className={s.quote} aria-labelledby="quote-title">
           <div className={s.quoteIntro}>
+            <p className={s.chapter} data-reveal>
+              <span>02</span> El presupuesto
+            </p>
             <h2 id="quote-title" data-reveal>
               Del alcance al <em className={s.accent}>presupuesto.</em>
             </h2>
@@ -182,6 +201,9 @@ export default function Home() {
 
         <section className={s.connection} id="conectar" aria-labelledby="connection-title">
           <div>
+            <p className={s.chapter} data-reveal>
+              <span>03</span> La conexión
+            </p>
             <h2 id="connection-title" data-reveal>
               En tu agente.
               <br />
@@ -212,6 +234,9 @@ export default function Home() {
 
         <section className={s.faq} id="preguntas" aria-labelledby="faq-title">
           <div>
+            <p className={s.chapter} data-reveal>
+              <span>04</span> Las preguntas
+            </p>
             <h2 id="faq-title" data-reveal>
               Lo que <em className={s.accent}>preguntan.</em>
             </h2>

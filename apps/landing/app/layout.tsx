@@ -65,6 +65,9 @@ export default function Layout({ children }: Readonly<{ children: React.ReactNod
         <JsonLd data={buildSiteJsonLd()} />
       </head>
       <body className={`${displaySans.variable} ${accentSerif.variable} ${plexMono.variable}`}>
+        <script
+          dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('js')" }}
+        />
         {children}
         <Analytics />
       </body>
