@@ -5,7 +5,6 @@ import { SitePath } from '@/lib/site';
 import { FAQ_ENTRIES, MCP_DOCS_URL, REPO_URL } from './content';
 import { PageMotion } from './page-motion';
 import { Preloader } from './preloader';
-import { ToolFinder } from './tool-finder';
 import s from './landing.module.css';
 
 export const metadata: Metadata = buildPageMetadata(SitePath.Home);
@@ -252,16 +251,6 @@ export default function Home() {
               </details>
             ))}
           </div>
-        </section>
-
-        <section className={s.technical} id="herramientas" aria-label="Referencia técnica">
-          <details>
-            <summary>¿Qué herramientas usa el agente?</summary>
-            <p>
-              Este buscador muestra el catálogo. No ejecuta herramientas ni envía lo que escribís.
-            </p>
-            <ToolFinder />
-          </details>
         </section>
       </main>
       <footer className={s.footer}>
