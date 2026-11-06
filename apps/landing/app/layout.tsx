@@ -1,11 +1,17 @@
 import type { Metadata, Viewport } from 'next';
-import { Instrument_Serif, IBM_Plex_Mono } from 'next/font/google';
+import { Bricolage_Grotesque, Instrument_Serif, IBM_Plex_Mono } from 'next/font/google';
 import { Analytics } from '@/components/analytics';
 import { JsonLd } from '@/components/json-ld';
 import { BASE_OPEN_GRAPH, DESCRIPTION, TITLE } from '@/lib/seo';
 import { SITE_URL } from '@/lib/site';
 import { buildSiteJsonLd } from '@/lib/structured-data';
 import './globals.css';
+
+const displaySans = Bricolage_Grotesque({
+  subsets: ['latin'],
+  variable: '--font-display',
+  display: 'swap',
+});
 
 const accentSerif = Instrument_Serif({
   weight: '400',
@@ -58,7 +64,7 @@ export default function Layout({ children }: Readonly<{ children: React.ReactNod
       <head>
         <JsonLd data={buildSiteJsonLd()} />
       </head>
-      <body className={`${accentSerif.variable} ${plexMono.variable}`}>
+      <body className={`${displaySans.variable} ${accentSerif.variable} ${plexMono.variable}`}>
         {children}
         <Analytics />
       </body>

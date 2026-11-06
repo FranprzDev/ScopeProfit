@@ -33,52 +33,68 @@ export default function Home() {
       </header>
       <main>
         <section className={s.hero} aria-labelledby="hero-title">
-          <p className={s.overline} data-reveal>
-            Servidor MCP · Open source · Autohosteable
-          </p>
-          <h1 id="hero-title" data-reveal>
-            Del pedido
-            <span>
-              al{' '}
-              <em className={s.accentWord}>
-                alcance.
-                <svg
-                  className={s.squiggle}
-                  viewBox="0 0 200 12"
-                  aria-hidden="true"
-                  focusable="false"
-                >
-                  <path
-                    d="M4 8 C 40 2, 72 11, 108 6 S 172 2, 196 7"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="3.5"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </em>
-            </span>
-          </h1>
-          <div className={s.heroBottom}>
-            <p data-reveal>
-              ScopeProfit ayuda a tu agente de IA a convertir lo que pide un cliente en un documento
-              que define qué vas a construir, y en un presupuesto que sale de tu propia tarifa.
-            </p>
-            <a href="#ejemplo" className={s.button} data-reveal>
-              Ver un ejemplo
-              <span className={s.buttonArrow} aria-hidden="true">
-                →
-              </span>
-            </a>
+          <div className={s.heroInner}>
+            <div className={s.heroCopy}>
+              <h1 id="hero-title" data-reveal>
+                Del pedido
+                <span>
+                  al{' '}
+                  <em className={s.accentWord}>
+                    alcance.
+                    <svg
+                      className={s.squiggle}
+                      viewBox="0 0 200 12"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <path
+                        d="M4 8 C 40 2, 72 11, 108 6 S 172 2, 196 7"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="3.5"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </em>
+                </span>
+              </h1>
+              <p className={s.heroLead} data-reveal>
+                ScopeProfit ayuda a tu agente de IA a convertir lo que pide un cliente en un
+                documento que define qué vas a construir, y en un presupuesto que sale de tu propia
+                tarifa.
+              </p>
+              <div className={s.heroCtas} data-reveal>
+                <a href="#ejemplo" className={s.button}>
+                  Ver un ejemplo
+                  <span className={s.buttonArrow} aria-hidden="true">
+                    →
+                  </span>
+                </a>
+              </div>
+            </div>
+            <figure className={s.heroDoc} data-reveal>
+              <a href="/images/demo/resumen.webp" target="_blank" rel="noreferrer">
+                <Image
+                  src="/images/demo/resumen.webp"
+                  alt="Resumen del documento real de Agencia Horizonte, versión 23"
+                  sizes="(max-width: 800px) 88vw, 34vw"
+                  width={920}
+                  height={1300}
+                  priority
+                />
+              </a>
+              <figcaption>PDF real, generado por el agente en la prueba</figcaption>
+            </figure>
           </div>
+          <p className={s.heroMeta} data-reveal>
+            Servidor MCP <span aria-hidden="true">·</span> Open source{' '}
+            <span aria-hidden="true">·</span> Autohosteable
+          </p>
         </section>
 
         <section id="ejemplo" className={s.example} aria-labelledby="example-title">
           <div className={s.exampleIntro}>
             <div>
-              <p className={s.overline} data-reveal>
-                El ejemplo
-              </p>
               <h2 id="example-title" data-reveal>
                 Que quede <em className={s.accent}>claro.</em>
               </h2>
@@ -183,9 +199,6 @@ export default function Home() {
 
         <section id="presupuesto" className={s.quote} aria-labelledby="quote-title">
           <div className={s.quoteIntro}>
-            <p className={s.overline} data-reveal>
-              El presupuesto
-            </p>
             <h2 id="quote-title" data-reveal>
               Del alcance al <em className={s.accent}>presupuesto.</em>
             </h2>
@@ -218,9 +231,6 @@ export default function Home() {
 
         <section className={s.connection} id="conectar" aria-labelledby="connection-title">
           <div>
-            <p className={s.overline} data-reveal>
-              Instalación
-            </p>
             <h2 id="connection-title" data-reveal>
               En tu agente.
               <br />
@@ -251,9 +261,6 @@ export default function Home() {
 
         <section className={s.faq} id="preguntas" aria-labelledby="faq-title">
           <div>
-            <p className={s.overline} data-reveal>
-              Preguntas
-            </p>
             <h2 id="faq-title" data-reveal>
               Lo que <em className={s.accent}>preguntan.</em>
             </h2>

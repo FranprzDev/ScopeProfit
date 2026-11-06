@@ -36,6 +36,7 @@
 html {
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;
+  scrollbar-color: rgba(255, 255, 255, 0.22) var(--bg);
 }
 
 html,
