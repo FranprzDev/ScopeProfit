@@ -72,19 +72,24 @@ export default function Home() {
                 </a>
               </div>
             </div>
-            <figure className={s.heroDoc} data-reveal>
-              <a href="/images/demo/resumen.webp" target="_blank" rel="noreferrer">
-                <Image
-                  src="/images/demo/resumen.webp"
-                  alt="Resumen del documento real de Agencia Horizonte, versión 23"
-                  sizes="(max-width: 800px) 88vw, 34vw"
-                  width={920}
-                  height={1300}
-                  priority
-                />
-              </a>
-              <figcaption>PDF real, generado por el agente en la prueba</figcaption>
-            </figure>
+            <ol className={s.heroFlow} data-reveal>
+              <li>
+                <p className={s.heroFlowTitle}>El pedido</p>
+                <p className={s.heroFlowText}>Lo que pide el cliente, en sus palabras.</p>
+              </li>
+              <li>
+                <p className={s.heroFlowTitle}>El alcance</p>
+                <p className={s.heroFlowText}>
+                  Un documento versionado que define qué se construye.
+                </p>
+              </li>
+              <li>
+                <p className={s.heroFlowTitle}>El presupuesto</p>
+                <p className={s.heroFlowText}>
+                  Montos calculados con tu tarifa, listos para enviar.
+                </p>
+              </li>
+            </ol>
           </div>
           <p className={s.heroMeta} data-reveal>
             Servidor MCP <span aria-hidden="true">·</span> Open source{' '}

@@ -130,7 +130,12 @@
 .hero h1 {
   margin: 0 0 1.75rem;
   color: var(--text-white);
-  font-family: var(--font-display), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family:
+    var(--font-display),
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
   font-size: clamp(2.9rem, 7.2vw, 5.9rem);
   font-weight: 800;
   line-height: 0.98;
@@ -149,34 +154,60 @@
   gap: 1rem;
   margin-top: 2.25rem;
 }
-.heroDoc {
+.heroFlow {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2.4rem;
   margin: 0;
-  transform: rotate(2.4deg);
-  transition: transform 0.35s var(--ease-out);
+  padding: 0 0 0 2.2rem;
+  list-style: none;
 }
-.heroDoc:hover {
-  transform: rotate(0deg);
+.heroFlow::before {
+  content: '';
+  position: absolute;
+  top: 0.55rem;
+  bottom: 0.55rem;
+  left: 0.45rem;
+  width: 0;
+  border-left: 1px dashed rgba(234, 40, 69, 0.55);
 }
-.heroDoc a {
-  display: block;
-  overflow: hidden;
-  background: var(--nest-card);
-  border-radius: 10px;
-  box-shadow:
-    0 2px 6px rgba(0, 0, 0, 0.5),
-    0 42px 80px -32px rgba(0, 0, 0, 0.85);
+.heroFlow li {
+  position: relative;
+  margin: 0;
 }
-.heroDoc img {
-  display: block;
-  width: 100%;
-  height: auto;
+.heroFlow li::before {
+  content: '';
+  position: absolute;
+  top: 0.42rem;
+  left: -2.2rem;
+  width: 0.95rem;
+  height: 0.95rem;
+  background: var(--nest-dark);
+  border: 2px solid var(--nest-red);
+  border-radius: 3px;
+  transform: rotate(45deg);
 }
-.heroDoc figcaption {
-  margin-top: 0.9rem;
-  color: var(--text-dim);
-  font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.75rem;
-  text-align: right;
+.heroFlowTitle {
+  margin: 0 0 0.3rem;
+  color: var(--text-white);
+  font-family:
+    var(--font-display),
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  font-size: clamp(1.5rem, 2.6vw, 2.1rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+.heroFlowText {
+  margin: 0;
+  max-width: 30ch;
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1.5;
 }
 .heroMeta {
   margin: 3.5rem 0 0;
@@ -238,7 +269,12 @@
 .page h2 {
   margin: 0 0 1.25rem;
   color: var(--text-white);
-  font-family: var(--font-display), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family:
+    var(--font-display),
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
   font-size: clamp(2.1rem, 4vw, 3.1rem);
   font-weight: 800;
   line-height: 1.05;
@@ -265,7 +301,12 @@
 .page h3 {
   margin-bottom: 1.25rem;
   color: var(--text-white);
-  font-family: var(--font-display), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family:
+    var(--font-display),
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
   font-size: 1.2rem;
   font-weight: 700;
   line-height: 1.2;
@@ -606,9 +647,9 @@
   .hero h1 {
     margin-bottom: 1.5rem;
   }
-  .heroDoc {
+  .heroFlow {
     max-width: 26rem;
-    transform: rotate(1.2deg);
+    gap: 2rem;
   }
   .heroMeta {
     margin-top: 3rem;
@@ -686,7 +727,12 @@
 
 .accent {
   color: var(--nest-red-hover);
-  font-family: var(--font-display), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family:
+    var(--font-display),
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
   font-style: normal;
   font-weight: 800;
   letter-spacing: inherit;
@@ -696,7 +742,12 @@
   display: inline-block;
   padding-right: 0.05em;
   color: var(--nest-red-hover);
-  font-family: var(--font-display), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family:
+    var(--font-display),
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
   font-style: normal;
   font-weight: 800;
   letter-spacing: -0.03em;
