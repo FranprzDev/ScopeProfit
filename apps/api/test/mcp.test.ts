@@ -39,6 +39,7 @@ import { exportUrl, verifyExportToken } from '../src/modules/mcp/export-links';
 import { fetchImage, isPublicAddress } from '../src/modules/mcp/image-fetch';
 import { signConsent, verifyConsent } from '../src/modules/mcp/oauth-consent';
 import { isMcpRoute } from '../src/modules/mcp/mcp-http';
+import { ScopeProfitOAuthProvider } from '../src/modules/mcp/oauth.provider';
 import { hash, encrypt } from '../src/security';
 
 const skip = !process.env.DATABASE_URL;
@@ -651,6 +652,17 @@ test('list_projects tolerates a legacy brief without a questions array', dbOnly,
   assert.equal(row?.tldr, 'Solo resumen');
   assert.equal(row?.blockingQuestions, 0);
   await db.project.delete({ where: { id: created.projectId } });
+});
+
+test('access token verification carries the already-loaded user', dbOnly, async () => {
+  const created = await keys.create(owner, 'principal-user-check');
+  const provider = new ScopeProfitOAuthProvider(db, keys);
+  const auth = await provider.verifyAccessToken(created.key);
+  const principal = auth.extra as { userId: string; apiKeyId: string; user: { id: string } };
+  assert.equal(principal.userId, owner.id);
+  assert.equal(principal.user.id, owner.id);
+  await keys.revoke(created.id);
+  await assert.rejects(() => provider.verifyAccessToken(created.key));
 });
 
 test('approve_scope refuses to email when the project has no client email', dbOnly, async () => {

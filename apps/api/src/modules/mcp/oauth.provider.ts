@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { Response } from 'express';
-import type { Prisma } from '@prisma/client';
+import type { Prisma, User } from '@prisma/client';
 import type {
   AuthorizationParams,
   OAuthServerProvider,
@@ -33,7 +33,7 @@ const REFRESH_TTL_MS = 30 * 86_400_000;
 /** Raw API keys passed as bearer tokens get a short synthetic expiry; the key itself does not expire. */
 const API_KEY_SESSION_S = 60 * 60;
 
-export type McpPrincipal = { userId: string; apiKeyId: string };
+export type McpPrincipal = { userId: string; apiKeyId: string; user: User };
 
 /**
  * Minimal OAuth 2.1 authorization server for ChatGPT / Claude connectors.
@@ -186,7 +186,7 @@ export class ScopeProfitOAuthProvider implements OAuthServerProvider {
         resource: new URL('/api/mcp', publicApiUrl()),
         scopes: [MCP_SCOPE],
         expiresAt: Math.floor(Date.now() / 1000) + API_KEY_SESSION_S,
-        extra: { userId: user.id, apiKeyId: key.id } satisfies McpPrincipal,
+        extra: { userId: user.id, apiKeyId: key.id, user } satisfies McpPrincipal,
       };
     }
     if (!raw.startsWith(ACCESS_PREFIX)) throw new InvalidTokenError('Unknown token');
@@ -207,7 +207,7 @@ export class ScopeProfitOAuthProvider implements OAuthServerProvider {
       scopes: access.scopes,
       expiresAt: Math.floor(access.expiresAt.getTime() / 1000),
       resource: access.resource ? new URL(access.resource) : undefined,
-      extra: { userId: user.id, apiKeyId: access.apiKeyId } satisfies McpPrincipal,
+      extra: { userId: user.id, apiKeyId: access.apiKeyId, user } satisfies McpPrincipal,
     };
   }
 
