@@ -650,6 +650,7 @@ test('list_projects tolerates a legacy brief without a questions array', dbOnly,
   const row = listed.projects.find((project) => project.projectId === created.projectId);
   assert.equal(row?.tldr, 'Solo resumen');
   assert.equal(row?.blockingQuestions, 0);
+  await db.project.delete({ where: { id: created.projectId } });
 });
 
 test('approve_scope refuses to email when the project has no client email', dbOnly, async () => {
