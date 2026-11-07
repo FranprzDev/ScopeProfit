@@ -87,20 +87,34 @@ export class ScopeToolsService {
         : [{ updatedAt: 'desc' }, { id: 'asc' }],
       take: limit + 1,
       ...(!stable && input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
-      include: { brief: true },
+      select: { id: true, name: true, status: true, agentStatus: true, updatedAt: true },
     });
     const more = items.length > limit;
     if (more) items.pop();
+    const briefs = new Map(
+      items.length
+        ? (
+            await this.db.$queryRaw<
+              { projectId: string; summary: string | null; blocking: number }[]
+            >`
+              SELECT b.project_id AS "projectId", b.data->>'summary' AS summary,
+                CASE WHEN jsonb_typeof(b.data->'questions') = 'array'
+                  THEN (SELECT count(*)::int FROM jsonb_array_elements(b.data->'questions') q WHERE q->>'blocksEstimate' = 'true')
+                  ELSE 0 END AS blocking
+              FROM briefs b WHERE b.project_id = ANY(${items.map((project) => project.id)}::uuid[])`
+          ).map((row) => [row.projectId, row] as const)
+        : [],
+    );
     return {
       projects: items.map((project) => {
-        const brief = project.brief ? validateBrief(project.brief.data) : null;
+        const brief = briefs.get(project.id);
         return {
           projectId: project.id,
           name: project.name,
           status: project.status,
           agentStatus: project.agentStatus,
           tldr: brief?.summary || null,
-          blockingQuestions: brief?.questions.filter((q) => q.blocksEstimate).length ?? 0,
+          blockingQuestions: brief?.blocking ?? 0,
           updatedAt: project.updatedAt.toISOString(),
         };
       }),

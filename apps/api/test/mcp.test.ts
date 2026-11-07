@@ -608,6 +608,51 @@ test('a full scoping flow runs end to end through MCP tools', dbOnly, async () =
   }
 });
 
+test('list_projects projects the brief summary and blocking question count', dbOnly, async () => {
+  const created = await tools.createProject(owner, { name: 'Projection audit' });
+  await tools.updateScopeSection(owner, {
+    projectId: created.projectId,
+    expectedVersion: 0,
+    section: 'summary',
+    value: 'Portal de turnos con recordatorios',
+  });
+  await tools.updateScopeSection(owner, {
+    projectId: created.projectId,
+    expectedVersion: 1,
+    section: 'questions',
+    value: [
+      {
+        id: 'Q1',
+        question: 'Cuantas sedes?',
+        reason: 'Multiplica ambientes',
+        blocksEstimate: true,
+      },
+      { id: 'Q2', question: 'Logo listo?', reason: '', blocksEstimate: false },
+    ],
+  });
+  const listed = await data<{
+    projects: { projectId: string; tldr: string | null; blockingQuestions: number }[];
+  }>('list_projects', { limit: 100 });
+  const row = listed.projects.find((project) => project.projectId === created.projectId);
+  assert.equal(row?.tldr, 'Portal de turnos con recordatorios');
+  assert.equal(row?.blockingQuestions, 1);
+});
+
+test('list_projects tolerates a legacy brief without a questions array', dbOnly, async () => {
+  const created = await tools.createProject(owner, { name: 'Legacy brief projection' });
+  await db.brief.update({
+    where: { projectId: created.projectId },
+    data: { data: { summary: 'Solo resumen' } },
+  });
+  const listed = await data<{
+    projects: { projectId: string; tldr: string | null; blockingQuestions: number }[];
+  }>('list_projects', { limit: 100 });
+  const row = listed.projects.find((project) => project.projectId === created.projectId);
+  assert.equal(row?.tldr, 'Solo resumen');
+  assert.equal(row?.blockingQuestions, 0);
+  await db.project.delete({ where: { id: created.projectId } });
+});
+
 test('approve_scope refuses to email when the project has no client email', dbOnly, async () => {
   const created = await data<{ projectId: string }>('create_project', { name: 'Sin email' });
   assert.equal(
