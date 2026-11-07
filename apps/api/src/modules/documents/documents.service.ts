@@ -144,11 +144,19 @@ export class DocumentsService {
     const artifacts = {} as Artifacts;
     const generation = randomUUID();
     try {
-      for (const format of ['md', 'pdf', 'docx'] as const)
-        artifacts[format] = await this.storage.write(
-          `${projectId}/documents/${version}/${generation}.${format}`,
-          buffers[format],
-        );
+      const writes = await Promise.allSettled(
+        (['md', 'pdf', 'docx'] as const).map(
+          async (format) =>
+            (artifacts[format] = await this.storage.write(
+              `${projectId}/documents/${version}/${generation}.${format}`,
+              buffers[format],
+            )),
+        ),
+      );
+      const failed = writes.find(
+        (write): write is PromiseRejectedResult => write.status === 'rejected',
+      );
+      if (failed) throw failed.reason;
       return await this.prisma.$transaction(
         async (tx) => {
           const live = await tx.project.findUnique({
@@ -233,11 +241,15 @@ export class DocumentsService {
       const buffers = format === 'md' ? { md: Buffer.from(markdown(data)) } : await render(data);
       const generated = { ...artifacts };
       const generation = randomUUID();
-      for (const kind of Object.keys(buffers) as Array<keyof typeof buffers>)
-        generated[kind] = await this.storage.write(
-          `${projectId}/documents/${version}/${generation}.${kind}`,
-          buffers[kind],
-        );
+      await Promise.all(
+        (Object.keys(buffers) as Array<keyof typeof buffers>).map(
+          async (kind) =>
+            (generated[kind] = await this.storage.write(
+              `${projectId}/documents/${version}/${generation}.${kind}`,
+              buffers[kind],
+            )),
+        ),
+      );
       let previous = saved.artifacts;
       for (let attempt = 0; attempt < 3; attempt++) {
         const updated = await this.prisma.documentVersion.updateMany({
@@ -394,8 +406,10 @@ export class DocumentsService {
     if (saved.deliveredAt) return saved;
     if (!project.clientEmail)
       return fail('CLIENT_EMAIL_REQUIRED', 'Client must sign in before document delivery');
-    const pdf = await this.download(projectId, version, 'pdf');
-    const docx = await this.download(projectId, version, 'docx');
+    const [pdf, docx] = await Promise.all([
+      this.download(projectId, version, 'pdf'),
+      this.download(projectId, version, 'docx'),
+    ]);
     await this.email.send(
       project.clientEmail,
       'Tu alcance aprobado — Scope-to-Profit',
