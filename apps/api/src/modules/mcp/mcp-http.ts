@@ -136,7 +136,7 @@ export function mountMcp(app: INestApplication) {
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const principal = req.auth?.extra as McpPrincipal | undefined;
-        const user = principal && (await db.user.findUnique({ where: { id: principal.userId } }));
+        const user = principal?.user;
         if (!user) return void res.status(401).json({ error: 'invalid_token' });
         await scopeToolContext.provider({ tools, user }, () => xmcp.handleRequest(req, res));
       } catch (error) {
