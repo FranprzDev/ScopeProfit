@@ -567,10 +567,13 @@ export class ScopeToolsService {
       );
     const next = validateBrief({ ...this.brief(project.brief.data), [input.section]: parsed.data });
     if (input.section === 'requirements') {
-      const messages = await this.db.message.findMany({
-        where: { projectId: project.id },
-        select: { id: true, content: true },
-      });
+      const sourceIds = [...new Set(next.requirements.map((r) => r.sourceMessageId))];
+      const messages = sourceIds.length
+        ? await this.db.message.findMany({
+            where: { projectId: project.id, id: { in: sourceIds } },
+            select: { id: true, content: true },
+          })
+        : [];
       try {
         validateSources(next, messages);
       } catch {
