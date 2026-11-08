@@ -106,9 +106,25 @@ export class QuotesService {
     private rateCards: RateCardsService,
   ) {}
 
-  private async authorize(user: User, projectId: string) {
+  private async authorize(
+    user: User,
+    projectId: string,
+  ): Promise<
+    Prisma.ProjectGetPayload<{
+      include: {
+        brief: true;
+        document: { include: { versions: { orderBy: { version: 'desc' }; take: 1 } } };
+      };
+    }>
+  >;
+  private async authorize(
+    user: User,
+    projectId: string,
+    preloaded?: { ownerId: string },
+  ): Promise<{ ownerId: string }>;
+  private async authorize(user: User, projectId: string, preloaded?: { ownerId: string }) {
     if (user.role !== Role.professional) fail('FORBIDDEN', 403);
-    const project = await this.auth.project(user, projectId, undefined, true);
+    const project = preloaded ?? (await this.auth.project(user, projectId, undefined, true));
     if (user.role !== 'professional' && project.ownerId !== user.id) fail('FORBIDDEN', 403);
     return project;
   }
@@ -119,23 +135,35 @@ export class QuotesService {
     await this.auth.checkLink(projectId, rawToken);
   }
 
-  private async readAccess(user: User | null, projectId: string, rawToken?: string) {
-    const project = await this.db.project.findUnique({
-      where: { id: projectId },
-      select: { ownerId: true },
-    });
+  private async readAccess(
+    user: User | null,
+    projectId: string,
+    rawToken?: string,
+    preloaded?: { ownerId: string },
+  ) {
+    const project =
+      preloaded ??
+      (await this.db.project.findUnique({
+        where: { id: projectId },
+        select: { ownerId: true },
+      }));
     const isOwner = !!user && project?.ownerId === user.id;
     if (user?.role === Role.professional || isOwner) {
       if (!user) fail('UNAUTHENTICATED', 401);
-      await this.authorize(user, projectId);
+      await this.authorize(user, projectId, preloaded);
       return false;
     }
     await this.clientAccess(user, projectId, rawToken);
     return true;
   }
 
-  async get(user: User | null, projectId: string, rawToken?: string): Promise<PopulatedQuote> {
-    const viaLink = await this.readAccess(user, projectId, rawToken);
+  async get(
+    user: User | null,
+    projectId: string,
+    rawToken?: string,
+    preloaded?: { ownerId: string },
+  ): Promise<PopulatedQuote> {
+    const viaLink = await this.readAccess(user, projectId, rawToken, preloaded);
     const quote = await this.db.quote.findUnique({
       where: { projectId },
       include: quoteInclude(),
@@ -433,8 +461,9 @@ export class QuotesService {
       terms?: string | null;
       validUntil?: string | null;
     },
+    preloaded?: { ownerId: string },
   ): Promise<PopulatedQuote> {
-    await this.authorize(user, projectId);
+    await this.authorize(user, projectId, preloaded);
     if (input.fromEstimates && input.lines !== undefined)
       fail('INVALID_QUOTE_INPUT', 400, 'from_estimates and lines are alternatives; pass only one');
     const existing = await this.db.quote.findUnique({

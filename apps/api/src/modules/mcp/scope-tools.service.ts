@@ -663,8 +663,8 @@ export class ScopeToolsService {
   }
 
   async getQuote(user: User, projectId: string) {
-    await this.project(user, projectId);
-    return { ...(await this.quotes.get(user, projectId)) };
+    const project = await this.project(user, projectId);
+    return { ...(await this.quotes.get(user, projectId, undefined, project)) };
   }
 
   async saveQuote(
@@ -679,8 +679,8 @@ export class ScopeToolsService {
       validUntil?: string | null;
     },
   ) {
-    await this.editable(user, input.projectId);
-    const quote = await this.quotes.upsertDraft(user, input.projectId, input);
+    const project = await this.editable(user, input.projectId);
+    const quote = await this.quotes.upsertDraft(user, input.projectId, input, project);
     return {
       ...quote,
       pricingNote:
