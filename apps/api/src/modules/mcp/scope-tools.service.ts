@@ -712,8 +712,8 @@ export class ScopeToolsService {
 
   async logChangeRequest(user: User, input: { projectId: string; request: string }) {
     this.auth.professional(user);
-    await this.project(user, input.projectId);
-    const change = await this.changes.create(input.projectId, input.request, user.id);
+    const project = await this.project(user, input.projectId, true);
+    const change = await this.changes.create(input.projectId, input.request, user.id, project);
     return {
       changeRequestId: change.id,
       classification: change.classification,
@@ -725,7 +725,10 @@ export class ScopeToolsService {
   async listChangeRequests(user: User, projectId: string) {
     const project = await this.project(user, projectId, true);
     const briefVersion = project.brief?.version ?? 0;
-    const changes = await this.changes.list(projectId, user);
+    const changes = await this.db.changeRequest.findMany({
+      where: { projectId },
+      orderBy: { createdAt: 'desc' },
+    });
     return {
       projectId,
       briefVersion,
