@@ -76,12 +76,15 @@ export class BriefController {
     )
       fail('PROJECT_LOCKED');
     const brief = validateBriefForSave(body.data);
+    const sourceIds = [...new Set(brief.requirements.map((r) => r.sourceMessageId))];
     validateSources(
       brief,
-      await this.db.message.findMany({
-        where: { projectId: id },
-        select: { id: true, content: true },
-      }),
+      sourceIds.length
+        ? await this.db.message.findMany({
+            where: { projectId: id, id: { in: sourceIds } },
+            select: { id: true, content: true },
+          })
+        : [],
     );
     const saved = await this.db.$transaction(async (tx) => {
       const updated = await tx.brief.updateMany({
