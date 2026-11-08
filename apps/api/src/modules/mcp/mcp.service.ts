@@ -186,7 +186,7 @@ export class McpService {
       }
       case 'presu_get_project': {
         const projectId = String(args.projectId);
-        const project = await this.auth.project(user, projectId);
+        const project = await this.auth.project(user, projectId, undefined, true);
         return {
           id: project.id,
           name: project.name,
@@ -270,7 +270,7 @@ export class McpService {
       }
       case 'presu_get_brief': {
         const projectId = String(args.projectId);
-        const project = await this.auth.project(user, projectId);
+        const project = await this.auth.project(user, projectId, undefined, true);
         if (!project.brief) fail('BRIEF_NOT_FOUND', 404);
         return {
           version: project.brief.version,
@@ -280,7 +280,7 @@ export class McpService {
       }
       case 'presu_get_state': {
         const projectId = String(args.projectId);
-        const project = await this.auth.project(user, projectId);
+        const project = await this.auth.project(user, projectId, undefined, true);
         const brief = project.brief;
         const document = project.document?.versions?.[0];
         const pendingQuestions = (brief ? validateBrief(brief.data).questions : []).filter(

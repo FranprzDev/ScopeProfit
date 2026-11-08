@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { isEmail } from 'class-validator';
-import { User } from '@prisma/client';
+import { Prisma, Project, User } from '@prisma/client';
 import { createHmac } from 'node:crypto';
 import { PrismaService } from '../../prisma.service';
 import { EmailService } from '../../email.service';
@@ -120,13 +120,31 @@ export class AuthService {
       fail('PROJECT_ACCESS_DENIED', 403);
     return link;
   }
-  async project(user: User, id: string, raw?: string) {
+  async project(user: User, id: string, raw?: string, data?: false): Promise<Project>;
+  async project(
+    user: User,
+    id: string,
+    raw: string | undefined,
+    data: true,
+  ): Promise<
+    Prisma.ProjectGetPayload<{
+      include: {
+        brief: true;
+        document: { include: { versions: { orderBy: { version: 'desc' }; take: 1 } } };
+      };
+    }>
+  >;
+  async project(user: User, id: string, raw?: string, data = false) {
     const project = await this.db.project.findUnique({
       where: { id },
-      include: {
-        brief: true,
-        document: { include: { versions: { orderBy: { version: 'desc' }, take: 1 } } },
-      },
+      ...(data
+        ? {
+            include: {
+              brief: true,
+              document: { include: { versions: { orderBy: { version: 'desc' }, take: 1 } } },
+            },
+          }
+        : {}),
     });
     if (!project) fail('PROJECT_NOT_FOUND', 404);
     if (user.role !== 'professional' && project.ownerId !== user.id) await this.checkLink(id, raw);

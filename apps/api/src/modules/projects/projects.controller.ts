@@ -75,13 +75,13 @@ export class ProjectsController {
 
   @Get(':id') async get(@Req() req: Request, @Param('id') id: string) {
     const user = await this.user(req);
-    const project = await this.auth.project(user, id, this.token(req));
+    const project = await this.auth.project(user, id, this.token(req), true);
     return ok(await this.view(project));
   }
 
   @Get(':id/state') async state(@Req() req: Request, @Param('id') id: string) {
     const user = await this.user(req);
-    const project = await this.auth.project(user, id, this.token(req));
+    const project = await this.auth.project(user, id, this.token(req), true);
     const brief = project.brief;
     const document = project.document?.versions?.[0];
     const pendingQuestions = (brief ? validateBrief(brief.data).questions : []).filter(

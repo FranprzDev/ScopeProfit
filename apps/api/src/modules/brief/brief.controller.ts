@@ -32,7 +32,7 @@ export class BriefController {
 
   @Get() async get(@Req() req: Request, @Param('id') id: string) {
     const user = await this.user(req);
-    const project = await this.auth.project(user, id, this.token(req));
+    const project = await this.auth.project(user, id, this.token(req), true);
     if (!project.brief) fail('BRIEF_NOT_FOUND', 404);
     return ok({
       version: project.brief.version,
