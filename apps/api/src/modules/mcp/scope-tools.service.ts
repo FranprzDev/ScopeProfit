@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import sharp from 'sharp';
 import { randomUUID } from 'node:crypto';
 import { Prisma, ProjectStatus } from '@prisma/client';
-import type { User } from '@prisma/client';
+import type { Project, User } from '@prisma/client';
 import { emptyBrief } from '@scopeprofit/contracts';
 import type { BriefData, DocumentData } from '@scopeprofit/contracts';
 import { PrismaService } from '../../prisma.service';
@@ -150,7 +150,7 @@ export class ScopeToolsService {
   }
 
   async getProject(user: User, projectId: string) {
-    const project = await this.project(user, projectId);
+    const project = await this.project(user, projectId, true);
     const brief = this.brief(project.brief?.data);
     const latest = project.document?.versions[0];
     const messages = await this.db.message.count({ where: { projectId } });
@@ -423,7 +423,7 @@ export class ScopeToolsService {
   }
 
   async getTldr(user: User, projectId: string) {
-    const project = await this.project(user, projectId);
+    const project = await this.project(user, projectId, true);
     const brief = this.brief(project.brief?.data);
     const total = brief.estimates.reduce(
       (sum, e) => ({ min: sum.min + e.minHours, max: sum.max + e.maxHours }),
@@ -448,7 +448,7 @@ export class ScopeToolsService {
   }
 
   async listPendingQuestions(user: User, input: { projectId: string; blockingOnly?: boolean }) {
-    const project = await this.project(user, input.projectId);
+    const project = await this.project(user, input.projectId, true);
     const brief = this.brief(project.brief?.data);
     return {
       projectId: input.projectId,
@@ -467,7 +467,7 @@ export class ScopeToolsService {
       analyze?: boolean;
     },
   ) {
-    const project = await this.editable(user, input.projectId);
+    const project = await this.editable(user, input.projectId, true);
     if (!project.brief) fail('BRIEF_NOT_FOUND', 404);
     if (project.brief.version !== input.expectedVersion)
       fail(
@@ -515,7 +515,7 @@ export class ScopeToolsService {
   }
 
   async getScopeDocument(user: User, projectId: string) {
-    const project = await this.project(user, projectId);
+    const project = await this.project(user, projectId, true);
     const brief = this.brief(project.brief?.data);
     const latest = project.document?.versions[0];
     const owner = await this.db.user.findUniqueOrThrow({ where: { id: project.ownerId } });
@@ -561,7 +561,7 @@ export class ScopeToolsService {
       reanalyze?: boolean;
     },
   ) {
-    const project = await this.editable(user, input.projectId);
+    const project = await this.editable(user, input.projectId, true);
     if (!project.brief) fail('BRIEF_NOT_FOUND', 404);
     if (project.brief.version !== input.expectedVersion)
       fail(
@@ -643,7 +643,7 @@ export class ScopeToolsService {
     user: User,
     input: { projectId: string; format: ExportFormat; version?: number },
   ) {
-    const project = await this.project(user, input.projectId);
+    const project = await this.project(user, input.projectId, true);
     let version = input.version ?? project.document?.versions[0]?.version;
     const latest = project.document?.versions[0];
     const stale = !latest || latest.briefVersion !== project.brief?.version;
@@ -723,7 +723,7 @@ export class ScopeToolsService {
   }
 
   async listChangeRequests(user: User, projectId: string) {
-    const project = await this.project(user, projectId);
+    const project = await this.project(user, projectId, true);
     const briefVersion = project.brief?.version ?? 0;
     const changes = await this.changes.list(projectId, user);
     return {
@@ -747,13 +747,39 @@ export class ScopeToolsService {
     return data ? validateBrief(data) : emptyBrief();
   }
 
-  private async project(user: User, projectId: string) {
+  private async project(user: User, projectId: string, data?: false): Promise<Project>;
+  private async project(
+    user: User,
+    projectId: string,
+    data: true,
+  ): Promise<
+    Prisma.ProjectGetPayload<{
+      include: {
+        brief: true;
+        document: { include: { versions: { orderBy: { version: 'desc' }; take: 1 } } };
+      };
+    }>
+  >;
+  private async project(user: User, projectId: string, data = false) {
     this.auth.professional(user);
-    return this.auth.project(user, projectId);
+    return this.auth.project(user, projectId, undefined, data as true);
   }
 
-  private async editable(user: User, projectId: string) {
-    const project = await this.project(user, projectId);
+  private async editable(user: User, projectId: string, data?: false): Promise<Project>;
+  private async editable(
+    user: User,
+    projectId: string,
+    data: true,
+  ): Promise<
+    Prisma.ProjectGetPayload<{
+      include: {
+        brief: true;
+        document: { include: { versions: { orderBy: { version: 'desc' }; take: 1 } } };
+      };
+    }>
+  >;
+  private async editable(user: User, projectId: string, data = false) {
+    const project = await this.project(user, projectId, data as true);
     if (LOCKED.includes(project.status))
       fail('PROJECT_LOCKED', 409, `Project is ${project.status} and can no longer be edited`);
     return project;

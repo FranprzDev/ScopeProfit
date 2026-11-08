@@ -108,7 +108,7 @@ export class QuotesService {
 
   private async authorize(user: User, projectId: string) {
     if (user.role !== Role.professional) fail('FORBIDDEN', 403);
-    const project = await this.auth.project(user, projectId);
+    const project = await this.auth.project(user, projectId, undefined, true);
     if (user.role !== 'professional' && project.ownerId !== user.id) fail('FORBIDDEN', 403);
     return project;
   }
