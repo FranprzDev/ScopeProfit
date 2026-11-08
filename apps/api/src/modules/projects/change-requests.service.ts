@@ -2,7 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
 import { AuthService } from '../auth/auth.service';
 import { fail } from '../../security';
-import { ChangeClassification, ChangeRequestStatus, ProjectStatus, User } from '@prisma/client';
+import {
+  ChangeClassification,
+  ChangeRequestStatus,
+  Prisma,
+  ProjectStatus,
+  User,
+} from '@prisma/client';
 import { validateBrief } from '../brief/brief.validation';
 
 @Injectable()
@@ -12,11 +18,18 @@ export class ChangeRequestsService {
     private auth: AuthService,
   ) {}
 
-  async create(projectId: string, request: string, actorId: string) {
-    const project = await this.db.project.findUnique({
-      where: { id: projectId },
-      include: { brief: true },
-    });
+  async create(
+    projectId: string,
+    request: string,
+    actorId: string,
+    preloaded?: Prisma.ProjectGetPayload<{ include: { brief: true } }>,
+  ) {
+    const project =
+      preloaded ??
+      (await this.db.project.findUnique({
+        where: { id: projectId },
+        include: { brief: true },
+      }));
     if (!project?.brief) fail('BRIEF_NOT_FOUND', 404);
     const brief = validateBrief(project.brief.data);
     const baseBriefVersion = project.brief.version;
