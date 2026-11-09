@@ -137,6 +137,7 @@ export class AuthService {
       include: {
         brief: true;
         document: { include: { versions: { orderBy: { version: 'desc' }; take: 1 } } };
+        owner: true;
       };
     }>
   >;
@@ -150,6 +151,7 @@ export class AuthService {
               include: {
                 brief: true,
                 document: { include: { versions: { orderBy: { version: 'desc' }, take: 1 } } },
+                owner: true,
               },
             }
           : {}),

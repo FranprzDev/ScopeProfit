@@ -518,14 +518,13 @@ export class ScopeToolsService {
     const project = await this.project(user, projectId, true);
     const brief = this.brief(project.brief?.data);
     const latest = project.document?.versions[0];
-    const owner = await this.db.user.findUniqueOrThrow({ where: { id: project.ownerId } });
     const document = markdown(
       latest
         ? (latest.data as unknown as DocumentData)
         : {
             projectName: project.name,
             clientName: project.clientName || project.clientEmail || 'Cliente',
-            author: owner.email || 'Profesional',
+            author: project.owner.email || 'Profesional',
             date: new Date().toISOString(),
             version: 0,
             brief,
@@ -765,6 +764,7 @@ export class ScopeToolsService {
       include: {
         brief: true;
         document: { include: { versions: { orderBy: { version: 'desc' }; take: 1 } } };
+        owner: true;
       };
     }>
   >;
@@ -783,6 +783,7 @@ export class ScopeToolsService {
       include: {
         brief: true;
         document: { include: { versions: { orderBy: { version: 'desc' }; take: 1 } } };
+        owner: true;
       };
     }>
   >;
