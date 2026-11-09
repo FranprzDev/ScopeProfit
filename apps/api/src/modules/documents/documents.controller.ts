@@ -40,20 +40,19 @@ export class DocumentsController {
   ) {
     const user = await this.user(req);
     await this.auth.project(user, id, this.token(req));
-    const document = await this.db.document.findUnique({ where: { projectId: id } });
-    if (!document) return ok({ items: [], nextCursor: null });
     const n = limit ? Math.min(100, Math.max(1, parseInt(limit, 10))) : 30;
-    const items = await this.db.documentVersion.findMany({
-      where: { documentId: document.id },
-      orderBy: { version: 'desc' },
-      take: n + 1,
-      ...(cursor
-        ? {
-            cursor: { documentId_version: { documentId: document.id, version: Number(cursor) } },
-            skip: 1,
-          }
-        : {}),
+    const document = await this.db.document.findUnique({
+      where: { projectId: id },
+      include: {
+        versions: {
+          ...(cursor ? { where: { version: { lt: Number(cursor) } } } : {}),
+          orderBy: { version: 'desc' },
+          take: n + 1,
+        },
+      },
     });
+    if (!document) return ok({ items: [], nextCursor: null });
+    const items = document.versions;
     const more = items.length > n;
     if (more) items.pop();
     return ok({
