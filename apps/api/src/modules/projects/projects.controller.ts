@@ -113,8 +113,8 @@ export class ProjectsController {
     @Body() body: ChangeRequestDto,
   ) {
     const user = await this.user(req);
-    await this.auth.project(user, id, this.token(req));
-    return ok(await this.changes.create(id, body.request, user.id));
+    const project = await this.auth.project(user, id, this.token(req), 'brief');
+    return ok(await this.changes.create(id, body.request, user.id, project));
   }
 
   @Patch(':id/change-requests/:changeId') async decideChangeRequest(
