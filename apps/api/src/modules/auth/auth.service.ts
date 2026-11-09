@@ -125,6 +125,12 @@ export class AuthService {
     user: User,
     id: string,
     raw: string | undefined,
+    data: 'brief',
+  ): Promise<Prisma.ProjectGetPayload<{ include: { brief: true } }>>;
+  async project(
+    user: User,
+    id: string,
+    raw: string | undefined,
     data: true,
   ): Promise<
     Prisma.ProjectGetPayload<{
@@ -134,17 +140,19 @@ export class AuthService {
       };
     }>
   >;
-  async project(user: User, id: string, raw?: string, data = false) {
+  async project(user: User, id: string, raw?: string, data: boolean | 'brief' = false) {
     const project = await this.db.project.findUnique({
       where: { id },
-      ...(data
-        ? {
-            include: {
-              brief: true,
-              document: { include: { versions: { orderBy: { version: 'desc' }, take: 1 } } },
-            },
-          }
-        : {}),
+      ...(data === 'brief'
+        ? { include: { brief: true } }
+        : data
+          ? {
+              include: {
+                brief: true,
+                document: { include: { versions: { orderBy: { version: 'desc' }, take: 1 } } },
+              },
+            }
+          : {}),
     });
     if (!project) fail('PROJECT_NOT_FOUND', 404);
     if (user.role !== 'professional' && project.ownerId !== user.id) await this.checkLink(id, raw);

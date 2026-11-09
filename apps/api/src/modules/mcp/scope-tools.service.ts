@@ -423,7 +423,7 @@ export class ScopeToolsService {
   }
 
   async getTldr(user: User, projectId: string) {
-    const project = await this.project(user, projectId, true);
+    const project = await this.project(user, projectId, 'brief');
     const brief = this.brief(project.brief?.data);
     const total = brief.estimates.reduce(
       (sum, e) => ({ min: sum.min + e.minHours, max: sum.max + e.maxHours }),
@@ -448,7 +448,7 @@ export class ScopeToolsService {
   }
 
   async listPendingQuestions(user: User, input: { projectId: string; blockingOnly?: boolean }) {
-    const project = await this.project(user, input.projectId, true);
+    const project = await this.project(user, input.projectId, 'brief');
     const brief = this.brief(project.brief?.data);
     return {
       projectId: input.projectId,
@@ -754,6 +754,11 @@ export class ScopeToolsService {
   private async project(
     user: User,
     projectId: string,
+    data: 'brief',
+  ): Promise<Prisma.ProjectGetPayload<{ include: { brief: true } }>>;
+  private async project(
+    user: User,
+    projectId: string,
     data: true,
   ): Promise<
     Prisma.ProjectGetPayload<{
@@ -763,7 +768,7 @@ export class ScopeToolsService {
       };
     }>
   >;
-  private async project(user: User, projectId: string, data = false) {
+  private async project(user: User, projectId: string, data: boolean | 'brief' = false) {
     this.auth.professional(user);
     return this.auth.project(user, projectId, undefined, data as true);
   }
