@@ -228,12 +228,9 @@ export class DocumentsService {
   async download(projectId: string, version: number, format: 'md' | 'pdf' | 'docx') {
     if (!['md', 'pdf', 'docx'].includes(format))
       return fail('INVALID_FORMAT', 'Unknown document format', 400);
-    const document = await this.prisma.document.findUnique({ where: { projectId } });
-    const saved =
-      document &&
-      (await this.prisma.documentVersion.findUnique({
-        where: { documentId_version: { documentId: document.id, version } },
-      }));
+    const saved = await this.prisma.documentVersion.findFirst({
+      where: { version, document: { projectId } },
+    });
     if (!saved) return fail('DOCUMENT_NOT_FOUND', 'Document not found', 404);
     let artifacts = saved.artifacts as unknown as Partial<Artifacts>;
     if (!artifacts[format]) {
