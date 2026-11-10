@@ -150,7 +150,7 @@ export class QuotesService {
     const isOwner = !!user && project?.ownerId === user.id;
     if (user?.role === Role.professional || isOwner) {
       if (!user) fail('UNAUTHENTICATED', 401);
-      await this.authorize(user, projectId, preloaded);
+      await this.authorize(user, projectId, preloaded ?? project ?? undefined);
       return false;
     }
     await this.clientAccess(user, projectId, rawToken);
