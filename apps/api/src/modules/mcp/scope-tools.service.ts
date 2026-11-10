@@ -467,7 +467,7 @@ export class ScopeToolsService {
       analyze?: boolean;
     },
   ) {
-    const project = await this.editable(user, input.projectId, true);
+    const project = await this.editable(user, input.projectId, 'brief');
     if (!project.brief) fail('BRIEF_NOT_FOUND', 404);
     if (project.brief.version !== input.expectedVersion)
       fail(
@@ -560,7 +560,7 @@ export class ScopeToolsService {
       reanalyze?: boolean;
     },
   ) {
-    const project = await this.editable(user, input.projectId, true);
+    const project = await this.editable(user, input.projectId, 'brief');
     if (!project.brief) fail('BRIEF_NOT_FOUND', 404);
     if (project.brief.version !== input.expectedVersion)
       fail(
@@ -722,7 +722,7 @@ export class ScopeToolsService {
   }
 
   async listChangeRequests(user: User, projectId: string) {
-    const project = await this.project(user, projectId, true);
+    const project = await this.project(user, projectId, 'brief');
     const briefVersion = project.brief?.version ?? 0;
     const changes = await this.db.changeRequest.findMany({
       where: { projectId },
@@ -777,6 +777,11 @@ export class ScopeToolsService {
   private async editable(
     user: User,
     projectId: string,
+    data: 'brief',
+  ): Promise<Prisma.ProjectGetPayload<{ include: { brief: true } }>>;
+  private async editable(
+    user: User,
+    projectId: string,
     data: true,
   ): Promise<
     Prisma.ProjectGetPayload<{
@@ -787,7 +792,7 @@ export class ScopeToolsService {
       };
     }>
   >;
-  private async editable(user: User, projectId: string, data = false) {
+  private async editable(user: User, projectId: string, data: boolean | 'brief' = false) {
     const project = await this.project(user, projectId, data as true);
     if (LOCKED.includes(project.status))
       fail('PROJECT_LOCKED', 409, `Project is ${project.status} and can no longer be edited`);
