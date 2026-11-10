@@ -290,11 +290,14 @@ export class ScopeToolsService {
     })();
     const analyze = input.analyze ?? false;
     if (analyze) await this.agent.enqueue(project.id);
-    const fresh = await this.db.project.findUniqueOrThrow({ where: { id: project.id } });
+    // Only enqueue can change agentStatus here; skip the refetch when it did not run.
+    const agentStatus = analyze
+      ? (await this.db.project.findUniqueOrThrow({ where: { id: project.id } })).agentStatus
+      : project.agentStatus;
     return {
       projectId: project.id,
       added: created,
-      agentStatus: fresh.agentStatus,
+      agentStatus,
       next: analyze
         ? 'The server-side scope agent re-analyses the project in the background (needs the owner AI key). Poll get_tldr or get_project, or draft the scope yourself with update_scope_section.'
         : 'Draft or refine the scope with update_scope_section, citing these message ids as sources.',
