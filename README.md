@@ -55,6 +55,16 @@ Use the opt-in HTTPS overlay and host-led drafting setup in [docs/self-host-chat
 3. `get_tldr` / `list_pending_questions` → `answer_question` until nothing blocks the estimate.
 4. `get_scope_document` to review template 7.1 → `approve_scope` (locks the reviewed version; approval never emails the client) → `export_document` for a signed download link to share.
 
+## For developers (the product)
+
+ScopeProfit is used **through an MCP client**, not a web UI. You talk to it from ChatGPT, Claude, Cursor, Claude Code or your own agent:
+
+1. Get an API key from the installation operator: `pnpm --filter @scopeprofit/api run mcp:keys create --email you@example.com --label <client>`.
+2. Connect your host — per-client recipes (ChatGPT OAuth, Claude connector, Claude Code header, local stdio for Claude Desktop/Cursor) are in [docs/mcp.md](docs/mcp.md).
+3. Typical flow: `create_project` → `add_client_input` → answer `list_pending_questions` → draft with `update_scope_section` → `approve_scope` → `export_document` → `save_quote` → `export_quote` → `decide_quote`. Eight-call quickstart and the full error-code table: [docs/mcp.md](docs/mcp.md#quickstart-a-full-project-in-eight-calls).
+
+There is no client portal and no email delivery: you review the exported PDF/DOCX, share the signed link with your client yourself, and record their answer with `decide_quote`.
+
 ## Stack
 
 - **API:** NestJS 11 (Node 22, TypeScript), Prisma 6 + PostgreSQL 17
