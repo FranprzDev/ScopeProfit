@@ -327,10 +327,10 @@ export default function DocsPage() {
             </li>
           </ol>
           <p>
-            Si el cliente pide un cambio después de la aprobación:{' '}
-            <code>log_change_request</code> lo registra y <code>update_scope_section</code> crea una
-            versión nueva del documento. También podés dejar el registro conversado con{' '}
-            <code>add_client_input</code> y <code>get_conversation</code>.
+            Si el cliente pide un cambio después de la aprobación: <code>log_change_request</code>{' '}
+            lo registra y <code>update_scope_section</code> crea una versión nueva del documento.
+            También podés dejar el registro conversado con <code>add_client_input</code> y{' '}
+            <code>get_conversation</code>.
           </p>
         </section>
 
@@ -342,8 +342,8 @@ export default function DocsPage() {
               con <code>RATE_LIMITED</code> y un cuerpo JSON.
             </li>
             <li>
-              Los links firmados de descarga vencen (por defecto a los 60 minutos, configurable):
-              un link vencido responde 410 <code>EXPIRED</code> y uno inexistente 404{' '}
+              Los links firmados de descarga vencen (por defecto a los 60 minutos, configurable): un
+              link vencido responde 410 <code>EXPIRED</code> y uno inexistente 404{' '}
               <code>INVALID</code>. Generá un link nuevo con <code>export_document</code> o{' '}
               <code>export_quote</code>.
             </li>
@@ -362,18 +362,18 @@ export default function DocsPage() {
             </li>
             <li>
               Hay una sola cotización por proyecto: <code>save_quote</code> la crea o reemplaza
-              mientras esté en borrador. <code>decide_quote</code> es terminal: después de aceptar
-              o rechazar no se puede editar ni reexportar.
+              mientras esté en borrador. <code>decide_quote</code> es terminal: después de aceptar o
+              rechazar no se puede editar ni reexportar.
             </li>
             <li>
-              El servidor es stateless: cada request viaja completo (endpoint{' '}
-              <code>/api/mcp</code> con POST JSON, sin sesiones SSE).
+              El servidor es stateless: cada request viaja completo (endpoint <code>/api/mcp</code>{' '}
+              con POST JSON, sin sesiones SSE).
             </li>
             <li>
               Errores: cuerpo JSON <code>{'{ "error": { "code", "message" } }'}</code>. Códigos
               frecuentes: <code>UNAUTHORIZED</code> (falta la key), <code>NOT_FOUND</code>,{' '}
-              <code>VERSION_CONFLICT</code>, <code>QUOTE_NOT_DRAFT</code>,{' '}
-              <code>RATE_LIMITED</code>. El mensaje siempre indica cómo seguir.
+              <code>VERSION_CONFLICT</code>, <code>QUOTE_NOT_DRAFT</code>, <code>RATE_LIMITED</code>
+              . El mensaje siempre indica cómo seguir.
             </li>
           </ul>
         </section>
