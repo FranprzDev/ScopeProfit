@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"],
+    "strict": true,
+    "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": false,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": false,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@prisma/client": ["./src/generated/prisma/client.ts"],
+      "@nestjs/common": ["./src/shims/nestjs-common.ts"],
+      "sharp": ["./src/shims/sharp.ts"],
+      "pele": ["./src/shims/pele.ts"],
+      "@resvg/resvg-js": ["./src/shims/resvg.ts"],
+      "xmcp": ["./src/shims/xmcp.ts"],
+      "@scopeprofit/contracts": ["../../packages/contracts/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts", "../../packages/contracts/src/**/*.ts"]
+}

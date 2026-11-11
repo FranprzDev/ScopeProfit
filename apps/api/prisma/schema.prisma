@@ -1,6 +1,17 @@
 generator client {
  provider = "prisma-client-js"
 }
+
+// Second client for the Cloudflare Worker MCP server (apps/mcp-worker): pure-TypeScript
+// query compiler + Neon serverless driver adapter, generated as ESM TypeScript. The Nest API
+// keeps using the default client above and is unaffected by this block.
+generator worker_client {
+ provider        = "prisma-client"
+ output          = "../../../apps/mcp-worker/src/generated/prisma"
+ runtime         = "workerd"
+ moduleFormat    = "esm"
+ previewFeatures = ["driverAdapters", "queryCompiler"]
+}
 datasource db {
  provider = "postgresql"
  url = env("DATABASE_URL")

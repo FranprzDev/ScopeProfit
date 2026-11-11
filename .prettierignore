@@ -4,3 +4,6 @@ apps/api/src/modules/agent/.interview-pitch.md.swp
 **/dist/
 **/.next/
 **/.e2e/
+apps/mcp-worker/src/generated/
+apps/mcp-worker/.build-shims/
+apps/mcp-worker/wrangler.toml
