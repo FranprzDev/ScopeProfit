@@ -20,7 +20,7 @@ Hoy el producto cubre del lead desordenado al documento de alcance aprobado (Bri
 - **Hitos** de pago (`QuoteMilestone`): nombre, porcentaje o monto, orden.
 - **Estados** (enum Prisma): `draft → sent → accepted | rejected`.
 - **Propuesta**: export PDF y DOCX reutilizando el render existente (`documents/render.ts`).
-- **Aprobación del cliente** por link del proyecto (patrón `ProjectLink`), igual que el doc 7.1.
+- **Decisión del cliente** registrada por el profesional (`decide_quote`), igual que el doc 7.1.
 - Toda transición queda en `AuditEvent`.
 
 ### E2 — Mantenimiento
@@ -32,7 +32,7 @@ Hoy el producto cubre del lead desordenado al documento de alcance aprobado (Bri
 
 ### E3 — Frontend (sin unit tests; cobertura vía E2E)
 
-> **Removed (October 2026):** the `apps/app` web UI and the E4 E2E suite that drove it were deleted with the MCP-first change. The E1/E2 API is unchanged; see `docs/v3-api-access.md`.
+> **Removed (October 2026):** the `apps/app` web UI and the E4 E2E suite that drove it were deleted with the MCP-first change. The E1/E2 services remain; quotes are exposed as MCP tools.
 
 - Dashboard: bloques de Cotizaciones y Mantenimiento (estados y totales).
 - `/p/[projectId]`: panel de Cotización (crear desde Brief, editar líneas/hitos, estados) y panel de Mantenimiento (saldo del período, alta de consumos, historial).
@@ -46,7 +46,7 @@ Hoy el producto cubre del lead desordenado al documento de alcance aprobado (Bri
 - Modelo del agente: endpoint compatible con OpenAI de OpenCode Zen (`https://opencode.ai/zen/v1`) con key por variable de entorno `OPENCODE_ZEN_API_KEY`; nunca commiteada.
 - Archivos: `apps/app/e2e.config.ts` (target `web`, `app.url: 'http://127.0.0.1:0'` → cada run toma un puerto libre y lo pasa como `PORT={port}` a `scripts/dev.mjs`, `workers: 1` por el rate limit global de la API, `retries: 0`) y `apps/app/tests/{dashboard,quote,maintenance}.e2e.ts` con helpers en `apps/app/tests/support/`.
 - `next.config.ts` declara `allowedDevOrigins: ['127.0.0.1']`: sin eso Next 16 dev bloquea los recursos dev del target `127.0.0.1` y la página no hidrata.
-- Autenticación: cada test inserta un magic link en `magic_links` con el hash `sha256(token)`, lo verifica por `GET /api/auth/magic-link/verify` (302 + cookie `sp_session`) y setea la cookie en el navegador con `browser.setCookies`. El `beforeEach` registra `app.baseUrl` (el runner lo devuelve con barra final; `appBaseUrl()` la normaliza para no armar `//api/...`).
+- Autenticación: cada test creaba la sesión del profesional directamente en la base y seteaba la cookie de sesión en el navegador con `browser.setCookies`. El `beforeEach` registra `app.baseUrl` (el runner lo devuelve con barra final; `appBaseUrl()` la normaliza para no armar `//api/...`).
 - Requisitos: API corriendo (`TELEGRAM_AUTHORIZED_USER_IDS=111 node --env-file=.env apps/api/dist/src/main.js`), migraciones aplicadas y `TELEGRAM_AUTHORIZED_USER_IDS=111` también en la corrida (el usuario profesional E2E necesita `telegram_id` para que el API lo autorice).
 - Corrida: `cd apps/app && TELEGRAM_AUTHORIZED_USER_IDS=111 OPENCODE_ZEN_API_KEY=<key> pnpm run test:e2e`.
 - Datos: los tests crean sus proyectos y los borran en `afterEach` (`cleanupTestData`); quedan en la base los usuarios `e2e-professional@scope.test` y `e2e-client@scope.test`.

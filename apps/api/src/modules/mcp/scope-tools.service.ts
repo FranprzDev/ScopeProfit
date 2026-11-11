@@ -126,25 +126,15 @@ export class ScopeToolsService {
     };
   }
 
-  async createProject(
-    user: User,
-    input: { name: string; clientEmail?: string; clientName?: string },
-  ) {
+  async createProject(user: User, input: { name: string; clientName?: string }) {
     const name = input.name.trim();
     if (!name) fail('INVALID_PROJECT_NAME', 400, 'Project name is required');
-    const project = await this.projects.create(
-      user,
-      name.slice(0, 200),
-      input.clientEmail,
-      input.clientName,
-    );
+    const project = await this.projects.create(user, name.slice(0, 200), input.clientName);
     return {
       projectId: project.id,
       name: project.name,
       status: project.status,
-      clientEmail: project.clientEmail,
       clientName: project.clientName,
-      legacyClientChatUrl: project.clientUrl,
       next: 'Send what the client said (text and image URLs) with add_client_input.',
     };
   }
@@ -160,7 +150,6 @@ export class ScopeToolsService {
       status: project.status,
       agentStatus: project.agentStatus,
       agentError: project.agentError,
-      clientEmail: project.clientEmail,
       clientName: project.clientName,
       briefVersion: project.brief?.version ?? 0,
       document: latest
@@ -526,7 +515,7 @@ export class ScopeToolsService {
         ? (latest.data as unknown as DocumentData)
         : {
             projectName: project.name,
-            clientName: project.clientName || project.clientEmail || 'Cliente',
+            clientName: project.clientName || 'Cliente',
             author: project.owner.email || 'Profesional',
             date: new Date().toISOString(),
             version: 0,
@@ -654,7 +643,7 @@ export class ScopeToolsService {
 
   async getQuote(user: User, projectId: string) {
     const project = await this.project(user, projectId);
-    return { ...(await this.quotes.get(user, projectId, undefined, project)) };
+    return { ...(await this.quotes.get(user, projectId, project)) };
   }
 
   async saveQuote(
@@ -768,7 +757,7 @@ export class ScopeToolsService {
   >;
   private async project(user: User, projectId: string, data: boolean | 'brief' = false) {
     this.auth.professional(user);
-    return this.auth.project(user, projectId, undefined, data as true);
+    return this.auth.project(user, projectId, data as true);
   }
 
   private async editable(user: User, projectId: string, data?: false): Promise<Project>;

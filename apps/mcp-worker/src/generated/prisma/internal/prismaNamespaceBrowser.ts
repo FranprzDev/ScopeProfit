@@ -50,12 +50,8 @@ export const AnyNull = runtime.objectEnumValues.instances.AnyNull
 
 export const ModelName = {
   User: 'User',
-  Session: 'Session',
-  MagicLink: 'MagicLink',
-  AdminNonce: 'AdminNonce',
   Project: 'Project',
   ChangeRequest: 'ChangeRequest',
-  ProjectLink: 'ProjectLink',
   Message: 'Message',
   File: 'File',
   Brief: 'Brief',
@@ -104,47 +100,10 @@ export const UserScalarFieldEnum = {
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
 
 
-export const SessionScalarFieldEnum = {
-  id: 'id',
-  tokenHash: 'tokenHash',
-  userId: 'userId',
-  expiresAt: 'expiresAt',
-  revokedAt: 'revokedAt'
-} as const
-
-export type SessionScalarFieldEnum = (typeof SessionScalarFieldEnum)[keyof typeof SessionScalarFieldEnum]
-
-
-export const MagicLinkScalarFieldEnum = {
-  id: 'id',
-  tokenHash: 'tokenHash',
-  email: 'email',
-  projectId: 'projectId',
-  linkToken: 'linkToken',
-  expiresAt: 'expiresAt',
-  usedAt: 'usedAt',
-  createdAt: 'createdAt'
-} as const
-
-export type MagicLinkScalarFieldEnum = (typeof MagicLinkScalarFieldEnum)[keyof typeof MagicLinkScalarFieldEnum]
-
-
-export const AdminNonceScalarFieldEnum = {
-  nonce: 'nonce',
-  userId: 'userId',
-  projectId: 'projectId',
-  expiresAt: 'expiresAt',
-  usedAt: 'usedAt'
-} as const
-
-export type AdminNonceScalarFieldEnum = (typeof AdminNonceScalarFieldEnum)[keyof typeof AdminNonceScalarFieldEnum]
-
-
 export const ProjectScalarFieldEnum = {
   id: 'id',
   name: 'name',
   ownerId: 'ownerId',
-  clientEmail: 'clientEmail',
   clientName: 'clientName',
   status: 'status',
   agentStatus: 'agentStatus',
@@ -172,19 +131,6 @@ export const ChangeRequestScalarFieldEnum = {
 } as const
 
 export type ChangeRequestScalarFieldEnum = (typeof ChangeRequestScalarFieldEnum)[keyof typeof ChangeRequestScalarFieldEnum]
-
-
-export const ProjectLinkScalarFieldEnum = {
-  id: 'id',
-  projectId: 'projectId',
-  tokenHash: 'tokenHash',
-  encryptedToken: 'encryptedToken',
-  expiresAt: 'expiresAt',
-  revokedAt: 'revokedAt',
-  createdAt: 'createdAt'
-} as const
-
-export type ProjectLinkScalarFieldEnum = (typeof ProjectLinkScalarFieldEnum)[keyof typeof ProjectLinkScalarFieldEnum]
 
 
 export const MessageScalarFieldEnum = {

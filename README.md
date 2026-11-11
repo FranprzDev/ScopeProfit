@@ -61,7 +61,6 @@ Use the opt-in HTTPS overlay and host-led drafting setup in [docs/self-host-chat
 - **MCP:** xmcp 1.9 (file-based tools, Streamable HTTP + stdio) with the existing OAuth 2.1 authorization server
 - **Agent (optional):** LangGraph + LangChain JS with Gemini; clarification gate via Vercel AI Gateway
 - **Documents:** structured Brief → Markdown, `pdfkit` → PDF, `docx` → DOCX
-- **Email:** Brevo (magic-link sign-in only; document delivery emails are out of scope)
 - **Bot:** grammY webhook with `secret_token`
 - **Quality:** unit, integration, MCP (SDK client over xmcp HTTP) and e2e (HTTP, OAuth, stdio) tests on real PostgreSQL; separate backend and landing CI pipelines
 - **Deploy:** Docker Compose with PostgreSQL and persistent volumes
@@ -81,13 +80,12 @@ pnpm run production:preflight
 
 - **v1 — delivered:** projects, structured versioned Brief, AI agent, template 7.1, PDF/DOCX, approval and delivery.
 - **v2 — delivered:** Brief diff, change-request log and classification, strict domain types.
-- **v3 (pricing, quotes, maintenance) — API only.** Its UI lived in the removed web app; it is not exposed as MCP tools yet. See `docs/v3-api-access.md` for how to reach it today.
+- **v3 (pricing, quotes, maintenance) — delivered:** quotes and rate cards are MCP tools (`save_quote`, `get_quote`, `export_quote`, `decide_quote`); maintenance records stay internal.
 - **MCP-first — this release:** MCP server, API keys, OAuth for ChatGPT/Claude connectors, signed exports; web app removed, landing rewritten.
 
 ## Docs
 
 - `docs/scope-to-profit.md` — product concept, scope and architecture (source of truth)
 - `docs/mcp.md` — MCP tools, auth and client setup
-- `docs/v3-api-access.md` — how to reach the v3 quote, rate-card and maintenance endpoints without a UI
 - `docs/technical-plan.md` — original v1 technical plan (historical; the web client it describes was removed)
 - `docs/production-launch-checklist.md` — production checklist

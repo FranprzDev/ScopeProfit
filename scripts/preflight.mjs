@@ -12,7 +12,7 @@ const required = [
   'WEB_URL',
   'PUBLIC_API_URL',
   'ENCRYPTION_KEY',
-  ...(mcpOnly ? [] : ['AI_GATEWAY_API_KEY', 'BREVO_API_KEY', 'BREVO_SENDER_EMAIL']),
+  ...(mcpOnly ? [] : ['AI_GATEWAY_API_KEY']),
 ];
 const errors = required
   .filter((key) => !process.env[key] || /replace-with|example\.com/.test(process.env[key]))

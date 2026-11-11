@@ -25,7 +25,7 @@ ScopeProfit runs as a [Model Context Protocol](https://modelcontextprotocol.io) 
 | `get_quote`              | read        | Quote of a project: status, currency, priced module lines, payment milestones, terms, validity and totals.              |
 | `save_quote`             | write       | Create or update the DRAFT quote from scope estimates or explicit lines, priced only with the professional's rate card. |
 | `export_quote`           | read        | Signed, expiring download URL for the quote as `pdf` or `docx`.                                                         |
-| `decide_quote`           | destructive | Record the client's answer (`accepted`/`rejected`); the professional shares the link and registers the outcome.          |
+| `decide_quote`           | destructive | Record the client's answer (`accepted`/`rejected`); the professional shares the link and registers the outcome.         |
 | `archive_project`        | destructive | Archives (locks) a project.                                                                                             |
 | `log_change_request`     | write       | Logs a post-scope change, classified `in_scope` / `out_of_scope` / `ambiguous`.                                         |
 | `list_change_requests`   | read        | Change requests of a project.                                                                                           |
@@ -62,7 +62,7 @@ Every request needs `Authorization: Bearer <token>`. Two token types are accepte
 - **API key** (`sp_live_…`) — for agents, SDKs, Claude Code, Claude connectors with request headers, the OpenAI Responses API, etc.
 - **OAuth 2.1 access token** (`sp_at_…`) — for hosts that only support OAuth (ChatGPT). The server is its own authorization server: dynamic client registration (`/register`), PKCE (`S256`) authorization code flow (`/authorize` → consent page → `/token`), refresh-token rotation and revocation (`/revoke`). Discovery: `/.well-known/oauth-protected-resource/api/mcp` and `/.well-known/oauth-authorization-server`. On the consent page the professional pastes an API key; the OAuth grant is bound to that key, so revoking the key cuts every connector that used it.
 
-Manage API keys from a trusted server shell. This local CLI provisions the professional role; it is not a public registration endpoint. Knowing an email or requesting a magic link does not grant this role. API keys and OAuth still authenticate every MCP request. To remove a professional's access, revoke their keys or change their role in the installation; removing an environment entry is no longer an access-control mechanism:
+Manage API keys from a trusted server shell. This local CLI provisions the professional role; it is not a public registration endpoint. Knowing an email does not grant this role. API keys and OAuth still authenticate every MCP request. To remove a professional's access, revoke their keys or change their role in the installation; removing an environment entry is no longer an access-control mechanism:
 
 ```bash
 pnpm --filter @scopeprofit/api run build

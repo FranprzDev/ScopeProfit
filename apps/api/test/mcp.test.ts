@@ -24,7 +24,6 @@ import { HttpException } from '@nestjs/common';
 const storageRoot = mkdtemp(join(tmpdir(), 'scopeprofit-mcp-'));
 
 import { PrismaService } from '../src/prisma.service';
-import { EmailService } from '../src/email.service';
 import { AuthService } from '../src/modules/auth/auth.service';
 import { ProjectsService } from '../src/modules/projects/projects.service';
 import { DocumentsService } from '../src/modules/documents/documents.service';
@@ -168,8 +167,7 @@ before(async () => {
   process.env.STORAGE_ROOT = await storageRoot;
   db = new PrismaService();
   await db.$connect();
-  const email = new EmailService();
-  const auth = new AuthService(db, email);
+  const auth = new AuthService(db);
   const storage = new StorageService();
   documents = new DocumentsService(db, storage);
   const agent = new AgentService(db, documents, storage);
@@ -237,6 +235,7 @@ test(
       'approve_scope',
       'archive_project',
       'create_project',
+      'decide_quote',
       'export_document',
       'export_quote',
       'get_conversation',
@@ -664,7 +663,7 @@ test('access token verification carries the already-loaded user', dbOnly, async 
 test('MCP and OAuth routes skip the cookie CSRF check, the REST API does not', () => {
   for (const path of ['/api/mcp', '/authorize', '/token', '/register', '/revoke', '/oauth/consent'])
     assert.equal(isMcpRoute(path), true, path);
-  for (const path of ['/api/projects', '/api/auth/magic-link', '/api/mcp/extra', '/tokens'])
+  for (const path of ['/api/projects', '/api/auth/login', '/api/mcp/extra', '/tokens'])
     assert.equal(isMcpRoute(path), false, path);
 });
 
@@ -944,20 +943,6 @@ test('scope preview matches the saved version after client identity binding', db
     section: 'summary',
     value: 'Accessible public-service forms',
   });
-  const rawLink = new URL(created.legacyClientChatUrl, 'https://scopeprofit.test').searchParams.get(
-    'token',
-  )!;
-  const verification = `synthetic-snapshot-${Date.now()}`;
-  await db.magicLink.create({
-    data: {
-      email: 'synthetic-client@scopeprofit.test',
-      projectId: created.projectId,
-      linkToken: encrypt(rawLink),
-      tokenHash: hash(verification),
-      expiresAt: new Date(Date.now() + 60_000),
-    },
-  });
-  await new AuthService(db, new EmailService()).verify(verification);
   const saved = await documents.download(created.projectId, 1, 'md');
   const preview = await tools.getScopeDocument(owner, created.projectId);
   assert.equal(preview.markdown, saved.buffer.toString());
@@ -1384,7 +1369,7 @@ test('archived projects do not accept new change-request activity', dbOnly, asyn
     request: 'Move entrance',
   });
   await tools.archiveProject(owner, created.projectId);
-  const changes = new ChangeRequestsService(db, new AuthService(db, new EmailService()));
+  const changes = new ChangeRequestsService(db, new AuthService(db));
   const { ChangeRequestStatus } = await import('@prisma/client');
   await assert.rejects(
     changes.decide(

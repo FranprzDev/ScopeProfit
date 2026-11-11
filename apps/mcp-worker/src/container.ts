@@ -8,7 +8,6 @@
 import { PrismaService } from './shims/prisma';
 import { StorageService } from './shims/r2-storage';
 import { AgentService } from './shims/agent-stub';
-import { EmailService } from '../../api/src/email.service';
 import { AuthService } from '../../api/src/modules/auth/auth.service';
 import { ProjectsService } from '../../api/src/modules/projects/projects.service';
 import { DocumentsService } from '../../api/src/modules/documents/documents.service';
@@ -43,10 +42,9 @@ let cache: Container | undefined;
 export function getContainer(env: WorkerEnv): Container {
   if (cache) return cache;
   const db = new PrismaService(env.DATABASE_URL);
-  const email = new EmailService();
   // R2 when the account enables it (STORAGE binding), Workers KV otherwise (STORAGE_KV).
   const storage = new StorageService((env.STORAGE ?? env.STORAGE_KV) as never) as never;
-  const auth = new AuthService(db, email);
+  const auth = new AuthService(db);
   const projects = new ProjectsService(db, auth);
   const documents = new DocumentsService(db, storage);
   const agent = new AgentService(db) as never;

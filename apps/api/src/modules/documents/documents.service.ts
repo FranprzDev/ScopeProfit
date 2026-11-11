@@ -43,7 +43,7 @@ export class DocumentsService {
     const previous = project.document?.versions[0];
     const data: DocumentData = {
       projectName: project.name,
-      clientName: project.clientName || project.clientEmail || 'Cliente',
+      clientName: project.clientName || 'Cliente',
       author: project.owner.email || 'Profesional',
       date: new Date().toISOString(),
       version: current + 1,
@@ -124,7 +124,7 @@ export class DocumentsService {
     const version = current + 1;
     const data: DocumentData = {
       projectName: project.name,
-      clientName: project.clientName || project.clientEmail || 'Cliente',
+      clientName: project.clientName || 'Cliente',
       author: project.owner.email || 'Profesional',
       date: new Date().toISOString(),
       version,
