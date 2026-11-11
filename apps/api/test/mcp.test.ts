@@ -1632,6 +1632,43 @@ test('answer_question version conflicts report the current brief version', dbOnl
   );
 });
 
+test('project outputs expose the quote state', dbOnly, async () => {
+  const created = await tools.createProject(owner, { name: 'Quote visibility' });
+  const before = (await tools.getProject(owner, created.projectId)) as unknown as Record<
+    string,
+    unknown
+  >;
+  assert.equal(before.quote, null);
+  await tools.saveQuote(owner, {
+    projectId: created.projectId,
+    rateCard: { hourlyRate: 50, currency: 'USD', marginPercent: 0 },
+    lines: [{ module: 'CRM', minHours: 4, maxHours: 6 }],
+  });
+  const after = (await tools.getProject(owner, created.projectId)) as unknown as Record<
+    string,
+    unknown
+  >;
+  assert.deepEqual(after.quote, { status: 'draft', totalMin: 200, totalMax: 300, currency: 'USD' });
+  const tldr = (await tools.getTldr(owner, created.projectId)) as unknown as Record<
+    string,
+    unknown
+  >;
+  assert.equal(tldr.quote, 'draft');
+  const list = (await tools.listProjects(owner, {})) as unknown as {
+    projects: Array<Record<string, unknown>>;
+  };
+  const row = list.projects.find((entry) => entry.projectId === created.projectId)!;
+  assert.deepEqual(row.quote, { status: 'draft', totalMin: 200, totalMax: 300, currency: 'USD' });
+});
+
+test('export_document rejects unknown versions listing the available ones', dbOnly, async () => {
+  const created = await tools.createProject(owner, { name: 'Version listing' });
+  await assert.rejects(
+    tools.exportDocument(owner, { projectId: created.projectId, format: 'pdf', version: 9 }),
+    withMessage('VERSION_NOT_FOUND', /no version 9/),
+  );
+});
+
 test('decide_quote records the client decision once and marks drafts as sent', dbOnly, async () => {
   const created = await tools.createProject(owner, { name: 'Quote decision flow' });
   await tools.saveQuote(owner, {

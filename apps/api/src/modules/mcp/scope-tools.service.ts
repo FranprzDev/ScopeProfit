@@ -91,6 +91,7 @@ export class ScopeToolsService {
     });
     const more = items.length > limit;
     if (more) items.pop();
+    const quotes = await this.quoteSummaries(items.map((project) => project.id));
     const briefs = new Map(
       items.length
         ? (
@@ -115,6 +116,7 @@ export class ScopeToolsService {
           agentStatus: project.agentStatus,
           tldr: brief?.summary || null,
           blockingQuestions: brief?.blocking ?? 0,
+          quote: quotes.get(project.id) ?? null,
           updatedAt: project.updatedAt.toISOString(),
         };
       }),
@@ -143,7 +145,10 @@ export class ScopeToolsService {
     const project = await this.project(user, projectId, true);
     const brief = this.brief(project.brief?.data);
     const latest = project.document?.versions[0];
-    const messages = await this.db.message.count({ where: { projectId } });
+    const [messages, quotes] = await Promise.all([
+      this.db.message.count({ where: { projectId } }),
+      this.quoteSummaries([projectId]),
+    ]);
     return {
       projectId: project.id,
       name: project.name,
@@ -173,6 +178,7 @@ export class ScopeToolsService {
         blockingQuestions: brief.questions.filter((q) => q.blocksEstimate).length,
         risks: brief.risks.length,
       },
+      quote: quotes.get(projectId) ?? null,
       editable: !LOCKED.includes(project.status),
       createdAt: project.createdAt.toISOString(),
       updatedAt: project.updatedAt.toISOString(),
@@ -417,6 +423,7 @@ export class ScopeToolsService {
   async getTldr(user: User, projectId: string) {
     const project = await this.project(user, projectId, 'brief');
     const brief = this.brief(project.brief?.data);
+    const quotes = await this.quoteSummaries([projectId]);
     const total = brief.estimates.reduce(
       (sum, e) => ({ min: sum.min + e.minHours, max: sum.max + e.maxHours }),
       { min: 0, max: 0 },
@@ -436,6 +443,7 @@ export class ScopeToolsService {
         .map((q) => ({ id: q.id, question: q.question, blocksEstimate: q.blocksEstimate })),
       redRisks: brief.risks.filter((r) => r.severity === 'red').length,
       estimateHours: brief.estimates.length ? total : null,
+      quote: quotes.get(projectId)?.status ?? null,
     };
   }
 
@@ -614,6 +622,7 @@ export class ScopeToolsService {
       downloads: {
         pdf: exportUrl(project.id, input.documentVersion, 'pdf'),
         docx: exportUrl(project.id, input.documentVersion, 'docx'),
+        md: exportUrl(project.id, input.documentVersion, 'md'),
       },
     };
   }
@@ -629,6 +638,21 @@ export class ScopeToolsService {
     if (input.version === undefined && stale && !LOCKED.includes(project.status))
       version = (await this.documents.generate(project.id, user.id)).version;
     if (!version) fail('DOCUMENT_NOT_FOUND', 404, 'No document has been generated yet');
+    if (input.version !== undefined) {
+      const versions = (
+        await this.db.documentVersion.findMany({
+          where: { document: { projectId: project.id } },
+          select: { version: true },
+          orderBy: { version: 'desc' },
+        })
+      ).map((entry) => entry.version);
+      if (!versions.includes(version))
+        fail(
+          'VERSION_NOT_FOUND',
+          404,
+          `Document has no version ${version}; available: ${versions.length ? versions.join(', ') : 'none'}`,
+        );
+    }
     await this.documents.download(project.id, version, input.format);
     return {
       projectId: project.id,
@@ -731,6 +755,29 @@ export class ScopeToolsService {
         createdAt: c.createdAt.toISOString(),
       })),
     };
+  }
+
+  private async quoteSummaries(projectIds: string[]) {
+    if (!projectIds.length)
+      return new Map<
+        string,
+        { status: string; totalMin: number; totalMax: number; currency: string }
+      >();
+    const quotes = await this.db.quote.findMany({
+      where: { projectId: { in: projectIds } },
+      select: { projectId: true, status: true, totalMin: true, totalMax: true, currency: true },
+    });
+    return new Map(
+      quotes.map((quote) => [
+        quote.projectId,
+        {
+          status: quote.status,
+          totalMin: Number(quote.totalMin),
+          totalMax: Number(quote.totalMax),
+          currency: quote.currency,
+        },
+      ]),
+    );
   }
 
   private brief(data: Prisma.JsonValue | undefined): BriefData {
