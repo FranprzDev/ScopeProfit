@@ -694,6 +694,13 @@ export class ScopeToolsService {
     };
   }
 
+  async decideQuote(user: User, input: { projectId: string; decision: 'accepted' | 'rejected' }) {
+    this.auth.professional(user);
+    await this.project(user, input.projectId);
+    const quote = await this.quotes.decideAsProfessional(user, input.projectId, input.decision);
+    return { projectId: input.projectId, status: quote.status, decidedAt: quote.decidedAt };
+  }
+
   async archiveProject(user: User, projectId: string) {
     await this.project(user, projectId);
     await this.projects.archive(projectId, user);

@@ -1571,3 +1571,34 @@ test(
     );
   },
 );
+
+test('decide_quote records the client decision once and marks drafts as sent', dbOnly, async () => {
+  const created = await tools.createProject(owner, { name: 'Quote decision flow' });
+  await tools.saveQuote(owner, {
+    projectId: created.projectId,
+    rateCard: { hourlyRate: 100, currency: 'ARS', marginPercent: 0 },
+    lines: [{ module: 'CRM', minHours: 5, maxHours: 8 }],
+  });
+  const decided = await tools.decideQuote(owner, {
+    projectId: created.projectId,
+    decision: 'accepted',
+  });
+  assert.equal(decided.status, 'accepted');
+  assert.ok(decided.decidedAt);
+  const stored = await db.quote.findUniqueOrThrow({ where: { projectId: created.projectId } });
+  assert.ok(stored.sentAt, 'deciding a draft marks it sent');
+  await assert.rejects(
+    tools.decideQuote(owner, { projectId: created.projectId, decision: 'rejected' }),
+    withCode('QUOTE_NOT_SENDABLE'),
+  );
+  const other = await tools.createProject(owner, { name: 'Quote rejection flow' });
+  await tools.saveQuote(owner, {
+    projectId: other.projectId,
+    lines: [{ module: 'API', minHours: 3, maxHours: 4 }],
+  });
+  const rejected = await tools.decideQuote(owner, {
+    projectId: other.projectId,
+    decision: 'rejected',
+  });
+  assert.equal(rejected.status, 'rejected');
+});

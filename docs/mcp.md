@@ -25,13 +25,14 @@ ScopeProfit runs as a [Model Context Protocol](https://modelcontextprotocol.io) 
 | `get_quote`              | read        | Quote of a project: status, currency, priced module lines, payment milestones, terms, validity and totals.              |
 | `save_quote`             | write       | Create or update the DRAFT quote from scope estimates or explicit lines, priced only with the professional's rate card. |
 | `export_quote`           | read        | Signed, expiring download URL for the quote as `pdf` or `docx`.                                                         |
+| `decide_quote`           | destructive | Record the client's answer (`accepted`/`rejected`); the professional shares the link and registers the outcome.          |
 | `archive_project`        | destructive | Archives (locks) a project.                                                                                             |
 | `log_change_request`     | write       | Logs a post-scope change, classified `in_scope` / `out_of_scope` / `ambiguous`.                                         |
 | `list_change_requests`   | read        | Change requests of a project.                                                                                           |
 
 ### Quotes
 
-Each project has at most one quote (`draft` -> `sent` -> `accepted`/`rejected`). Build it with `save_quote`: `from_estimates: true` prices the approved scope estimates, or pass explicit `lines` with hour ranges. Amounts are always computed from the professional's own rate card (`rate_card` in the call, or the saved default) - ScopeProfit never suggests prices. `milestones` split payment by percent (they must sum 100) or by fixed amount; `terms` and `valid_until` carry the commercial conditions in plain language. Only draft quotes change: once sent, accepted or rejected, edits return `QUOTE_NOT_DRAFT`. `export_quote` returns a signed, expiring download URL (PDF or DOCX); review the quote before sharing the link.
+Each project has at most one quote (`draft` -> `sent` -> `accepted`/`rejected`). Build it with `save_quote`: `from_estimates: true` prices the approved scope estimates, or pass explicit `lines` with hour ranges. Amounts are always computed from the professional's own rate card (`rate_card` in the call, or the saved default) - ScopeProfit never suggests prices. `milestones` split payment by percent (they must sum 100) or by fixed amount; `terms` and `valid_until` carry the commercial conditions in plain language. Only draft quotes change: once sent, accepted or rejected, edits return `QUOTE_NOT_DRAFT`. `export_quote` returns a signed, expiring download URL (PDF or DOCX); review the quote before sharing the link. There is no client portal: the professional shares the link themselves and records the client's answer with `decide_quote` (deciding a draft marks it sent first).
 
 Domain errors come back as tool results with `isError: true` and a stable code (`VERSION_CONFLICT`, `PROJECT_LOCKED`, `ESTIMATE_BLOCKED`, `INVALID_REQUIREMENT_SOURCE`, …) so the model can recover. Tools carry `readOnlyHint` / `destructiveHint` annotations so hosts can skip or require confirmation.
 

@@ -389,6 +389,48 @@ export class QuotesService {
     return toQuoteDto(decided);
   }
 
+  /**
+   * Records the client's decision on a quote. There is no client portal: the professional
+   * shares the export_quote link themselves and registers the outcome here. Deciding a
+   * draft quote marks it sent first, so the audit trail keeps the full lifecycle.
+   */
+  async decideAsProfessional(
+    user: User,
+    projectId: string,
+    decision: QuoteDecision,
+  ): Promise<PopulatedQuote> {
+    await this.authorize(user, projectId);
+    const quote = await this.db.quote.findUnique({
+      where: { projectId },
+      include: quoteInclude(),
+    });
+    if (!quote) fail('QUOTE_NOT_FOUND', 404);
+    if (quote.status !== QuoteStatus.draft && quote.status !== QuoteStatus.sent)
+      fail('QUOTE_NOT_SENDABLE', 409);
+    const decided = await this.db.$transaction(async (tx) => {
+      const changed = await tx.quote.updateMany({
+        where: { id: quote.id, status: { in: [QuoteStatus.draft, QuoteStatus.sent] } },
+        data: {
+          status: decision,
+          decidedAt: new Date(),
+          ...(quote.status === QuoteStatus.draft ? { sentAt: new Date() } : {}),
+        },
+      });
+      if (changed.count !== 1) fail('QUOTE_NOT_SENDABLE', 409);
+      await tx.auditEvent.create({
+        data: {
+          projectId,
+          actorId: user.id,
+          action: 'quote.decided',
+          result: 'success',
+          metadata: { quoteId: quote.id, decision, recordedBy: 'professional' },
+        },
+      });
+      return tx.quote.findUniqueOrThrow({ where: { id: quote.id }, include: quoteInclude() });
+    });
+    return toQuoteDto(decided);
+  }
+
   async download(
     user: User | null,
     projectId: string,
