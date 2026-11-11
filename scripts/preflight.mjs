@@ -2,9 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { existsSync } from 'node:fs';
 
 if (process.argv.includes('--generate-secrets')) {
-  process.stdout.write(
-    `ENCRYPTION_KEY=${randomBytes(32).toString('base64')}\nSESSION_SECRET=${randomBytes(48).toString('hex')}\n`,
-  );
+  process.stdout.write(`ENCRYPTION_KEY=${randomBytes(32).toString('base64')}\n`);
   process.exit(0);
 }
 if (existsSync('.env')) process.loadEnvFile('.env');
@@ -14,7 +12,6 @@ const required = [
   'WEB_URL',
   'PUBLIC_API_URL',
   'ENCRYPTION_KEY',
-  'SESSION_SECRET',
   ...(mcpOnly ? [] : ['AI_GATEWAY_API_KEY', 'BREVO_API_KEY', 'BREVO_SENDER_EMAIL']),
 ];
 const errors = required
@@ -40,8 +37,6 @@ if (
   errors.push('MCP_ALLOW_*_IMAGE_URLS: testing-only flags must be disabled in production');
 if (Buffer.from(process.env.ENCRYPTION_KEY || '', 'base64').length !== 32)
   errors.push('ENCRYPTION_KEY: expected 32 random bytes encoded as base64');
-if ((process.env.SESSION_SECRET || '').length < 32)
-  errors.push('SESSION_SECRET: expected at least 32 characters');
 if (errors.length) {
   process.stderr.write(
     `Production configuration is incomplete:\n${errors.map((error) => `- ${error}`).join('\n')}\n`,

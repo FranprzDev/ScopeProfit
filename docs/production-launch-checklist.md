@@ -18,7 +18,7 @@ For host-led MCP drafting without backend AI or email, use [self-host-chatgpt.md
 
 ## 3. Secretos
 
-- [ ] Rotar `ENCRYPTION_KEY`, y `SESSION_SECRET` — generar valores nuevos para producción (no reutilizar los usados en pruebas locales). Se pueden generar con `node scripts/preflight.mjs --generate-secrets`.
+- [ ] Rotar `ENCRYPTION_KEY` — generar valores nuevos para producción (no reutilizar los usados en pruebas locales). Se pueden generar con `node scripts/preflight.mjs --generate-secrets`.
 - [ ] Cargar todas las variables de `.env.example` en el gestor de secretos del entorno de despliegue.
 
 ## 4. Validación previa al primer despliegue
