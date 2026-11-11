@@ -1,0 +1,26 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.FranprzDev/scopeprofit",
+  "title": "ScopeProfit",
+  "description": "Turn client requests into a clear scope and a quote with your rates. 20 tools, PDF/Word exports.",
+  "version": "1.0.0",
+  "websiteUrl": "https://scopeprofit.vercel.app",
+  "repository": {
+    "url": "https://github.com/FranprzDev/ScopeProfit",
+    "source": "github"
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://scopeprofit-mcp.franutn23.workers.dev/api/mcp",
+      "headers": [
+        {
+          "name": "Authorization",
+          "description": "Bearer API key (sp_live_...) issued by the installation operator. ChatGPT and Claude connectors can instead use the built-in OAuth 2.1 flow (dynamic client registration + PKCE).",
+          "isRequired": false,
+          "isSecret": true
+        }
+      ]
+    }
+  ]
+}
