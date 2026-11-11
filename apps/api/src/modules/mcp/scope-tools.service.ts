@@ -465,7 +465,7 @@ export class ScopeToolsService {
       fail(
         'VERSION_CONFLICT',
         409,
-        'Question context changed; re-read pending questions before answering',
+        `Brief is at version ${project.brief.version}, not ${input.expectedVersion}; re-read pending questions with list_pending_questions and retry with its brief_version`,
       );
     const brief = this.brief(project.brief.data);
     const question = brief.questions.find((q) => q.id === input.questionId);
@@ -673,7 +673,8 @@ export class ScopeToolsService {
       where: { projectId: input.projectId },
       select: { id: true },
     });
-    if (!quote) fail('QUOTE_NOT_FOUND', 404);
+    if (!quote)
+      fail('QUOTE_NOT_FOUND', 404, 'This project has no quote yet; create one with save_quote');
     return {
       projectId: input.projectId,
       format: input.format,

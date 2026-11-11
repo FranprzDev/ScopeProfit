@@ -21,46 +21,75 @@ export interface QuoteMilestoneInput {
   amount: number | null;
 }
 
+const issueDetail = (error: z.ZodError) =>
+  error.issues
+    .slice(0, 5)
+    .map((issue) => `${issue.path.join('.') || 'value'} ${issue.message}`)
+    .join('; ');
+
 export function validateQuoteLines(input: unknown): QuoteLineInput[] {
   const parsed = z.array(quoteLineSchema).max(100).safeParse(input);
-  if (!parsed.success) fail('INVALID_QUOTE_LINE', 400);
+  if (!parsed.success) fail('INVALID_QUOTE_LINE', 400, issueDetail(parsed.error));
   const lines = parsed.data.map((line) => ({
     module: line.module.trim(),
     minHours: Math.round(line.minHours),
     maxHours: Math.round(line.maxHours),
   }));
-  if (!lines.length || lines.some((line) => !line.module || line.maxHours < line.minHours))
-    fail('INVALID_QUOTE_LINE', 400);
+  if (!lines.length) fail('INVALID_QUOTE_LINE', 400, 'Pass at least one module line');
+  for (const line of lines) {
+    if (!line.module) fail('INVALID_QUOTE_LINE', 400, 'Every line needs a module name');
+    if (line.maxHours < line.minHours)
+      fail(
+        'INVALID_QUOTE_LINE',
+        400,
+        `Module "${line.module}": max_hours (${line.maxHours}) is below min_hours (${line.minHours})`,
+      );
+  }
   return lines;
 }
 
 export function validateQuoteMilestones(input: unknown): QuoteMilestoneInput[] {
   const parsed = z.array(quoteMilestoneSchema).max(50).safeParse(input);
-  if (!parsed.success) fail('INVALID_MILESTONES', 400);
+  if (!parsed.success) fail('INVALID_MILESTONES', 400, issueDetail(parsed.error));
   const percentBased = parsed.data.map((milestone) => {
     const hasPercent = milestone.percent !== undefined && milestone.percent !== null;
     const hasAmount = milestone.amount !== undefined && milestone.amount !== null;
-    if (hasPercent === hasAmount) fail('INVALID_MILESTONES', 400);
+    if (hasPercent && hasAmount)
+      fail(
+        'INVALID_MILESTONES',
+        400,
+        `Milestone "${milestone.name}": pass percent or amount, not both`,
+      );
+    if (!hasPercent && !hasAmount)
+      fail(
+        'INVALID_MILESTONES',
+        400,
+        `Milestone "${milestone.name}": pass either percent or amount`,
+      );
     return hasPercent;
   });
-  if (percentBased.some((mode) => mode !== percentBased[0])) fail('INVALID_MILESTONES', 400);
+  if (percentBased.some((mode) => mode !== percentBased[0]))
+    fail('INVALID_MILESTONES', 400, 'Do not mix percent and amount milestones in the same quote');
   if (percentBased[0]) {
     const total = parsed.data.reduce((sum, milestone) => sum + (milestone.percent ?? 0), 0);
-    if (total !== 100) fail('INVALID_MILESTONES', 400);
+    if (total !== 100)
+      fail('INVALID_MILESTONES', 400, `Percent milestones must sum 100; they sum ${total}`);
   }
   return parsed.data.map((milestone) => {
     const name = milestone.name.trim();
-    if (!name) fail('INVALID_MILESTONES', 400);
+    if (!name) fail('INVALID_MILESTONES', 400, 'Every milestone needs a name');
     return { name, percent: milestone.percent ?? null, amount: milestone.amount ?? null };
   });
 }
 
 export function assertDraftQuote(status: QuoteStatus): void {
-  if (status !== QuoteStatus.draft) fail('QUOTE_NOT_DRAFT', 409);
+  if (status !== QuoteStatus.draft)
+    fail('QUOTE_NOT_DRAFT', 409, `Quote is ${status}; only a draft quote can be changed or sent`);
 }
 
 export function assertSentQuote(status: QuoteStatus): void {
-  if (status !== QuoteStatus.sent) fail('QUOTE_NOT_SENDABLE', 409);
+  if (status !== QuoteStatus.sent)
+    fail('QUOTE_NOT_SENDABLE', 409, `Quote is ${status}; only a sent quote can be decided`);
 }
 
 export function parseRateCardSnapshot(snapshot: unknown): QuoteRateCard | null {

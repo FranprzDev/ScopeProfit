@@ -73,6 +73,14 @@ async function errorCode(name: string, args: Record<string, unknown>) {
   return (result.structuredContent as { error: { code: string } }).error.code;
 }
 
+const withMessage = (code: string, fragment: RegExp) => (error: unknown) => {
+  const body = (error as { getResponse?: () => unknown }).getResponse?.() as
+    { code?: string; message?: string } | undefined;
+  assert.equal(body?.code, code, `expected ${code}`);
+  assert.match(String(body?.message), fragment);
+  return true;
+};
+
 const withCode = (code: string) => (error: unknown) =>
   error instanceof HttpException && (error.getResponse() as { code?: string }).code === code;
 
@@ -1555,6 +1563,74 @@ test(
     );
   },
 );
+
+test('quote validations explain what to fix', dbOnly, async () => {
+  const created = await tools.createProject(owner, { name: 'Quote validation messages' });
+  await assert.rejects(
+    tools.saveQuote(owner, {
+      projectId: created.projectId,
+      lines: [{ module: 'CRM', minHours: 10, maxHours: 5 }],
+    }),
+    withMessage('INVALID_QUOTE_LINE', /CRM.*max_hours \(5\) is below min_hours \(10\)/),
+  );
+  await assert.rejects(
+    tools.saveQuote(owner, {
+      projectId: created.projectId,
+      lines: [{ module: 'CRM', minHours: 5, maxHours: 10 }],
+      milestones: [
+        { name: 'Anticipo', percent: 40 },
+        { name: 'Entrega', percent: 40 },
+      ],
+    }),
+    withMessage('INVALID_MILESTONES', /must sum 100; they sum 80/),
+  );
+  await assert.rejects(
+    tools.saveQuote(owner, {
+      projectId: created.projectId,
+      lines: [{ module: 'CRM', minHours: 5, maxHours: 10 }],
+      milestones: [{ name: 'Anticipo', percent: 50, amount: 500 }],
+    }),
+    withMessage('INVALID_MILESTONES', /percent or amount, not both/),
+  );
+});
+
+test('decide_quote and export_quote point to save_quote when no quote exists', dbOnly, async () => {
+  const created = await tools.createProject(owner, { name: 'Missing quote guidance' });
+  await assert.rejects(
+    tools.decideQuote(owner, { projectId: created.projectId, decision: 'accepted' }),
+    withMessage('QUOTE_NOT_FOUND', /save_quote/),
+  );
+  await assert.rejects(
+    tools.exportQuote(owner, { projectId: created.projectId, format: 'pdf' }),
+    withMessage('QUOTE_NOT_FOUND', /save_quote/),
+  );
+});
+
+test('answer_question version conflicts report the current brief version', dbOnly, async () => {
+  const created = await tools.createProject(owner, { name: 'Answer version conflict' });
+  const { emptyBrief } = await import('@scopeprofit/contracts');
+  await db.brief.update({
+    where: { projectId: created.projectId },
+    data: {
+      version: 3,
+      data: {
+        ...emptyBrief(),
+        questions: [
+          { id: 'Q1', question: 'Budget?', reason: 'sizes the work', blocksEstimate: true },
+        ],
+      } as unknown as Prisma.InputJsonValue,
+    },
+  });
+  await assert.rejects(
+    tools.answerQuestion(owner, {
+      projectId: created.projectId,
+      questionId: 'Q1',
+      answer: 'Around 10k',
+      expectedVersion: 1,
+    }),
+    withMessage('VERSION_CONFLICT', /version 3, not 1.*list_pending_questions/),
+  );
+});
 
 test('decide_quote records the client decision once and marks drafts as sent', dbOnly, async () => {
   const created = await tools.createProject(owner, { name: 'Quote decision flow' });
