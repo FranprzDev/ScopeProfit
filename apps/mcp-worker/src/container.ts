@@ -3,7 +3,9 @@
  * classes the Nest API uses (apps/api/src/modules/*). Only the edges that cannot run on
  * Workers are substituted at build time: filesystem storage -> R2, sharp image decode,
  * pele/resvg diagrams, the LangGraph agent loop, and the Prisma engine (workerd client over
- * Neon's serverless driver). Instances are cached per isolate across requests.
+ * Neon's serverless driver). The graph is built per request: Neon's serverless driver
+ * speaks to Postgres over a WebSocket bound to the request's I/O context, so caching the
+ * client at isolate scope makes later requests fail with cross-request I/O errors.
  */
 import { PrismaService } from './shims/prisma';
 import { StorageService } from './shims/r2-storage';
@@ -37,10 +39,7 @@ export interface Container {
   quotes: QuotesService;
 }
 
-let cache: Container | undefined;
-
 export function getContainer(env: WorkerEnv): Container {
-  if (cache) return cache;
   const db = new PrismaService(env.DATABASE_URL);
   // R2 when the account enables it (STORAGE binding), Workers KV otherwise (STORAGE_KV).
   const storage = new StorageService((env.STORAGE ?? env.STORAGE_KV) as never) as never;
@@ -63,6 +62,5 @@ export function getContainer(env: WorkerEnv): Container {
     quotes,
   );
   const provider = new ScopeProfitOAuthProvider(db, keys);
-  cache = { db, tools, provider, keys, documents, quotes };
-  return cache;
+  return { db, tools, provider, keys, documents, quotes };
 }
