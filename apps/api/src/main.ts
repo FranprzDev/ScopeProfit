@@ -4,7 +4,6 @@ import { RequestMethod } from '@nestjs/common';
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import { setupApiDocs } from './api-docs';
-import cookieParser from 'cookie-parser';
 import express from 'express';
 import type { NextFunction, Request, Response } from 'express';
 import { AppModule } from './app.module';
@@ -26,7 +25,6 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bodyParser: false });
   // CSP stays off: the API serves no HTML of its own, and Swagger UI needs inline scripts.
   app.use(helmet({ contentSecurityPolicy: false }));
-  app.use(cookieParser());
   app.use((req: Request, res: Response, next: NextFunction) =>
     isMcpRoute(req.path) ? next() : csrfProtection(req, res, next),
   );

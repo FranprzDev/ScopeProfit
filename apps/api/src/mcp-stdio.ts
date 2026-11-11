@@ -23,7 +23,8 @@ async function main() {
   const raw = process.env.SCOPEPROFIT_API_KEY;
   if (!raw) throw new Error('SCOPEPROFIT_API_KEY is required (create one with `mcp:keys create`)');
   const app = await NestFactory.createApplicationContext(McpStdioModule, { logger: ['error'] });
-  const { user } = await app.get(ApiKeysService).verify(raw);
+  const { user, key } = await app.get(ApiKeysService).verify(raw);
+  console.error(`scopeprofit-mcp: acting as ${user.email} (key "${key.label}")`);
 
   const shutdown = async () => {
     await app.close();

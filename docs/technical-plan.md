@@ -56,10 +56,8 @@ El proyecto usa un monorepo. Frontend y Backend mantienen pipelines independient
 
 Nombres en plural y `snake_case`:
 
-- `users`: identidad y rol (`client`, `professional`).
-- `sessions`: sesiones autenticadas y expiración.
-- `projects`: proyecto, cliente, estado y link activo.
-- `project_links`: tokens de acceso del cliente, revocación y vencimiento.
+- `users`: identidad y rol del profesional.
+- `projects`: proyecto, cliente y estado.
 - `messages`: mensajes de chat/Telegram, autor, contenido y `thread_id`.
 - `files`: metadata de adjuntos y ruta relativa en storage.
 - `briefs`: snapshot estructurado vigente por proyecto.

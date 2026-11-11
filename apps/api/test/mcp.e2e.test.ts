@@ -9,7 +9,6 @@ import { createHash, randomBytes } from 'node:crypto';
 import { createServer } from 'node:net';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, INestApplication } from '@nestjs/common';
-import cookieParser from 'cookie-parser';
 import express from 'express';
 import helmet from 'helmet';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
@@ -55,7 +54,6 @@ before(async () => {
   process.env.PUBLIC_API_URL = baseUrl;
   app = await NestFactory.create(AppModule, { bodyParser: false, logger: false });
   app.use(helmet());
-  app.use(cookieParser());
   app.use(express.json({ limit: '2mb' }));
   app.use(express.urlencoded({ extended: true, limit: '2mb' }));
   app.setGlobalPrefix('api');
