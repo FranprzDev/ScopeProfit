@@ -39,7 +39,6 @@ import { fetchImage, isPublicAddress } from '../src/modules/mcp/image-fetch';
 import { signConsent, verifyConsent } from '../src/modules/mcp/oauth-consent';
 import { isMcpRoute } from '../src/modules/mcp/mcp-http';
 import { ScopeProfitOAuthProvider } from '../src/modules/mcp/oauth.provider';
-import { hash, encrypt } from '../src/security';
 
 const skip = !process.env.DATABASE_URL;
 const dbOnly = { skip: skip ? 'DATABASE_URL not set' : false };

@@ -22,7 +22,6 @@ import { buildQuoteProposal, renderQuoteProposal } from '../documents/render-quo
 import { computeQuoteTotals, type QuoteLineInput, type QuoteTotals } from './pricing.calc';
 import {
   assertDraftQuote,
-  assertSentQuote,
   parseRateCardSnapshot,
   validateQuoteLines,
   validateQuoteMilestones,
