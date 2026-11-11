@@ -2,9 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { existsSync } from 'node:fs';
 
 if (process.argv.includes('--generate-secrets')) {
-  process.stdout.write(
-    `ENCRYPTION_KEY=${randomBytes(32).toString('base64')}\n`,
-  );
+  process.stdout.write(`ENCRYPTION_KEY=${randomBytes(32).toString('base64')}\n`);
   process.exit(0);
 }
 if (existsSync('.env')) process.loadEnvFile('.env');
