@@ -44,9 +44,14 @@ export function exportUrl(
   };
 }
 
-export function verifyExportToken(raw: string): ExportClaim | null {
+export type ExportTokenVerification =
+  { status: 'ok'; claim: ExportClaim } | { status: 'expired' } | { status: 'invalid' };
+
+/** Verifies a signed export token and says WHY it failed when it does. */
+export function verifyExportTokenDetailed(raw: string): ExportTokenVerification {
   const [payload, signature] = raw.split('.');
-  if (!payload || !signature || !secureEqual(sign(payload), signature)) return null;
+  if (!payload || !signature || !secureEqual(sign(payload), signature))
+    return { status: 'invalid' };
   try {
     const claim = JSON.parse(Buffer.from(payload, 'base64url').toString()) as Record<
       string,
@@ -58,18 +63,26 @@ export function verifyExportToken(raw: string): ExportClaim | null {
       !Number.isInteger(claim.version) ||
       !['pdf', 'docx', 'md'].includes(String(claim.format)) ||
       typeof claim.exp !== 'number' ||
-      claim.exp < Date.now() ||
       (artifact !== 'document' && artifact !== 'quote')
     )
-      return null;
+      return { status: 'invalid' };
+    if (claim.exp < Date.now()) return { status: 'expired' };
     return {
-      projectId: claim.projectId,
-      version: claim.version as number,
-      format: claim.format as ExportFormat,
-      exp: claim.exp,
-      artifact,
+      status: 'ok',
+      claim: {
+        projectId: claim.projectId,
+        version: claim.version as number,
+        format: claim.format as ExportFormat,
+        exp: claim.exp,
+        artifact,
+      },
     };
   } catch {
-    return null;
+    return { status: 'invalid' };
   }
+}
+
+export function verifyExportToken(raw: string): ExportClaim | null {
+  const result = verifyExportTokenDetailed(raw);
+  return result.status === 'ok' ? result.claim : null;
 }

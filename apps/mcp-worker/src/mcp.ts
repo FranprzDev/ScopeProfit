@@ -75,6 +75,14 @@ export async function handleMcp(request: Request, container: Container): Promise
     );
   }
 
+  // Peek at the JSON-RPC envelope for error logging; the transport re-reads the clone.
+  const peeked = (await request
+    .clone()
+    .json()
+    .catch(() => null)) as { method?: string; params?: { name?: string } } | null;
+  const label =
+    peeked?.method === 'tools/call' ? `tools/call ${peeked.params?.name ?? '?'}` : peeked?.method;
+
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined, // stateless JSON mode
     enableJsonResponse: true,
@@ -85,6 +93,14 @@ export async function handleMcp(request: Request, container: Container): Promise
     return (await scopeToolContext.provider({ tools: container.tools, user: principal.user }, () =>
       transport.handleRequest(request),
     )) as Response;
+  } catch (error) {
+    // Uncaught failures otherwise surface only as Cloudflare 1101s with no context in tail logs.
+    console.error(
+      `scopeprofit-mcp: request failed${label ? ` (${label})` : ''}: ${
+        error instanceof Error ? (error.stack ?? error.message) : String(error)
+      }`,
+    );
+    throw error;
   } finally {
     await transport.close().catch(() => undefined);
   }

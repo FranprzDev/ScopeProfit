@@ -59,7 +59,13 @@ export function mountMcp(app: INestApplication) {
   http.post(
     '/oauth/consent',
     express.urlencoded({ extended: false, limit: '16kb' }),
-    rateLimit({ windowMs: 15 * 60_000, limit: 20, standardHeaders: true, legacyHeaders: false }),
+    rateLimit({
+      windowMs: 15 * 60_000,
+      limit: 20,
+      standardHeaders: true,
+      legacyHeaders: false,
+      message: { code: 'RATE_LIMITED', message: 'Too many consent attempts; retry later' },
+    }),
     async (req: Request, res: Response) => {
       const body = req.body as Record<string, unknown>;
       const claim = verifyConsent(body.request);
@@ -112,6 +118,10 @@ export function mountMcp(app: INestApplication) {
     limit: Number(process.env.MCP_RATE_LIMIT_PER_MINUTE ?? 120),
     standardHeaders: true,
     legacyHeaders: false,
+    message: {
+      code: 'RATE_LIMITED',
+      message: 'Too many requests; respect the RateLimit headers and retry after the window',
+    },
   });
   const auth = requireBearerAuth({
     verifier: provider,
