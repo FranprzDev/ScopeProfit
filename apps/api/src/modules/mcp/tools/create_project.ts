@@ -12,14 +12,7 @@ export const schema = {
     .min(1)
     .max(200)
     .optional()
-    .describe(
-      'Client or company display name for scope and quote documents; separate from the email destination',
-    ),
-  client_email: z
-    .string()
-    .email()
-    .optional()
-    .describe('Client email; identifies the client for their magic-link portal sign-in'),
+    .describe('Client or company display name for scope and quote documents'),
 };
 
 export const metadata: ToolMetadata = {
@@ -33,7 +26,6 @@ export default async function create_project(args: InferSchema<typeof schema>) {
   return executeTool((tools, user) =>
     tools.createProject(user, {
       name: args.name,
-      clientEmail: args.client_email,
       clientName: args.client_name,
     }),
   );

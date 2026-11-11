@@ -23,58 +23,62 @@ import tool4, {
 import tool5, {
   metadata as metadata5,
   schema as schema5,
-} from '../../api/src/modules/mcp/tools/export_document';
+} from '../../api/src/modules/mcp/tools/decide_quote';
 import tool6, {
   metadata as metadata6,
   schema as schema6,
-} from '../../api/src/modules/mcp/tools/export_quote';
+} from '../../api/src/modules/mcp/tools/export_document';
 import tool7, {
   metadata as metadata7,
   schema as schema7,
-} from '../../api/src/modules/mcp/tools/get_conversation';
+} from '../../api/src/modules/mcp/tools/export_quote';
 import tool8, {
   metadata as metadata8,
   schema as schema8,
-} from '../../api/src/modules/mcp/tools/get_input_image';
+} from '../../api/src/modules/mcp/tools/get_conversation';
 import tool9, {
   metadata as metadata9,
   schema as schema9,
-} from '../../api/src/modules/mcp/tools/get_project';
+} from '../../api/src/modules/mcp/tools/get_input_image';
 import tool10, {
   metadata as metadata10,
   schema as schema10,
-} from '../../api/src/modules/mcp/tools/get_quote';
+} from '../../api/src/modules/mcp/tools/get_project';
 import tool11, {
   metadata as metadata11,
   schema as schema11,
-} from '../../api/src/modules/mcp/tools/get_scope_document';
+} from '../../api/src/modules/mcp/tools/get_quote';
 import tool12, {
   metadata as metadata12,
   schema as schema12,
-} from '../../api/src/modules/mcp/tools/get_tldr';
+} from '../../api/src/modules/mcp/tools/get_scope_document';
 import tool13, {
   metadata as metadata13,
   schema as schema13,
-} from '../../api/src/modules/mcp/tools/list_change_requests';
+} from '../../api/src/modules/mcp/tools/get_tldr';
 import tool14, {
   metadata as metadata14,
   schema as schema14,
-} from '../../api/src/modules/mcp/tools/list_pending_questions';
+} from '../../api/src/modules/mcp/tools/list_change_requests';
 import tool15, {
   metadata as metadata15,
   schema as schema15,
-} from '../../api/src/modules/mcp/tools/list_projects';
+} from '../../api/src/modules/mcp/tools/list_pending_questions';
 import tool16, {
   metadata as metadata16,
   schema as schema16,
-} from '../../api/src/modules/mcp/tools/log_change_request';
+} from '../../api/src/modules/mcp/tools/list_projects';
 import tool17, {
   metadata as metadata17,
   schema as schema17,
-} from '../../api/src/modules/mcp/tools/save_quote';
+} from '../../api/src/modules/mcp/tools/log_change_request';
 import tool18, {
   metadata as metadata18,
   schema as schema18,
+} from '../../api/src/modules/mcp/tools/save_quote';
+import tool19, {
+  metadata as metadata19,
+  schema as schema19,
 } from '../../api/src/modules/mcp/tools/update_scope_section';
 
 export interface ToolEntry {
@@ -90,18 +94,19 @@ export const TOOLS: ToolEntry[] = [
   { name: 'approve_scope', metadata: metadata2, schema: schema2, handler: tool2 },
   { name: 'archive_project', metadata: metadata3, schema: schema3, handler: tool3 },
   { name: 'create_project', metadata: metadata4, schema: schema4, handler: tool4 },
-  { name: 'export_document', metadata: metadata5, schema: schema5, handler: tool5 },
-  { name: 'export_quote', metadata: metadata6, schema: schema6, handler: tool6 },
-  { name: 'get_conversation', metadata: metadata7, schema: schema7, handler: tool7 },
-  { name: 'get_input_image', metadata: metadata8, schema: schema8, handler: tool8 },
-  { name: 'get_project', metadata: metadata9, schema: schema9, handler: tool9 },
-  { name: 'get_quote', metadata: metadata10, schema: schema10, handler: tool10 },
-  { name: 'get_scope_document', metadata: metadata11, schema: schema11, handler: tool11 },
-  { name: 'get_tldr', metadata: metadata12, schema: schema12, handler: tool12 },
-  { name: 'list_change_requests', metadata: metadata13, schema: schema13, handler: tool13 },
-  { name: 'list_pending_questions', metadata: metadata14, schema: schema14, handler: tool14 },
-  { name: 'list_projects', metadata: metadata15, schema: schema15, handler: tool15 },
-  { name: 'log_change_request', metadata: metadata16, schema: schema16, handler: tool16 },
-  { name: 'save_quote', metadata: metadata17, schema: schema17, handler: tool17 },
-  { name: 'update_scope_section', metadata: metadata18, schema: schema18, handler: tool18 },
+  { name: 'decide_quote', metadata: metadata5, schema: schema5, handler: tool5 },
+  { name: 'export_document', metadata: metadata6, schema: schema6, handler: tool6 },
+  { name: 'export_quote', metadata: metadata7, schema: schema7, handler: tool7 },
+  { name: 'get_conversation', metadata: metadata8, schema: schema8, handler: tool8 },
+  { name: 'get_input_image', metadata: metadata9, schema: schema9, handler: tool9 },
+  { name: 'get_project', metadata: metadata10, schema: schema10, handler: tool10 },
+  { name: 'get_quote', metadata: metadata11, schema: schema11, handler: tool11 },
+  { name: 'get_scope_document', metadata: metadata12, schema: schema12, handler: tool12 },
+  { name: 'get_tldr', metadata: metadata13, schema: schema13, handler: tool13 },
+  { name: 'list_change_requests', metadata: metadata14, schema: schema14, handler: tool14 },
+  { name: 'list_pending_questions', metadata: metadata15, schema: schema15, handler: tool15 },
+  { name: 'list_projects', metadata: metadata16, schema: schema16, handler: tool16 },
+  { name: 'log_change_request', metadata: metadata17, schema: schema17, handler: tool17 },
+  { name: 'save_quote', metadata: metadata18, schema: schema18, handler: tool18 },
+  { name: 'update_scope_section', metadata: metadata19, schema: schema19, handler: tool19 },
 ];

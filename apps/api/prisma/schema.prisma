@@ -63,49 +63,17 @@ model User {
  role Role @default(client)
  encryptedApiKey String? @map("encrypted_api_key")
  createdAt DateTime @default(now()) @map("created_at")
- sessions Session[]
  projects Project[]
  changeRequests ChangeRequest[]
  rateCards RateCard[]
  apiKeys ApiKey[]
  @@map("users")
 }
-model Session {
- id String @id @default(uuid()) @db.Uuid
- tokenHash String @unique @map("token_hash")
- userId String @db.Uuid @map("user_id")
- user User @relation(fields:[userId],references:[id],onDelete:Cascade)
- expiresAt DateTime @map("expires_at")
- revokedAt DateTime? @map("revoked_at")
- @@index([expiresAt])
- @@map("sessions")
-}
-model MagicLink {
- id String @id @default(uuid()) @db.Uuid
- tokenHash String @unique @map("token_hash")
- email String
- projectId String? @db.Uuid @map("project_id")
- linkToken String? @map("link_token")
- expiresAt DateTime @map("expires_at")
- usedAt DateTime? @map("used_at")
- createdAt DateTime @default(now()) @map("created_at")
- @@index([email,createdAt])
- @@map("magic_links")
-}
-model AdminNonce {
- nonce String @id
- userId String @db.Uuid @map("user_id")
- projectId String @db.Uuid @map("project_id")
- expiresAt DateTime @map("expires_at")
- usedAt DateTime? @map("used_at")
- @@map("admin_nonces")
-}
 model Project {
  id String @id @default(uuid()) @db.Uuid
  name String
  ownerId String @db.Uuid @map("owner_id")
  owner User @relation(fields:[ownerId],references:[id])
- clientEmail String? @map("client_email")
  clientName String? @db.VarChar(200) @map("client_name")
  status ProjectStatus @default(draft)
  agentStatus AgentStatus @default(idle) @map("agent_status")
@@ -113,7 +81,6 @@ model Project {
  agentError String? @map("agent_error")
  createdAt DateTime @default(now()) @map("created_at")
  updatedAt DateTime @updatedAt @map("updated_at")
- links ProjectLink[]
  messages Message[]
  files File[]
  brief Brief?
@@ -123,7 +90,6 @@ model Project {
  quote Quote?
  maintenance MaintenanceAgreement?
  @@index([ownerId])
- @@index([clientEmail])
  @@index([status])
  @@map("projects")
 }
@@ -144,18 +110,6 @@ model ChangeRequest {
  updatedAt DateTime @updatedAt @map("updated_at")
  @@index([projectId,createdAt])
  @@map("change_requests")
-}
-model ProjectLink {
- id String @id @default(uuid()) @db.Uuid
- projectId String @db.Uuid @map("project_id")
- project Project @relation(fields:[projectId],references:[id],onDelete:Cascade)
- tokenHash String @unique @map("token_hash")
- encryptedToken String @map("encrypted_token")
- expiresAt DateTime? @map("expires_at")
- revokedAt DateTime? @map("revoked_at")
- createdAt DateTime @default(now()) @map("created_at")
- @@index([projectId])
- @@map("project_links")
 }
 model Message {
  id String @id @default(uuid()) @db.Uuid

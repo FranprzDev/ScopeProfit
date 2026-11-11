@@ -25,13 +25,14 @@ ScopeProfit runs as a [Model Context Protocol](https://modelcontextprotocol.io) 
 | `get_quote`              | read        | Quote of a project: status, currency, priced module lines, payment milestones, terms, validity and totals.              |
 | `save_quote`             | write       | Create or update the DRAFT quote from scope estimates or explicit lines, priced only with the professional's rate card. |
 | `export_quote`           | read        | Signed, expiring download URL for the quote as `pdf` or `docx`.                                                         |
+| `decide_quote`           | destructive | Record the client's answer (`accepted`/`rejected`); the professional shares the link and registers the outcome.         |
 | `archive_project`        | destructive | Archives (locks) a project.                                                                                             |
 | `log_change_request`     | write       | Logs a post-scope change, classified `in_scope` / `out_of_scope` / `ambiguous`.                                         |
 | `list_change_requests`   | read        | Change requests of a project.                                                                                           |
 
 ### Quotes
 
-Each project has at most one quote (`draft` -> `sent` -> `accepted`/`rejected`). Build it with `save_quote`: `from_estimates: true` prices the approved scope estimates, or pass explicit `lines` with hour ranges. Amounts are always computed from the professional's own rate card (`rate_card` in the call, or the saved default) - ScopeProfit never suggests prices. `milestones` split payment by percent (they must sum 100) or by fixed amount; `terms` and `valid_until` carry the commercial conditions in plain language. Only draft quotes change: once sent, accepted or rejected, edits return `QUOTE_NOT_DRAFT`. `export_quote` returns a signed, expiring download URL (PDF or DOCX); review the quote before sharing the link.
+Each project has at most one quote (`draft` -> `sent` -> `accepted`/`rejected`). Build it with `save_quote`: `from_estimates: true` prices the approved scope estimates, or pass explicit `lines` with hour ranges. Amounts are always computed from the professional's own rate card (`rate_card` in the call, or the saved default) - ScopeProfit never suggests prices. `milestones` split payment by percent (they must sum 100) or by fixed amount; `terms` and `valid_until` carry the commercial conditions in plain language. Only draft quotes change: once sent, accepted or rejected, edits return `QUOTE_NOT_DRAFT`. `export_quote` returns a signed, expiring download URL (PDF or DOCX); review the quote before sharing the link. There is no client portal: the professional shares the link themselves and records the client's answer with `decide_quote` (deciding a draft marks it sent first).
 
 Domain errors come back as tool results with `isError: true` and a stable code (`VERSION_CONFLICT`, `PROJECT_LOCKED`, `ESTIMATE_BLOCKED`, `INVALID_REQUIREMENT_SOURCE`, …) so the model can recover. Tools carry `readOnlyHint` / `destructiveHint` annotations so hosts can skip or require confirmation.
 
@@ -61,7 +62,7 @@ Every request needs `Authorization: Bearer <token>`. Two token types are accepte
 - **API key** (`sp_live_…`) — for agents, SDKs, Claude Code, Claude connectors with request headers, the OpenAI Responses API, etc.
 - **OAuth 2.1 access token** (`sp_at_…`) — for hosts that only support OAuth (ChatGPT). The server is its own authorization server: dynamic client registration (`/register`), PKCE (`S256`) authorization code flow (`/authorize` → consent page → `/token`), refresh-token rotation and revocation (`/revoke`). Discovery: `/.well-known/oauth-protected-resource/api/mcp` and `/.well-known/oauth-authorization-server`. On the consent page the professional pastes an API key; the OAuth grant is bound to that key, so revoking the key cuts every connector that used it.
 
-Manage API keys from a trusted server shell. This local CLI provisions the professional role; it is not a public registration endpoint. Knowing an email or requesting a magic link does not grant this role. API keys and OAuth still authenticate every MCP request. To remove a professional's access, revoke their keys or change their role in the installation; removing an environment entry is no longer an access-control mechanism:
+Manage API keys from a trusted server shell. This local CLI provisions the professional role; it is not a public registration endpoint. Knowing an email does not grant this role. API keys and OAuth still authenticate every MCP request. To remove a professional's access, revoke their keys or change their role in the installation; removing an environment entry is no longer an access-control mechanism:
 
 ```bash
 pnpm --filter @scopeprofit/api run build

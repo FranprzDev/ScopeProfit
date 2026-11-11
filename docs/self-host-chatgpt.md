@@ -14,13 +14,13 @@ No backend AI or email account is required for host-led scope drafting. Avoid `a
 
 From a trusted server shell, copy `.env.example` to `.env` and set:
 
-| Variable            | Value                                                                                |
-| ------------------- | ------------------------------------------------------------------------------------ |
-| `POSTGRES_PASSWORD` | A long random database password, URL-encoded if it contains URL-reserved characters  |
-| `MCP_DOMAIN`        | The bare API hostname, for example `api.example.com`; no scheme, path or port        |
-| `PUBLIC_API_URL`    | The matching HTTPS origin, for example `https://api.example.com`; no path prefix     |
-| `WEB_URL`           | Your HTTPS landing origin (or the API origin for MCP-only use with no magic-link UI) |
-| `ENCRYPTION_KEY`    | 32 random bytes encoded as base64                                                    |
+| Variable            | Value                                                                               |
+| ------------------- | ----------------------------------------------------------------------------------- |
+| `POSTGRES_PASSWORD` | A long random database password, URL-encoded if it contains URL-reserved characters |
+| `MCP_DOMAIN`        | The bare API hostname, for example `api.example.com`; no scheme, path or port       |
+| `PUBLIC_API_URL`    | The matching HTTPS origin, for example `https://api.example.com`; no path prefix    |
+| `WEB_URL`           | Your HTTPS landing origin (or the API origin for MCP-only use)                      |
+| `ENCRYPTION_KEY`    | 32 random bytes encoded as base64                                                   |
 
 Generate fresh encryption/session values with `node scripts/preflight.mjs --generate-secrets` and save them directly in protected environment/secret storage. Do not paste secrets into chat, commit `.env`, reuse local test secrets or regenerate the encryption key over existing encrypted data. Protect the file with `chmod 600 .env`.
 

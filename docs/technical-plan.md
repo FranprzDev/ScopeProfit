@@ -43,7 +43,7 @@ El proyecto usa un monorepo. Frontend y Backend mantienen pipelines independient
 
 | Módulo            | Responsabilidad                                             |
 | ----------------- | ----------------------------------------------------------- |
-| `AuthModule`      | Magic link del cliente y sesiones profesionales/clientes    |
+| `AuthModule`      | API keys, OAuth 2.1 y acceso de profesionales               |
 | `ProjectsModule`  | Crear, consultar y archivar proyectos                       |
 | `ChatModule`      | Mensajes, adjuntos y actualización del chat                 |
 | `BriefModule`     | Brief estructurado, preguntas, riesgos, alcance y versiones |
@@ -51,8 +51,6 @@ El proyecto usa un monorepo. Frontend y Backend mantienen pipelines independient
 | `DocumentsModule` | Markdown, PDF, DOCX y versiones aprobadas                   |
 | `TelegramModule`  | Webhook, comandos, callbacks y autorizados                  |
 | `StorageModule`   | Archivos recibidos y artefactos en filesystem               |
-
-`AuthModule` usa Brevo para emails transaccionales de magic link. El remitente y dominio deben verificarse.
 
 ## 5. Modelo de datos inicial
 
@@ -84,21 +82,7 @@ Estados de proyecto: `draft` → `in_review` → `changes_requested` → `approv
 
 ## 7. API v1
 
-- `POST /api/auth/magic-link/request`
-- `GET /api/auth/magic-link/verify`
-- `POST /api/projects`
-- `GET /api/projects`
-- `GET /api/projects/:id`
-- `POST /api/projects/:id/messages`
-- `POST /api/projects/:id/files`
-- `GET /api/projects/:id/brief`
-- `PATCH /api/projects/:id/brief`
-- `POST /api/projects/:id/documents/generate`
-- `POST /api/projects/:id/approve`
-- `GET /api/projects/:id/state`
-- `POST /api/telegram/webhook`
-
-Todos los endpoints verifican sesión, proyecto y permisos. Los contratos definitivos de request/response se fijan antes de escribir controladores.
+La API REST v1 fue reemplazada por la superficie de herramientas MCP (ver `docs/mcp.md`) más los links firmados de descarga; los controladores REST se eliminaron.
 
 ### 7.1 Formato de errores
 
@@ -126,9 +110,6 @@ Variables técnicas iniciales:
 
 - `AI_PROVIDER=google`
 - `AI_MODEL=gemini-3.8-flash`
-- `BREVO_API_KEY`
-- `BREVO_SENDER_EMAIL`
-- `BREVO_SENDER_NAME`
 - `ENCRYPTION_KEY`
 
 El agente devuelve datos estructurados para Brief, preguntas, riesgos, alcance y estimación. La validación de campos, estados, versiones y sumas queda en código determinístico.
@@ -190,7 +171,7 @@ Visual minimalista: una pantalla de chat y un panel de Brief/documento, responsi
 ## 14. Orden de implementación
 
 1. Monorepo, Docker, configuración y migraciones.
-2. Proyecto, magic link, sesiones y link cliente.
+2. Proyecto y acceso profesional (API keys).
 3. Chat cliente y recepción de mensajes/archivos.
 4. Brief versionado y agente con proveedor inicial.
 5. Documento Markdown/PDF/DOCX.
@@ -238,13 +219,10 @@ Un caso real puede recorrer: crear proyecto → cliente inicia sesión → enví
 - El agente usa la key del propietario del proyecto; si no existe, el proyecto queda en `agent_configuration_required`.
 - No se guarda una key global del sistema en v1.
 
-### 17.4 Brevo
+### 17.4 Email
 
-- `AuthModule` usa la API REST de Brevo para emails transaccionales.
-- Variables requeridas: `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, `BREVO_SENDER_NAME`.
-- El magic link dura 15 minutos, es de un solo uso y se invalida después de verificarse.
-- La sesión del cliente dura 30 días y puede revocarse.
-- El template contiene solo el enlace firmado; nunca incluye información del Brief.
+- ScopeProfit no envía emails: no hay dependencia de proveedores de email transaccional.
+- La comunicación con el cliente la hace el profesional; los documentos se comparten con links firmados de descarga.
 
 ### 17.5 Archivos y Tiptap
 

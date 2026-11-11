@@ -24,7 +24,7 @@ ChatGPT · Claude · Cursor · Grok bots · custom agents
         Backend API (NestJS) ── scope tools ── LangGraph agent (optional) ── PostgreSQL + persistent storage
 ```
 
-- **MCP server (primary interface)** — `POST /api/mcp` (Streamable HTTP, stateless) and a stdio entrypoint for local hosts. 19 tools: `create_project`, `add_client_input` (text + image URLs), `get_tldr`, `get_scope_document`, `list_pending_questions`, `answer_question`, `update_scope_section`, `approve_scope`, `export_document`, `list_projects`, `archive_project`, `get_project`, `get_conversation`, `get_input_image`, `log_change_request`, `list_change_requests`, `get_quote`, `save_quote`, `export_quote`.
+- **MCP server (primary interface)** — `POST /api/mcp` (Streamable HTTP, stateless) and a stdio entrypoint for local hosts. 20 tools: `create_project`, `add_client_input` (text + image URLs), `get_tldr`, `get_scope_document`, `list_pending_questions`, `answer_question`, `update_scope_section`, `approve_scope`, `export_document`, `list_projects`, `archive_project`, `get_project`, `get_conversation`, `get_input_image`, `log_change_request`, `list_change_requests`, `get_quote`, `save_quote`, `export_quote`, `decide_quote`.
 - **Auth** — `Authorization: Bearer` with a ScopeProfit API key, or OAuth 2.1 (dynamic client registration + PKCE) for ChatGPT-style connectors. See `docs/mcp.md`.
 - **Backend API** — the only component with database and file-system access. Keeps the versioned Brief (PostgreSQL), renders template 7.1 and the PDF/DOCX artifacts, and runs the optional server-side scope agent.
 - **Landing (`apps/landing`)** — static marketing page that explains the MCP-first product and how to connect each client. There is no web app anymore: the Next.js client chat (`apps/app`) was removed; the client conversation now happens in whatever agent uses the MCP server.
@@ -61,7 +61,6 @@ Use the opt-in HTTPS overlay and host-led drafting setup in [docs/self-host-chat
 - **MCP:** xmcp 1.9 (file-based tools, Streamable HTTP + stdio) with the existing OAuth 2.1 authorization server
 - **Agent (optional):** LangGraph + LangChain JS with Gemini; clarification gate via Vercel AI Gateway
 - **Documents:** structured Brief → Markdown, `pdfkit` → PDF, `docx` → DOCX
-- **Email:** Brevo (magic-link sign-in only; document delivery emails are out of scope)
 - **Bot:** grammY webhook with `secret_token`
 - **Quality:** unit, integration, MCP (SDK client over xmcp HTTP) and e2e (HTTP, OAuth, stdio) tests on real PostgreSQL; separate backend and landing CI pipelines
 - **Deploy:** Docker Compose with PostgreSQL and persistent volumes
@@ -81,13 +80,12 @@ pnpm run production:preflight
 
 - **v1 — delivered:** projects, structured versioned Brief, AI agent, template 7.1, PDF/DOCX, approval and delivery.
 - **v2 — delivered:** Brief diff, change-request log and classification, strict domain types.
-- **v3 (pricing, quotes, maintenance) — API only.** Its UI lived in the removed web app; it is not exposed as MCP tools yet. See `docs/v3-api-access.md` for how to reach it today.
+- **v3 (pricing, quotes, maintenance) — delivered:** quotes and rate cards are MCP tools (`save_quote`, `get_quote`, `export_quote`, `decide_quote`); maintenance records stay internal.
 - **MCP-first — this release:** MCP server, API keys, OAuth for ChatGPT/Claude connectors, signed exports; web app removed, landing rewritten.
 
 ## Docs
 
 - `docs/scope-to-profit.md` — product concept, scope and architecture (source of truth)
 - `docs/mcp.md` — MCP tools, auth and client setup
-- `docs/v3-api-access.md` — how to reach the v3 quote, rate-card and maintenance endpoints without a UI
 - `docs/technical-plan.md` — original v1 technical plan (historical; the web client it describes was removed)
 - `docs/production-launch-checklist.md` — production checklist

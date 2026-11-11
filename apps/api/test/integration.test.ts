@@ -12,9 +12,7 @@ import {
   QuoteStatus,
 } from '@prisma/client';
 import { emptyBrief } from '@scopeprofit/contracts';
-import { decrypt } from '../src/security';
 import { PrismaService } from '../src/prisma.service';
-import { EmailService } from '../src/email.service';
 import { AuthService } from '../src/modules/auth/auth.service';
 import { ProjectsService } from '../src/modules/projects/projects.service';
 import { RateCardsService } from '../src/modules/pricing/rate-cards.service';
@@ -37,7 +35,7 @@ before(async () => {
   if (skip) return;
   db = new PrismaService();
   await db.$connect();
-  auth = new AuthService(db, new EmailService());
+  auth = new AuthService(db);
   projects = new ProjectsService(db, auth);
   rateCards = new RateCardsService(db, auth);
   quotes = new QuotesService(db, auth, rateCards);
@@ -49,7 +47,7 @@ after(async () => {
 });
 
 test(
-  'creating a project seeds an empty brief, a document shell and one active link',
+  'creating a project seeds an empty brief and a document shell',
   { skip: skip ? 'DATABASE_URL not set' : false },
   async () => {
     const owner = await db.user.create({
@@ -58,28 +56,8 @@ test(
     const project = await projects.create(owner, 'Portal de clientes');
     const brief = await db.brief.findUniqueOrThrow({ where: { projectId: project.id } });
     assert.equal(brief.version, 0);
-    const links = await db.projectLink.findMany({
-      where: { projectId: project.id, revokedAt: null },
-    });
-    assert.equal(links.length, 1);
-    assert.match(project.clientUrl, new RegExp(`/p/${project.id}\\?token=`));
-  },
-);
-
-test(
-  'revoking a client link twice is idempotent and leaves no active link',
-  { skip: skip ? 'DATABASE_URL not set' : false },
-  async () => {
-    const owner = await db.user.create({
-      data: { email: `owner-2-${runId}@scopeprofit.test`, role: 'professional' },
-    });
-    const project = await projects.create(owner, 'Landing Acme');
-    await projects.link(project.id, owner, 'revoke');
-    await projects.link(project.id, owner, 'revoke');
-    const active = await db.projectLink.findMany({
-      where: { projectId: project.id, revokedAt: null },
-    });
-    assert.equal(active.length, 0);
+    const document = await db.document.findUniqueOrThrow({ where: { projectId: project.id } });
+    assert.equal(document.currentVersion, 0);
   },
 );
 
@@ -328,16 +306,8 @@ const seedPricingBrief = async (projectId: string) => {
   });
 };
 
-const rawClientToken = async (projectId: string) => {
-  const link = await db.projectLink.findFirstOrThrow({
-    where: { projectId, revokedAt: null },
-    orderBy: { createdAt: 'desc' },
-  });
-  return decrypt(link.encryptedToken);
-};
-
 test(
-  'a quote is generated, sent, downloaded and decided by the client through the project link',
+  'a quote is generated, sent, downloaded and decided by the professional',
   { skip: skip ? 'DATABASE_URL not set' : false },
   async () => {
     const owner = await db.user.create({
@@ -382,14 +352,11 @@ test(
       rejectedWith('INVALID_FORMAT', 400),
     );
 
-    const clientToken = await rawClientToken(project.id);
-    const seen = await quotes.get(null, project.id, clientToken);
+    const seen = await quotes.get(owner, project.id);
     assert.equal(seen.id, sent.id);
     assert.equal(seen.status, QuoteStatus.sent);
-    const clientFile = await quotes.download(null, project.id, 'pdf', clientToken);
-    assert.ok(clientFile.buffer.length > 1000);
 
-    const decided = await quotes.decide(null, project.id, clientToken, QuoteStatus.accepted);
+    const decided = await quotes.decideAsProfessional(owner, project.id, QuoteStatus.accepted);
     assert.equal(decided.status, QuoteStatus.accepted);
     assert.ok(decided.decidedAt);
 
@@ -399,7 +366,7 @@ test(
     assert.equal(audits.filter((event) => event.action === 'quote.sent').length, 1);
     const decision = audits.find((event) => event.action === 'quote.decided');
     assert.ok(decision, 'expected a quote.decided audit event');
-    assert.equal(decision.actorId, null);
+    assert.equal(decision.actorId, owner.id);
     assert.equal(
       (decision.metadata as { decision?: string } | null)?.decision,
       QuoteStatus.accepted,
@@ -466,11 +433,14 @@ test(
 );
 
 test(
-  'the send and decision transitions are guarded by status, role and link token',
+  'the send and decision transitions are guarded by status and role',
   { skip: skip ? 'DATABASE_URL not set' : false },
   async () => {
     const owner = await db.user.create({
       data: { email: `owner-12-${runId}@scopeprofit.test`, role: 'professional' },
+    });
+    const client = await db.user.create({
+      data: { email: `guards-client-${runId}@scopeprofit.test`, role: 'client' },
     });
     const project = await projects.create(owner, 'Guardas de propuesta');
     await rateCards.upsert(owner, {
@@ -481,37 +451,25 @@ test(
     });
     await seedPricingBrief(project.id);
     await quotes.generate(owner, project.id);
-    const clientToken = await rawClientToken(project.id);
 
     await assert.rejects(
-      quotes.decide(null, project.id, clientToken, QuoteStatus.accepted),
-      rejectedWith('QUOTE_NOT_SENDABLE', 409),
-    );
-    await assert.rejects(
-      quotes.decide(owner, project.id, clientToken, QuoteStatus.accepted),
+      quotes.decideAsProfessional(client, project.id, QuoteStatus.accepted),
       rejectedWith('FORBIDDEN', 403),
     );
+    await assert.rejects(quotes.get(client, project.id), rejectedWith('FORBIDDEN', 403));
     await assert.rejects(
-      quotes.decide(null, project.id, 'not-a-real-token', QuoteStatus.accepted),
-      rejectedWith('PROJECT_ACCESS_DENIED', 403),
-    );
-    await assert.rejects(
-      quotes.get(null, project.id, clientToken),
-      rejectedWith('QUOTE_NOT_FOUND', 404),
-    );
-    await assert.rejects(
-      quotes.download(null, project.id, 'pdf', clientToken),
-      rejectedWith('QUOTE_NOT_FOUND', 404),
+      quotes.download(client, project.id, 'pdf'),
+      rejectedWith('FORBIDDEN', 403),
     );
 
     await quotes.send(owner, project.id);
     await assert.rejects(quotes.send(owner, project.id), rejectedWith('QUOTE_NOT_DRAFT', 409));
 
-    const rejected = await quotes.decide(null, project.id, clientToken, QuoteStatus.rejected);
+    const rejected = await quotes.decideAsProfessional(owner, project.id, QuoteStatus.rejected);
     assert.equal(rejected.status, QuoteStatus.rejected);
     assert.ok(rejected.decidedAt);
     await assert.rejects(
-      quotes.decide(null, project.id, clientToken, QuoteStatus.accepted),
+      quotes.decideAsProfessional(owner, project.id, QuoteStatus.accepted),
       rejectedWith('QUOTE_NOT_SENDABLE', 409),
     );
 

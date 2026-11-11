@@ -1,6 +1,5 @@
 import 'reflect-metadata';
 import { PrismaService } from '../prisma.service';
-import { EmailService } from '../email.service';
 import { AuthService } from '../modules/auth/auth.service';
 import { ApiKeysService } from '../modules/mcp/api-keys.service';
 
@@ -23,7 +22,7 @@ function option(args: string[], name: string) {
 async function main() {
   const [command, ...args] = process.argv.slice(2);
   const db = new PrismaService();
-  const auth = new AuthService(db, new EmailService());
+  const auth = new AuthService(db);
   const keys = new ApiKeysService(db, auth);
   try {
     if (command === 'create') {

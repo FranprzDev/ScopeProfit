@@ -4,7 +4,6 @@ For host-led MCP drafting without backend AI or email, use [self-host-chatgpt.md
 
 ## 1. Cuentas y credenciales reales
 
-- [ ] **Brevo**: crear cuenta, verificar dominio/remitente, generar `BREVO_API_KEY`, definir `BREVO_SENDER_EMAIL` verificado.
 - [ ] **Vercel AI Gateway**: configurar `AI_GATEWAY_API_KEY`; el agente lo usa para evaluar si hace falta pedir aclaraciones.
 - [ ] **Optional Gemini agent**: provision the professional key from a trusted server shell with `SCOPEPROFIT_AI_KEY=<key> pnpm --filter @scopeprofit/api run mcp:keys set-ai-key --email <email>`. Host-led MCP drafting uses `analyze: false` and needs no backend AI key.
 - [ ] **Profesionales**: crear la cuenta profesional y su API key desde una consola confiable del servidor con `mcp:keys create --email <email>`. No hay lista de emails en el entorno ni alta profesional pública. Los profesionales existentes con `telegram_id` y sin email se vinculan con `mcp:keys create --email <email> --claim-legacy-telegram-id <id>`, que conserva sus proyectos; las tablas `telegram_*` y la columna `telegram_id` se conservan.
@@ -12,7 +11,7 @@ For host-led MCP drafting without backend AI or email, use [self-host-chatgpt.md
 
 ## 2. Infraestructura
 
-- [ ] Dominio HTTPS real para `WEB_URL` (usado en magic links, links de edición firmados).
+- [ ] Dominio HTTPS real para `WEB_URL` (landing y base de los links de descarga firmados).
 - [ ] Base de datos PostgreSQL gestionada (o el `docker-compose.yml` provisto) con backups habilitados.
 - [ ] Volumen/bucket de almacenamiento persistente para archivos subidos (`apps/api/src/modules/storage`).
 
@@ -32,7 +31,7 @@ For host-led MCP drafting without backend AI or email, use [self-host-chatgpt.md
 - [ ] Desplegar con `docker-compose.yml` (o el orquestador elegido) en el entorno de producción.
 - [ ] Dar de alta al primer usuario y ejecutar un flujo completo real (MCP → brief → documento) como smoke test manual final.
 
-Local PostgreSQL tests do not prove live provider credentials, magic-link email sending, public HTTPS or a real ChatGPT connection. Verify each enabled external service before declaring production.
+Local PostgreSQL tests do not prove live provider credentials, public HTTPS or a real ChatGPT connection. Verify each enabled external service before declaring production.
 
 ## 6. MCP server (MCP-first release)
 

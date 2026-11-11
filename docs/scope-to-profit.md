@@ -141,7 +141,7 @@ La IA propone. El profesional decide.
 
 | #   | Feature                                           | Nota                                                                                                              |
 | --- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| 1   | Login del cliente                                 | Email con magic link; la sesión identifica al cliente y no requiere contraseña                                    |
+| 1   | Acceso del profesional                            | API keys y OAuth (MCP); el cliente no inicia sesión: el profesional comparte los documentos                       |
 | 2   | Crear proyecto                                    | Se crea desde Telegram, genera link Next.js para el cliente                                                       |
 | 3   | **Frontend Next.js — chat cliente**               | Cliente chatea desordenado, sin fricción                                                                          |
 | 4   | **Telegram — tu interfaz**                        | Vos gestionás todos tus proyectos desde Telegram. `/projects` devuelve **un botón por proyecto** (InlineKeyboard) |

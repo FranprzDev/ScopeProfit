@@ -190,7 +190,6 @@ export type UserWhereInput = {
   role?: Prisma.EnumRoleFilter<"User"> | $Enums.Role
   encryptedApiKey?: Prisma.StringNullableFilter<"User"> | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
-  sessions?: Prisma.SessionListRelationFilter
   projects?: Prisma.ProjectListRelationFilter
   changeRequests?: Prisma.ChangeRequestListRelationFilter
   rateCards?: Prisma.RateCardListRelationFilter
@@ -204,7 +203,6 @@ export type UserOrderByWithRelationInput = {
   role?: Prisma.SortOrder
   encryptedApiKey?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
-  sessions?: Prisma.SessionOrderByRelationAggregateInput
   projects?: Prisma.ProjectOrderByRelationAggregateInput
   changeRequests?: Prisma.ChangeRequestOrderByRelationAggregateInput
   rateCards?: Prisma.RateCardOrderByRelationAggregateInput
@@ -221,7 +219,6 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   role?: Prisma.EnumRoleFilter<"User"> | $Enums.Role
   encryptedApiKey?: Prisma.StringNullableFilter<"User"> | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
-  sessions?: Prisma.SessionListRelationFilter
   projects?: Prisma.ProjectListRelationFilter
   changeRequests?: Prisma.ChangeRequestListRelationFilter
   rateCards?: Prisma.RateCardListRelationFilter
@@ -259,7 +256,6 @@ export type UserCreateInput = {
   role?: $Enums.Role
   encryptedApiKey?: string | null
   createdAt?: Date | string
-  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   projects?: Prisma.ProjectCreateNestedManyWithoutOwnerInput
   changeRequests?: Prisma.ChangeRequestCreateNestedManyWithoutActorInput
   rateCards?: Prisma.RateCardCreateNestedManyWithoutOwnerInput
@@ -273,7 +269,6 @@ export type UserUncheckedCreateInput = {
   role?: $Enums.Role
   encryptedApiKey?: string | null
   createdAt?: Date | string
-  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutOwnerInput
   changeRequests?: Prisma.ChangeRequestUncheckedCreateNestedManyWithoutActorInput
   rateCards?: Prisma.RateCardUncheckedCreateNestedManyWithoutOwnerInput
@@ -287,7 +282,6 @@ export type UserUpdateInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   encryptedApiKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutOwnerNestedInput
   changeRequests?: Prisma.ChangeRequestUpdateManyWithoutActorNestedInput
   rateCards?: Prisma.RateCardUpdateManyWithoutOwnerNestedInput
@@ -301,7 +295,6 @@ export type UserUncheckedUpdateInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   encryptedApiKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutOwnerNestedInput
   changeRequests?: Prisma.ChangeRequestUncheckedUpdateManyWithoutActorNestedInput
   rateCards?: Prisma.RateCardUncheckedUpdateManyWithoutOwnerNestedInput
@@ -388,20 +381,6 @@ export type DateTimeFieldUpdateOperationsInput = {
   set?: Date | string
 }
 
-export type UserCreateNestedOneWithoutSessionsInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutSessionsInput, Prisma.UserUncheckedCreateWithoutSessionsInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutSessionsInput
-  connect?: Prisma.UserWhereUniqueInput
-}
-
-export type UserUpdateOneRequiredWithoutSessionsNestedInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutSessionsInput, Prisma.UserUncheckedCreateWithoutSessionsInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutSessionsInput
-  upsert?: Prisma.UserUpsertWithoutSessionsInput
-  connect?: Prisma.UserWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutSessionsInput, Prisma.UserUpdateWithoutSessionsInput>, Prisma.UserUncheckedUpdateWithoutSessionsInput>
-}
-
 export type UserCreateNestedOneWithoutProjectsInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutProjectsInput, Prisma.UserUncheckedCreateWithoutProjectsInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutProjectsInput
@@ -460,74 +439,6 @@ export type UserUpdateOneRequiredWithoutApiKeysNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutApiKeysInput, Prisma.UserUpdateWithoutApiKeysInput>, Prisma.UserUncheckedUpdateWithoutApiKeysInput>
 }
 
-export type UserCreateWithoutSessionsInput = {
-  id?: string
-  email?: string | null
-  telegramId?: string | null
-  role?: $Enums.Role
-  encryptedApiKey?: string | null
-  createdAt?: Date | string
-  projects?: Prisma.ProjectCreateNestedManyWithoutOwnerInput
-  changeRequests?: Prisma.ChangeRequestCreateNestedManyWithoutActorInput
-  rateCards?: Prisma.RateCardCreateNestedManyWithoutOwnerInput
-  apiKeys?: Prisma.ApiKeyCreateNestedManyWithoutUserInput
-}
-
-export type UserUncheckedCreateWithoutSessionsInput = {
-  id?: string
-  email?: string | null
-  telegramId?: string | null
-  role?: $Enums.Role
-  encryptedApiKey?: string | null
-  createdAt?: Date | string
-  projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutOwnerInput
-  changeRequests?: Prisma.ChangeRequestUncheckedCreateNestedManyWithoutActorInput
-  rateCards?: Prisma.RateCardUncheckedCreateNestedManyWithoutOwnerInput
-  apiKeys?: Prisma.ApiKeyUncheckedCreateNestedManyWithoutUserInput
-}
-
-export type UserCreateOrConnectWithoutSessionsInput = {
-  where: Prisma.UserWhereUniqueInput
-  create: Prisma.XOR<Prisma.UserCreateWithoutSessionsInput, Prisma.UserUncheckedCreateWithoutSessionsInput>
-}
-
-export type UserUpsertWithoutSessionsInput = {
-  update: Prisma.XOR<Prisma.UserUpdateWithoutSessionsInput, Prisma.UserUncheckedUpdateWithoutSessionsInput>
-  create: Prisma.XOR<Prisma.UserCreateWithoutSessionsInput, Prisma.UserUncheckedCreateWithoutSessionsInput>
-  where?: Prisma.UserWhereInput
-}
-
-export type UserUpdateToOneWithWhereWithoutSessionsInput = {
-  where?: Prisma.UserWhereInput
-  data: Prisma.XOR<Prisma.UserUpdateWithoutSessionsInput, Prisma.UserUncheckedUpdateWithoutSessionsInput>
-}
-
-export type UserUpdateWithoutSessionsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  telegramId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
-  encryptedApiKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  projects?: Prisma.ProjectUpdateManyWithoutOwnerNestedInput
-  changeRequests?: Prisma.ChangeRequestUpdateManyWithoutActorNestedInput
-  rateCards?: Prisma.RateCardUpdateManyWithoutOwnerNestedInput
-  apiKeys?: Prisma.ApiKeyUpdateManyWithoutUserNestedInput
-}
-
-export type UserUncheckedUpdateWithoutSessionsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  telegramId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
-  encryptedApiKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  projects?: Prisma.ProjectUncheckedUpdateManyWithoutOwnerNestedInput
-  changeRequests?: Prisma.ChangeRequestUncheckedUpdateManyWithoutActorNestedInput
-  rateCards?: Prisma.RateCardUncheckedUpdateManyWithoutOwnerNestedInput
-  apiKeys?: Prisma.ApiKeyUncheckedUpdateManyWithoutUserNestedInput
-}
-
 export type UserCreateWithoutProjectsInput = {
   id?: string
   email?: string | null
@@ -535,7 +446,6 @@ export type UserCreateWithoutProjectsInput = {
   role?: $Enums.Role
   encryptedApiKey?: string | null
   createdAt?: Date | string
-  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   changeRequests?: Prisma.ChangeRequestCreateNestedManyWithoutActorInput
   rateCards?: Prisma.RateCardCreateNestedManyWithoutOwnerInput
   apiKeys?: Prisma.ApiKeyCreateNestedManyWithoutUserInput
@@ -548,7 +458,6 @@ export type UserUncheckedCreateWithoutProjectsInput = {
   role?: $Enums.Role
   encryptedApiKey?: string | null
   createdAt?: Date | string
-  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   changeRequests?: Prisma.ChangeRequestUncheckedCreateNestedManyWithoutActorInput
   rateCards?: Prisma.RateCardUncheckedCreateNestedManyWithoutOwnerInput
   apiKeys?: Prisma.ApiKeyUncheckedCreateNestedManyWithoutUserInput
@@ -577,7 +486,6 @@ export type UserUpdateWithoutProjectsInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   encryptedApiKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   changeRequests?: Prisma.ChangeRequestUpdateManyWithoutActorNestedInput
   rateCards?: Prisma.RateCardUpdateManyWithoutOwnerNestedInput
   apiKeys?: Prisma.ApiKeyUpdateManyWithoutUserNestedInput
@@ -590,7 +498,6 @@ export type UserUncheckedUpdateWithoutProjectsInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   encryptedApiKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   changeRequests?: Prisma.ChangeRequestUncheckedUpdateManyWithoutActorNestedInput
   rateCards?: Prisma.RateCardUncheckedUpdateManyWithoutOwnerNestedInput
   apiKeys?: Prisma.ApiKeyUncheckedUpdateManyWithoutUserNestedInput
@@ -603,7 +510,6 @@ export type UserCreateWithoutChangeRequestsInput = {
   role?: $Enums.Role
   encryptedApiKey?: string | null
   createdAt?: Date | string
-  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   projects?: Prisma.ProjectCreateNestedManyWithoutOwnerInput
   rateCards?: Prisma.RateCardCreateNestedManyWithoutOwnerInput
   apiKeys?: Prisma.ApiKeyCreateNestedManyWithoutUserInput
@@ -616,7 +522,6 @@ export type UserUncheckedCreateWithoutChangeRequestsInput = {
   role?: $Enums.Role
   encryptedApiKey?: string | null
   createdAt?: Date | string
-  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutOwnerInput
   rateCards?: Prisma.RateCardUncheckedCreateNestedManyWithoutOwnerInput
   apiKeys?: Prisma.ApiKeyUncheckedCreateNestedManyWithoutUserInput
@@ -645,7 +550,6 @@ export type UserUpdateWithoutChangeRequestsInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   encryptedApiKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutOwnerNestedInput
   rateCards?: Prisma.RateCardUpdateManyWithoutOwnerNestedInput
   apiKeys?: Prisma.ApiKeyUpdateManyWithoutUserNestedInput
@@ -658,7 +562,6 @@ export type UserUncheckedUpdateWithoutChangeRequestsInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   encryptedApiKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutOwnerNestedInput
   rateCards?: Prisma.RateCardUncheckedUpdateManyWithoutOwnerNestedInput
   apiKeys?: Prisma.ApiKeyUncheckedUpdateManyWithoutUserNestedInput
@@ -671,7 +574,6 @@ export type UserCreateWithoutRateCardsInput = {
   role?: $Enums.Role
   encryptedApiKey?: string | null
   createdAt?: Date | string
-  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   projects?: Prisma.ProjectCreateNestedManyWithoutOwnerInput
   changeRequests?: Prisma.ChangeRequestCreateNestedManyWithoutActorInput
   apiKeys?: Prisma.ApiKeyCreateNestedManyWithoutUserInput
@@ -684,7 +586,6 @@ export type UserUncheckedCreateWithoutRateCardsInput = {
   role?: $Enums.Role
   encryptedApiKey?: string | null
   createdAt?: Date | string
-  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutOwnerInput
   changeRequests?: Prisma.ChangeRequestUncheckedCreateNestedManyWithoutActorInput
   apiKeys?: Prisma.ApiKeyUncheckedCreateNestedManyWithoutUserInput
@@ -713,7 +614,6 @@ export type UserUpdateWithoutRateCardsInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   encryptedApiKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutOwnerNestedInput
   changeRequests?: Prisma.ChangeRequestUpdateManyWithoutActorNestedInput
   apiKeys?: Prisma.ApiKeyUpdateManyWithoutUserNestedInput
@@ -726,7 +626,6 @@ export type UserUncheckedUpdateWithoutRateCardsInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   encryptedApiKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutOwnerNestedInput
   changeRequests?: Prisma.ChangeRequestUncheckedUpdateManyWithoutActorNestedInput
   apiKeys?: Prisma.ApiKeyUncheckedUpdateManyWithoutUserNestedInput
@@ -739,7 +638,6 @@ export type UserCreateWithoutApiKeysInput = {
   role?: $Enums.Role
   encryptedApiKey?: string | null
   createdAt?: Date | string
-  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   projects?: Prisma.ProjectCreateNestedManyWithoutOwnerInput
   changeRequests?: Prisma.ChangeRequestCreateNestedManyWithoutActorInput
   rateCards?: Prisma.RateCardCreateNestedManyWithoutOwnerInput
@@ -752,7 +650,6 @@ export type UserUncheckedCreateWithoutApiKeysInput = {
   role?: $Enums.Role
   encryptedApiKey?: string | null
   createdAt?: Date | string
-  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutOwnerInput
   changeRequests?: Prisma.ChangeRequestUncheckedCreateNestedManyWithoutActorInput
   rateCards?: Prisma.RateCardUncheckedCreateNestedManyWithoutOwnerInput
@@ -781,7 +678,6 @@ export type UserUpdateWithoutApiKeysInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   encryptedApiKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutOwnerNestedInput
   changeRequests?: Prisma.ChangeRequestUpdateManyWithoutActorNestedInput
   rateCards?: Prisma.RateCardUpdateManyWithoutOwnerNestedInput
@@ -794,7 +690,6 @@ export type UserUncheckedUpdateWithoutApiKeysInput = {
   role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
   encryptedApiKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutOwnerNestedInput
   changeRequests?: Prisma.ChangeRequestUncheckedUpdateManyWithoutActorNestedInput
   rateCards?: Prisma.RateCardUncheckedUpdateManyWithoutOwnerNestedInput
@@ -806,7 +701,6 @@ export type UserUncheckedUpdateWithoutApiKeysInput = {
  */
 
 export type UserCountOutputType = {
-  sessions: number
   projects: number
   changeRequests: number
   rateCards: number
@@ -814,7 +708,6 @@ export type UserCountOutputType = {
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  sessions?: boolean | UserCountOutputTypeCountSessionsArgs
   projects?: boolean | UserCountOutputTypeCountProjectsArgs
   changeRequests?: boolean | UserCountOutputTypeCountChangeRequestsArgs
   rateCards?: boolean | UserCountOutputTypeCountRateCardsArgs
@@ -829,13 +722,6 @@ export type UserCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensi
    * Select specific fields to fetch from the UserCountOutputType
    */
   select?: Prisma.UserCountOutputTypeSelect<ExtArgs> | null
-}
-
-/**
- * UserCountOutputType without action
- */
-export type UserCountOutputTypeCountSessionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.SessionWhereInput
 }
 
 /**
@@ -874,7 +760,6 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   role?: boolean
   encryptedApiKey?: boolean
   createdAt?: boolean
-  sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
   projects?: boolean | Prisma.User$projectsArgs<ExtArgs>
   changeRequests?: boolean | Prisma.User$changeRequestsArgs<ExtArgs>
   rateCards?: boolean | Prisma.User$rateCardsArgs<ExtArgs>
@@ -911,7 +796,6 @@ export type UserSelectScalar = {
 
 export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "telegramId" | "role" | "encryptedApiKey" | "createdAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
   projects?: boolean | Prisma.User$projectsArgs<ExtArgs>
   changeRequests?: boolean | Prisma.User$changeRequestsArgs<ExtArgs>
   rateCards?: boolean | Prisma.User$rateCardsArgs<ExtArgs>
@@ -924,7 +808,6 @@ export type UserIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
 export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "User"
   objects: {
-    sessions: Prisma.$SessionPayload<ExtArgs>[]
     projects: Prisma.$ProjectPayload<ExtArgs>[]
     changeRequests: Prisma.$ChangeRequestPayload<ExtArgs>[]
     rateCards: Prisma.$RateCardPayload<ExtArgs>[]
@@ -1331,7 +1214,6 @@ readonly fields: UserFieldRefs;
  */
 export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  sessions<T extends Prisma.User$sessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$sessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   projects<T extends Prisma.User$projectsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$projectsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   changeRequests<T extends Prisma.User$changeRequestsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$changeRequestsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ChangeRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   rateCards<T extends Prisma.User$rateCardsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$rateCardsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RateCardPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -1756,30 +1638,6 @@ export type UserDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Internal
    * Limit how many Users to delete.
    */
   limit?: number
-}
-
-/**
- * User.sessions
- */
-export type User$sessionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the Session
-   */
-  select?: Prisma.SessionSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the Session
-   */
-  omit?: Prisma.SessionOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.SessionInclude<ExtArgs> | null
-  where?: Prisma.SessionWhereInput
-  orderBy?: Prisma.SessionOrderByWithRelationInput | Prisma.SessionOrderByWithRelationInput[]
-  cursor?: Prisma.SessionWhereUniqueInput
-  take?: number
-  skip?: number
-  distinct?: Prisma.SessionScalarFieldEnum | Prisma.SessionScalarFieldEnum[]
 }
 
 /**

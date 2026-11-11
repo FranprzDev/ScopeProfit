@@ -1,136 +1,26 @@
 import { Injectable } from '@nestjs/common';
 import { isEmail } from 'class-validator';
 import { Prisma, Project, User } from '@prisma/client';
-import { createHmac } from 'node:crypto';
 import { PrismaService } from '../../prisma.service';
-import { EmailService } from '../../email.service';
-import {
-  isAuthorizedProfessional,
-  decrypt,
-  encrypt,
-  encryptionKey,
-  fail,
-  hash,
-  secureEqual,
-  token,
-} from '../../security';
+import { isAuthorizedProfessional, encrypt, fail } from '../../security';
 
-type AdminClaim = {
-  userId: string;
-  projectId: string;
-  permission: 'edit';
-  exp: number;
-  nonce: string;
-};
+/**
+ * Professional identity and project access. Authentication is API-key based (MCP) or
+ * OAuth for hosted clients. The professional shares signed export links with their
+ * client and records outcomes themselves.
+ */
 @Injectable()
 export class AuthService {
-  constructor(
-    private db: PrismaService,
-    private email: EmailService,
-  ) {}
-  async request(email: string, projectId?: string, linkToken?: string) {
-    email = email.toLowerCase();
-    if (projectId) await this.checkLink(projectId, linkToken);
-    const recent = await this.db.magicLink.count({
-      where: { email, createdAt: { gte: new Date(Date.now() - 60000) } },
-    });
-    if (recent >= 2) return { sent: true };
-    const raw = token();
-    await this.db.magicLink.create({
-      data: {
-        email,
-        projectId,
-        linkToken: linkToken ? encrypt(linkToken) : null,
-        tokenHash: hash(raw),
-        expiresAt: new Date(Date.now() + 900000),
-      },
-    });
-    const url = `${process.env.WEB_URL}/api/auth/magic-link/verify?token=${raw}`;
-    await this.email.send(
-      email,
-      'Ingresá a ScopeProfit',
-      `<p>Tu enlace de acceso vence en 15 minutos y puede usarse una vez.</p><p><a href="${url}">Ingresar</a></p>`,
-    );
-    return { sent: true };
-  }
-  async verify(raw: string) {
-    return this.db.$transaction(async (tx) => {
-      const link = await tx.magicLink.findUnique({ where: { tokenHash: hash(raw) } });
-      if (!link || link.usedAt || link.expiresAt < new Date()) fail('INVALID_MAGIC_LINK', 401);
-      const consumed = await tx.magicLink.updateMany({
-        where: { id: link.id, usedAt: null },
-        data: { usedAt: new Date() },
-      });
-      if (consumed.count !== 1) fail('INVALID_MAGIC_LINK', 401);
-      if (link.projectId)
-        await this.checkLink(link.projectId, link.linkToken ? decrypt(link.linkToken) : undefined);
-      const user = await tx.user.upsert({
-        where: { email: link.email },
-        create: { email: link.email },
-        update: {},
-      });
-      const sessionToken = token();
-      await tx.session.create({
-        data: {
-          userId: user.id,
-          tokenHash: hash(sessionToken),
-          expiresAt: new Date(Date.now() + 30 * 86400000),
-        },
-      });
-      if (link.projectId)
-        await tx.project.updateMany({
-          where: { id: link.projectId, clientEmail: null },
-          data: { clientEmail: link.email },
-        });
-      return {
-        sessionToken,
-        redirect: link.projectId
-          ? `/p/${link.projectId}?token=${encodeURIComponent(decrypt(link.linkToken!))}`
-          : '/dashboard',
-      };
-    });
-  }
-  async session(raw?: string) {
-    if (!raw) fail('UNAUTHENTICATED', 401);
-    const session = await this.db.session.findUnique({
-      where: { tokenHash: hash(raw) },
-      include: { user: true },
-    });
-    if (!session || session.revokedAt || session.expiresAt < new Date())
-      fail('UNAUTHENTICATED', 401);
-    return session.user;
-  }
-  async logout(raw?: string) {
-    if (raw)
-      await this.db.session.updateMany({
-        where: { tokenHash: hash(raw) },
-        data: { revokedAt: new Date() },
-      });
-    return { loggedOut: true };
-  }
-  async checkLink(projectId: string, raw?: string) {
-    if (!raw) fail('PROJECT_ACCESS_DENIED', 403);
-    const link = await this.db.projectLink.findUnique({ where: { tokenHash: hash(raw) } });
-    if (
-      !link ||
-      link.projectId !== projectId ||
-      link.revokedAt ||
-      (link.expiresAt && link.expiresAt < new Date())
-    )
-      fail('PROJECT_ACCESS_DENIED', 403);
-    return link;
-  }
-  async project(user: User, id: string, raw?: string, data?: false): Promise<Project>;
+  constructor(private db: PrismaService) {}
+  async project(user: User, id: string, data?: false): Promise<Project>;
   async project(
     user: User,
     id: string,
-    raw: string | undefined,
     data: 'brief',
   ): Promise<Prisma.ProjectGetPayload<{ include: { brief: true } }>>;
   async project(
     user: User,
     id: string,
-    raw: string | undefined,
     data: true,
   ): Promise<
     Prisma.ProjectGetPayload<{
@@ -141,7 +31,7 @@ export class AuthService {
       };
     }>
   >;
-  async project(user: User, id: string, raw?: string, data: boolean | 'brief' = false) {
+  async project(user: User, id: string, data: boolean | 'brief' = false) {
     const project = await this.db.project.findUnique({
       where: { id },
       ...(data === 'brief'
@@ -157,7 +47,8 @@ export class AuthService {
           : {}),
     });
     if (!project) fail('PROJECT_NOT_FOUND', 404);
-    if (user.role !== 'professional' && project.ownerId !== user.id) await this.checkLink(id, raw);
+    if (user.role !== 'professional' && project.ownerId !== user.id)
+      fail('PROJECT_ACCESS_DENIED', 403);
     return project;
   }
   professional(user: User) {
@@ -179,64 +70,6 @@ export class AuthService {
       create: { email, role: 'professional' },
       update: { role: 'professional' },
     });
-  }
-  async verifyAdmin(raw: string) {
-    const [payload, signature] = raw.split('.');
-    if (
-      !payload ||
-      !signature ||
-      !secureEqual(
-        createHmac('sha256', encryptionKey()).update(payload).digest('base64url'),
-        signature,
-      )
-    )
-      fail('INVALID_ADMIN_LINK', 401);
-    let data: AdminClaim;
-    try {
-      const parsed: unknown = JSON.parse(Buffer.from(payload, 'base64url').toString());
-      if (!parsed || typeof parsed !== 'object') fail('INVALID_ADMIN_LINK', 401);
-      const claim = parsed as Record<string, unknown>;
-      if (
-        typeof claim.userId !== 'string' ||
-        typeof claim.projectId !== 'string' ||
-        claim.permission !== 'edit' ||
-        typeof claim.exp !== 'number' ||
-        typeof claim.nonce !== 'string'
-      )
-        fail('INVALID_ADMIN_LINK', 401);
-      data = claim as unknown as AdminClaim;
-    } catch {
-      fail('INVALID_ADMIN_LINK', 401);
-    }
-    if (data.exp < Date.now() || data.permission !== 'edit') fail('INVALID_ADMIN_LINK', 401);
-    const user = await this.db.user.findUnique({ where: { id: data.userId } });
-    if (!user) fail('INVALID_ADMIN_LINK', 401);
-    this.professional(user);
-    const sessionToken = token();
-    await this.db.$transaction(async (tx) => {
-      const claim = await tx.adminNonce.updateMany({
-        where: {
-          nonce: data.nonce,
-          userId: user.id,
-          projectId: data.projectId,
-          usedAt: null,
-          expiresAt: { gt: new Date() },
-        },
-        data: { usedAt: new Date() },
-      });
-      if (claim.count !== 1) fail('INVALID_ADMIN_LINK', 401);
-      await tx.session.create({
-        data: {
-          userId: user.id,
-          tokenHash: hash(sessionToken),
-          expiresAt: new Date(Math.min(data.exp, Date.now() + 30 * 86400000)),
-        },
-      });
-    });
-    return { sessionToken, redirect: `/p/${data.projectId}` };
-  }
-  publicUser(user: User) {
-    return { id: user.id, email: user.email, role: user.role, hasAiApiKey: !!user.encryptedApiKey };
   }
   async saveKey(user: User, key: string) {
     this.professional(user);

@@ -44,21 +44,6 @@ export { Prisma }
  */
 export type User = Prisma.UserModel
 /**
- * Model Session
- * 
- */
-export type Session = Prisma.SessionModel
-/**
- * Model MagicLink
- * 
- */
-export type MagicLink = Prisma.MagicLinkModel
-/**
- * Model AdminNonce
- * 
- */
-export type AdminNonce = Prisma.AdminNonceModel
-/**
  * Model Project
  * 
  */
@@ -68,11 +53,6 @@ export type Project = Prisma.ProjectModel
  * 
  */
 export type ChangeRequest = Prisma.ChangeRequestModel
-/**
- * Model ProjectLink
- * 
- */
-export type ProjectLink = Prisma.ProjectLinkModel
 /**
  * Model Message
  * 
