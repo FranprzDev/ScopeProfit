@@ -29,7 +29,9 @@ let quotes: QuotesService;
 let maintenance: MaintenanceService;
 
 const rejectedWith = (code: string, status: number) => (error: unknown) =>
-  error instanceof HttpException && error.message === code && error.getStatus() === status;
+  error instanceof HttpException &&
+  (error.getResponse() as { code?: string }).code === code &&
+  error.getStatus() === status;
 
 before(async () => {
   if (skip) return;
