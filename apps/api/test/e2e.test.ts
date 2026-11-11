@@ -11,6 +11,7 @@ import cookieParser from 'cookie-parser';
 import express from 'express';
 import { AppModule } from '../src/app.module';
 import { ApiErrorHandler } from '../src/api-error-handler';
+import { setupApiDocs } from '../src/api-docs';
 import { PrismaService } from '../src/prisma.service';
 import { DocumentsService } from '../src/modules/documents/documents.service';
 import { emptyBrief } from '@scopeprofit/contracts';
@@ -32,6 +33,7 @@ before(async () => {
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
   );
   app.useGlobalFilters(new ApiErrorHandler());
+  setupApiDocs(app);
   await app.listen(0);
   const address = app.getHttpServer().address();
   baseUrl = `http://127.0.0.1:${address.port}`;
@@ -51,6 +53,22 @@ test(
     assert.equal(response.status, 200);
     assert.equal(body.success, true);
     assert.equal(body.data.status, 'ok');
+  },
+);
+
+test(
+  'GET /docs serves the OpenAPI UI and /docs-json the document',
+  { skip: skip ? 'DATABASE_URL not set' : false },
+  async () => {
+    const ui = await fetch(`${baseUrl}/docs`);
+    assert.equal(ui.status, 200);
+    assert.match(await ui.text(), /swagger-ui/i);
+    const json = await fetch(`${baseUrl}/docs-json`);
+    assert.equal(json.status, 200);
+    const document = await json.json();
+    assert.equal(document.info.title, 'ScopeProfit API');
+    assert.ok(document.paths['/api/projects']);
+    assert.ok(document.paths['/api/health']);
   },
 );
 
