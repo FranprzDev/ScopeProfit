@@ -55,9 +55,6 @@ export default {
     process.env.ENCRYPTION_KEY = env.ENCRYPTION_KEY;
     process.env.PUBLIC_API_URL = env.PUBLIC_API_URL;
     if (env.WEB_URL) process.env.WEB_URL = env.WEB_URL;
-    if (env.BREVO_API_KEY) process.env.BREVO_API_KEY = env.BREVO_API_KEY;
-    if (env.BREVO_SENDER_EMAIL) process.env.BREVO_SENDER_EMAIL = env.BREVO_SENDER_EMAIL;
-    if (env.BREVO_SENDER_NAME) process.env.BREVO_SENDER_NAME = env.BREVO_SENDER_NAME;
     void ctx;
     return app.fetch(request, env, ctx);
   },

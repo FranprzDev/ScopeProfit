@@ -19,9 +19,7 @@ export const schema = {
     .string()
     .email()
     .optional()
-    .describe(
-      'Client email; used for delivery only when approve_scope explicitly sets send_to_client=true',
-    ),
+    .describe('Client email; identifies the client for their magic-link portal sign-in'),
 };
 
 export const metadata: ToolMetadata = {

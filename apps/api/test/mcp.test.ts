@@ -171,7 +171,7 @@ before(async () => {
   const email = new EmailService();
   const auth = new AuthService(db, email);
   const storage = new StorageService();
-  documents = new DocumentsService(db, storage, email);
+  documents = new DocumentsService(db, storage);
   const agent = new AgentService(db, documents, storage);
   const projects = new ProjectsService(db, auth);
   const changes = new ChangeRequestsService(db, auth);
@@ -447,7 +447,6 @@ test('a full scoping flow runs end to end through MCP tools', dbOnly, async () =
       await errorCode('approve_scope', {
         project_id: projectId,
         document_version: status.document.version,
-        send_to_client: false,
       }),
       'ESTIMATE_BLOCKED',
     );
@@ -563,15 +562,12 @@ test('a full scoping flow runs end to end through MCP tools', dbOnly, async () =
     status = await data('get_project', { project_id: projectId });
     const approved = await data<{
       status: string;
-      emailedToClient: boolean;
       downloads: { docx: { url: string } };
     }>('approve_scope', {
       project_id: projectId,
       document_version: status.document.version,
-      send_to_client: false,
     });
     assert.equal(approved.status, 'approved');
-    assert.equal(approved.emailedToClient, false);
     assert.match(approved.downloads.docx.url, /\/api\/exports\//);
     assert.equal(
       await errorCode('update_scope_section', {
@@ -663,22 +659,6 @@ test('access token verification carries the already-loaded user', dbOnly, async 
   assert.equal(principal.user.id, owner.id);
   await keys.revoke(created.id);
   await assert.rejects(() => provider.verifyAccessToken(created.key));
-});
-
-test('approve_scope refuses to email when the project has no client email', dbOnly, async () => {
-  const created = await data<{ projectId: string }>('create_project', { name: 'Sin email' });
-  assert.equal(
-    await errorCode('approve_scope', {
-      project_id: created.projectId,
-      document_version: 1,
-      send_to_client: true,
-    }),
-    'CLIENT_EMAIL_REQUIRED',
-  );
-  assert.equal(
-    await errorCode('get_tldr', { project_id: '00000000-0000-4000-8000-000000000000' }),
-    'PROJECT_NOT_FOUND',
-  );
 });
 
 test('MCP and OAuth routes skip the cookie CSRF check, the REST API does not', () => {
@@ -786,7 +766,7 @@ test(
       documents.saveDraft(tx, created.projectId, owner.id),
     );
     await assert.rejects(
-      documents.approve(created.projectId, owner.id, document.version, { deliver: false }),
+      documents.approve(created.projectId, owner.id, document.version),
       withCode('INVALID_BRIEF'),
     );
     assert.equal(
@@ -823,45 +803,6 @@ test(
     assert.equal(
       (await tools.listPendingQuestions(owner, { projectId: created.projectId })).questions.length,
       0,
-    );
-  },
-);
-
-test(
-  'failed approval does not set a destination and mismatched destinations fail explicitly',
-  dbOnly,
-  async () => {
-    const created = await tools.createProject(owner, { name: 'Retail recipient transaction' });
-    await tools.updateScopeSection(owner, {
-      projectId: created.projectId,
-      expectedVersion: 0,
-      section: 'summary',
-      value: 'Inventory',
-    });
-    await assert.rejects(
-      tools.approveScope(owner, {
-        projectId: created.projectId,
-        documentVersion: 999,
-        clientEmail: 'wrong@scopeprofit.test',
-      }),
-      withCode('VERSION_CONFLICT'),
-    );
-    assert.equal((await tools.getProject(owner, created.projectId)).clientEmail, null);
-    await db.project.update({
-      where: { id: created.projectId },
-      data: { clientEmail: 'stored@scopeprofit.test' },
-    });
-    await assert.rejects(
-      tools.approveScope(owner, {
-        projectId: created.projectId,
-        documentVersion: 1,
-        clientEmail: 'different@scopeprofit.test',
-      }),
-      withCode('CLIENT_EMAIL_MISMATCH'),
-    );
-    assert.equal(
-      (await tools.getProject(owner, created.projectId)).clientEmail,
-      'stored@scopeprofit.test',
     );
   },
 );
@@ -1187,11 +1128,7 @@ test('concurrent MCP workers initialize checkpoint migrations safely', dbOnly, a
     const storage = new StorageService();
     return {
       connection,
-      worker: new AgentService(
-        connection,
-        new DocumentsService(connection, storage, new EmailService()),
-        storage,
-      ),
+      worker: new AgentService(connection, new DocumentsService(connection, storage), storage),
     };
   });
   try {
@@ -1258,7 +1195,6 @@ test('archiving an approved scope blocks later approval or delivery attempts', d
     tools.approveScope(owner, { projectId: created.projectId, documentVersion: version }),
     withCode('PROJECT_LOCKED'),
   );
-  await assert.rejects(documents.deliver(created.projectId, version), withCode('PROJECT_LOCKED'));
   assert.equal((await tools.getProject(owner, created.projectId)).status, ProjectStatus.archived);
 });
 

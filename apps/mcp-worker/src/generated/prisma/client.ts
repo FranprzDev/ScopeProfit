@@ -13,12 +13,12 @@
 globalThis['__dirname'] = '/'
 
 import * as runtime from "@prisma/client/runtime/wasm-engine-edge"
-import * as $Enums from "./enums.ts"
-import * as $Class from "./internal/class.ts"
-import * as Prisma from "./internal/prismaNamespace.ts"
+import * as $Enums from "./enums"
+import * as $Class from "./internal/class"
+import * as Prisma from "./internal/prismaNamespace"
 
-export * as $Enums from './enums.ts'
-export * from "./enums.ts"
+export * as $Enums from './enums'
+export * from "./enums"
 /**
  * ## Prisma Client
  * 

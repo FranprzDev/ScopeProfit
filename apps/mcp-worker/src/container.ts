@@ -26,9 +26,6 @@ export interface WorkerEnv {
   STORAGE_KV?: KVNamespace;
   PUBLIC_API_URL: string;
   WEB_URL?: string;
-  BREVO_API_KEY?: string;
-  BREVO_SENDER_EMAIL?: string;
-  BREVO_SENDER_NAME?: string;
   MCP_RATE_LIMIT_PER_MINUTE?: string;
 }
 
@@ -51,7 +48,7 @@ export function getContainer(env: WorkerEnv): Container {
   const storage = new StorageService((env.STORAGE ?? env.STORAGE_KV) as never) as never;
   const auth = new AuthService(db, email);
   const projects = new ProjectsService(db, auth);
-  const documents = new DocumentsService(db, storage, email);
+  const documents = new DocumentsService(db, storage);
   const agent = new AgentService(db) as never;
   const changes = new ChangeRequestsService(db, auth);
   const rateCards = new RateCardsService(db, auth);

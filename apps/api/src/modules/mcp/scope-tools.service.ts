@@ -610,30 +610,18 @@ export class ScopeToolsService {
     input: {
       projectId: string;
       documentVersion: number;
-      sendToClient?: boolean;
-      clientEmail?: string;
       manualEditsReviewed?: boolean;
     },
   ) {
     this.auth.professional(user);
     const project = await this.project(user, input.projectId);
-    const sendToClient = input.sendToClient ?? false;
-    if (sendToClient && !project.clientEmail && !input.clientEmail)
-      fail(
-        'CLIENT_EMAIL_REQUIRED',
-        400,
-        'Pass client_email, or send_to_client=false and share an export_document link instead',
-      );
     const approved = await this.documents.approve(project.id, user.id, input.documentVersion, {
-      deliver: sendToClient,
-      clientEmail: input.clientEmail,
       manualEditsReviewed: input.manualEditsReviewed,
     });
     return {
       projectId: project.id,
       documentVersion: input.documentVersion,
       status: approved?.status ?? 'approved',
-      emailedToClient: !!approved?.deliveredAt,
       downloads: {
         pdf: exportUrl(project.id, input.documentVersion, 'pdf'),
         docx: exportUrl(project.id, input.documentVersion, 'docx'),

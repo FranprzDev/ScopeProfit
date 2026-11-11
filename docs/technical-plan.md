@@ -74,7 +74,7 @@ El Brief estructurado es autoritativo en PostgreSQL. El Markdown es un artefacto
 
 ## 6. Estados y reglas
 
-Estados de proyecto: `draft` → `in_review` → `changes_requested` → `approved` → `delivered` → `archived`.
+Estados de proyecto: `draft` → `in_review` → `changes_requested` → `approved` → `archived`. (El estado `delivered` y la entrega por email salieron del alcance del producto.)
 
 - El agente puede actualizar el borrador, pero no aprobar ni entregar.
 - Aprobar valida actor, estado y versión exacta.
