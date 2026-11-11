@@ -5,6 +5,7 @@ export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://scopeprofit
 /** Every public route of the landing. Add a member here before adding a page. */
 export enum SitePath {
   Home = '/',
+  Docs = '/docs',
 }
 
 type ChangeFrequency = NonNullable<MetadataRoute.Sitemap[number]['changeFrequency']>;
@@ -23,6 +24,12 @@ export const SITE_PAGES: Record<SitePath, SitePage> = {
     lastModified: '2026-11-05',
     changeFrequency: 'weekly',
     priority: 1,
+  },
+  [SitePath.Docs]: {
+    path: SitePath.Docs,
+    lastModified: '2026-11-11',
+    changeFrequency: 'monthly',
+    priority: 0.8,
   },
 };
 

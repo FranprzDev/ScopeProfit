@@ -29,6 +29,7 @@ export default function Home() {
           <a href="#ejemplo">Ejemplo</a>
           <a href="#presupuesto">Presupuesto</a>
           <a href="#conectar">Instalación</a>
+          <a href="/docs">Docs</a>
           <a href={REPO_URL}>GitHub</a>
         </nav>
       </header>
@@ -255,7 +256,7 @@ export default function Home() {
       </main>
       <footer className={s.footer}>
         <a href={REPO_URL}>Código abierto en GitHub</a>
-        <a href={MCP_DOCS_URL}>Documentación</a>
+        <a href="/docs">Documentación</a>
         <Image
           src="/brand/wordmark.png"
           alt="ScopeProfit"
