@@ -4,6 +4,7 @@ on:
     paths:
       [
         'apps/api/**',
+        'apps/mcp-worker/**',
         'packages/contracts/**',
         'package.json',
         '.prettierrc.json',
@@ -19,6 +20,7 @@ on:
     paths:
       [
         'apps/api/**',
+        'apps/mcp-worker/**',
         'packages/contracts/**',
         'package.json',
         '.prettierrc.json',
