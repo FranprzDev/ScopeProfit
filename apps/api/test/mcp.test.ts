@@ -34,7 +34,11 @@ import { RateCardsService } from '../src/modules/pricing/rate-cards.service';
 import { QuotesService } from '../src/modules/pricing/quotes.service';
 import { ApiKeysService } from '../src/modules/mcp/api-keys.service';
 import { ScopeToolsService } from '../src/modules/mcp/scope-tools.service';
-import { exportUrl, verifyExportToken } from '../src/modules/mcp/export-links';
+import {
+  exportUrl,
+  verifyExportToken,
+  verifyExportTokenDetailed,
+} from '../src/modules/mcp/export-links';
 import { fetchImage, isPublicAddress } from '../src/modules/mcp/image-fetch';
 import { signConsent, verifyConsent } from '../src/modules/mcp/oauth-consent';
 import { isMcpRoute } from '../src/modules/mcp/mcp-http';
@@ -75,6 +79,23 @@ async function errorCode(name: string, args: Record<string, unknown>) {
 
 const withCode = (code: string) => (error: unknown) =>
   error instanceof HttpException && (error.getResponse() as { code?: string }).code === code;
+
+test('export token verification distinguishes expired from invalid links', () => {
+  const good = exportUrl('6f7c1d1e-6c4f-4f39-9d1c-2d2a7a1d0c11', 1, 'pdf').url.split('/').pop()!;
+  assert.equal(verifyExportTokenDetailed(good).status, 'ok');
+  assert.equal(verifyExportTokenDetailed(`${good}x`).status, 'invalid');
+  assert.equal(verifyExportTokenDetailed('garbage').status, 'invalid');
+  const expired = verifyExportTokenDetailed(good.replace(/\.[A-Za-z0-9_-]+$/, ''));
+  assert.equal(expired.status, 'invalid'); // unsigned payload
+  const claim = verifyExportToken(good)!;
+  const expiredPayload = Buffer.from(JSON.stringify({ ...claim, exp: Date.now() - 1000 })).toString(
+    'base64url',
+  );
+  const sig = createHmac('sha256', Buffer.alloc(32, 7))
+    .update(`document-export:${expiredPayload}`)
+    .digest('base64url');
+  assert.equal(verifyExportTokenDetailed(`${expiredPayload}.${sig}`).status, 'expired');
+});
 
 test('private and loopback addresses are never fetched as client images', async () => {
   for (const address of [
