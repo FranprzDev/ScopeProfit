@@ -1,7 +1,14 @@
 /** Minimal storage interface shared by the R2 and KV backends (put/get/delete by key). */
 export interface StorageBackend {
-  put(key: string, value: ArrayBuffer | Uint8Array, options?: Record<string, unknown>): Promise<unknown>;
-  get(key: string, options?: Record<string, unknown>): Promise<{ arrayBuffer(): Promise<ArrayBuffer> } | ArrayBuffer | null>;
+  put(
+    key: string,
+    value: ArrayBuffer | Uint8Array,
+    options?: Record<string, unknown>,
+  ): Promise<unknown>;
+  get(
+    key: string,
+    options?: Record<string, unknown>,
+  ): Promise<{ arrayBuffer(): Promise<ArrayBuffer> } | ArrayBuffer | null>;
   delete(key: string): Promise<unknown>;
 }
 

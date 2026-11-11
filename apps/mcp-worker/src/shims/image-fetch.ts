@@ -14,7 +14,8 @@ const EXTENSIONS: Record<string, string> = {
 
 function isPrivateIpLiteral(host: string): boolean {
   const bare = host.replace(/^\[|\]$/g, '').toLowerCase();
-  if (bare === 'localhost' || bare.endsWith('.localhost') || bare.endsWith('.internal')) return true;
+  if (bare === 'localhost' || bare.endsWith('.localhost') || bare.endsWith('.internal'))
+    return true;
   if (bare === '::1' || bare.startsWith('fe80:') || bare.startsWith('fc') || bare.startsWith('fd'))
     return true;
   const ipv4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(bare);

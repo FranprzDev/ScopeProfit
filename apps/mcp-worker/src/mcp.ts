@@ -82,9 +82,9 @@ export async function handleMcp(request: Request, container: Container): Promise
   const server = buildServer();
   await server.connect(transport);
   try {
-    return await scopeToolContext.provider({ tools: container.tools, user: principal.user }, () =>
+    return (await scopeToolContext.provider({ tools: container.tools, user: principal.user }, () =>
       transport.handleRequest(request),
-    ) as Response;
+    )) as Response;
   } finally {
     await transport.close().catch(() => undefined);
   }

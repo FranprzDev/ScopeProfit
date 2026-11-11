@@ -9,7 +9,11 @@ export class HttpException extends Error {
     private readonly body: unknown,
     private readonly statusCode: number,
   ) {
-    super(typeof body === 'object' && body && 'message' in body ? String((body as { message: unknown }).message) : String(body));
+    super(
+      typeof body === 'object' && body && 'message' in body
+        ? String((body as { message: unknown }).message)
+        : String(body),
+    );
     this.name = 'HttpException';
   }
   getResponse() {

@@ -17,7 +17,10 @@ app.get('/health', (c) => c.json({ ok: true, service: 'scopeprofit-mcp' }));
 app.get('/api/exports/:token', async (c) => {
   const claim = verifyExportToken(c.req.param('token'));
   if (!claim)
-    return c.json({ code: 'INVALID_EXPORT_LINK', message: 'Export link is invalid or expired' }, 404);
+    return c.json(
+      { code: 'INVALID_EXPORT_LINK', message: 'Export link is invalid or expired' },
+      404,
+    );
   const { documents, quotes } = getContainer(c.env);
   if (claim.artifact === 'quote') {
     if (claim.format !== 'pdf' && claim.format !== 'docx')

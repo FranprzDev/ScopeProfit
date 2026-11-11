@@ -29,9 +29,29 @@ const redirects = new Map(
 );
 
 const NODE_BUILTINS = [
-  'assert', 'async_hooks', 'buffer', 'crypto', 'diagnostics_channel', 'events', 'fs', 'http',
-  'http2', 'https', 'net', 'os', 'path', 'process', 'querystring', 'stream', 'string_decoder',
-  'tls', 'tty', 'url', 'util', 'worker_threads', 'zlib',
+  'assert',
+  'async_hooks',
+  'buffer',
+  'crypto',
+  'diagnostics_channel',
+  'events',
+  'fs',
+  'http',
+  'http2',
+  'https',
+  'net',
+  'os',
+  'path',
+  'process',
+  'querystring',
+  'stream',
+  'string_decoder',
+  'tls',
+  'tty',
+  'url',
+  'util',
+  'worker_threads',
+  'zlib',
 ];
 
 /** ESM re-export shims for bare node builtins: converts CJS require('buffer') into
@@ -48,7 +68,6 @@ const builtinAliases = Object.fromEntries(
     return [name, file];
   }),
 );
-
 
 /** Redirects absolute resolved paths of reused api sources to their worker replacements. */
 const pathSubstitutions = {

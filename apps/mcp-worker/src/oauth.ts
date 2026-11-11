@@ -60,7 +60,10 @@ export function oauthApp() {
 
   app.on(['GET', 'POST'], '/authorize', async (c) => {
     const container = getContainer(c.env);
-    return lite(c, authorizationHandler({ provider: container.provider, rateLimit: noRateLimit }) as never);
+    return lite(
+      c,
+      authorizationHandler({ provider: container.provider, rateLimit: noRateLimit }) as never,
+    );
   });
   app.post('/token', async (c) => {
     const container = getContainer(c.env);
@@ -70,12 +73,18 @@ export function oauthApp() {
     const container = getContainer(c.env);
     return lite(
       c,
-      clientRegistrationHandler({ clientsStore: container.provider.clientsStore, rateLimit: noRateLimit }) as never,
+      clientRegistrationHandler({
+        clientsStore: container.provider.clientsStore,
+        rateLimit: noRateLimit,
+      }) as never,
     );
   });
   app.post('/revoke', async (c) => {
     const container = getContainer(c.env);
-    return lite(c, revocationHandler({ provider: container.provider, rateLimit: noRateLimit }) as never);
+    return lite(
+      c,
+      revocationHandler({ provider: container.provider, rateLimit: noRateLimit }) as never,
+    );
   });
 
   // Consent form target: verifies the pasted API key and issues the authorization code.

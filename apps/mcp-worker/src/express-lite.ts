@@ -109,13 +109,18 @@ export class LiteResponse {
       if (!this.headers.has('content-type')) this.headers.set('content-type', 'application/json');
     } else {
       payload = String(this.body);
-      if (!this.headers.has('content-type')) this.headers.set('content-type', 'text/html; charset=utf-8');
+      if (!this.headers.has('content-type'))
+        this.headers.set('content-type', 'text/html; charset=utf-8');
     }
     return new Response(payload, { status: this.statusCode, headers: this.headers });
   }
 }
 
-type LiteHandler = (req: LiteRequest, res: LiteResponse, next: (error?: unknown) => void) => unknown;
+type LiteHandler = (
+  req: LiteRequest,
+  res: LiteResponse,
+  next: (error?: unknown) => void,
+) => unknown;
 
 /** Runs one express-style handler and resolves with the web-standard Response. */
 export async function runHandler(
@@ -137,17 +142,21 @@ export async function runHandler(
 
 function errorResponse(error: unknown): Response {
   if (error instanceof OAuthError) {
-    const status = error instanceof InvalidTokenError || error instanceof InvalidClientError ? 401 : 400;
+    const status =
+      error instanceof InvalidTokenError || error instanceof InvalidClientError ? 401 : 400;
     return new Response(JSON.stringify(error.toResponseObject()), {
       status,
       headers: { 'content-type': 'application/json' },
     });
   }
   console.error('oauth endpoint failed', error);
-  return new Response(JSON.stringify({ error: 'server_error', error_description: 'Internal error' }), {
-    status: 500,
-    headers: { 'content-type': 'application/json' },
-  });
+  return new Response(
+    JSON.stringify({ error: 'server_error', error_description: 'Internal error' }),
+    {
+      status: 500,
+      headers: { 'content-type': 'application/json' },
+    },
+  );
 }
 
 /** Parses a request body the way express.urlencoded / express.json would. */

@@ -43,7 +43,11 @@ interface R2Bucket {
   delete(key: string): Promise<void>;
 }
 interface KVNamespace {
-  put(key: string, value: ArrayBuffer | Uint8Array | string, options?: Record<string, unknown>): Promise<void>;
+  put(
+    key: string,
+    value: ArrayBuffer | Uint8Array | string,
+    options?: Record<string, unknown>,
+  ): Promise<void>;
   get(key: string, options?: { type?: string }): Promise<ArrayBuffer | string | null>;
   delete(key: string): Promise<void>;
 }
