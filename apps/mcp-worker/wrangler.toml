@@ -4,7 +4,7 @@ compatibility_date = "2026-10-01"
 compatibility_flags = ["nodejs_compat", "nodejs_compat_populate_process_env"]
 workers_dev = true
 
-# Secrets (wrangler secret put): DATABASE_URL, ENCRYPTION_KEY, BREVO_API_KEY (optional until Brevo exists)
+# Secrets (wrangler secret put): DATABASE_URL, ENCRYPTION_KEY
 # process.env is populated from bindings by nodejs_compat_populate_process_env.
 
 [vars]

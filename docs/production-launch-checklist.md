@@ -32,7 +32,7 @@ For host-led MCP drafting without backend AI or email, use [self-host-chatgpt.md
 - [ ] Desplegar con `docker-compose.yml` (o el orquestador elegido) en el entorno de producción.
 - [ ] Dar de alta al primer usuario y ejecutar un flujo completo real (MCP → brief → documento) como smoke test manual final.
 
-Local PostgreSQL tests do not prove live provider credentials, email delivery, public HTTPS or a real ChatGPT connection. Verify each enabled external service before declaring production.
+Local PostgreSQL tests do not prove live provider credentials, magic-link email sending, public HTTPS or a real ChatGPT connection. Verify each enabled external service before declaring production.
 
 ## 6. MCP server (MCP-first release)
 

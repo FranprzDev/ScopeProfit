@@ -3,11 +3,9 @@ import { randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import type { BriefData, DocumentData, TiptapNode } from '@scopeprofit/contracts';
 import { PrismaService } from '../../prisma.service';
-import { EmailService } from '../../email.service';
 import { StorageService } from '../storage/storage.service';
 import { markdown, render, validateEditor } from './render';
 import { ProjectStatus } from '@prisma/client';
-import { isEmail } from 'class-validator';
 import { validateBriefForSave } from '../brief/brief.validation';
 
 type Artifact = { path: string; checksum: string; size: number };
@@ -21,7 +19,6 @@ export class DocumentsService {
   constructor(
     private prisma: PrismaService,
     private storage: StorageService,
-    private email: EmailService,
   ) {}
   async latest(projectId: string) {
     const document = await this.prisma.document.findUnique({
@@ -274,14 +271,14 @@ export class DocumentsService {
     };
   }
   /**
-   * Approves the current document version. Delivery by email runs by default; MCP callers can
-   * approve without emailing (`deliver: false`) and hand the client an export link instead.
+   * Approves the current document version and locks the project. Approval never emails the
+   * client: the professional hands them an export link instead.
    */
   async approve(
     projectId: string,
     userId: string,
     version: number,
-    options: { deliver?: boolean; clientEmail?: string; manualEditsReviewed?: boolean } = {},
+    options: { manualEditsReviewed?: boolean } = {},
   ) {
     await this.prisma.$transaction(
       async (tx) => {
@@ -302,16 +299,7 @@ export class DocumentsService {
         });
         if (!saved || saved.briefVersion !== project.brief?.version)
           return fail('VERSION_CONFLICT', 'Document does not match current brief');
-        const recipient = options.clientEmail?.trim().toLowerCase();
-        if (recipient && !isEmail(recipient))
-          return fail('INVALID_CLIENT_EMAIL', 'Client email is invalid', 400);
-        if (recipient && project.clientEmail && recipient !== project.clientEmail.toLowerCase())
-          return fail('CLIENT_EMAIL_MISMATCH', 'Client email differs from the stored destination');
-        if (saved.approvedAt) {
-          if (recipient && !project.clientEmail)
-            await tx.project.update({ where: { id: projectId }, data: { clientEmail: recipient } });
-          return;
-        }
+        if (saved.approvedAt) return;
         if (
           !['in_review', 'changes_requested'].includes(project.status) ||
           ['pending', 'running'].includes(project.agentStatus)
@@ -358,15 +346,11 @@ export class DocumentsService {
             status: 'approved',
             approvedBy: userId,
             approvedAt: new Date(),
-            deliveryKey: `scopeprofit-${saved.id}`,
           },
         });
         await tx.project.update({
           where: { id: projectId },
-          data: {
-            status: ProjectStatus.approved,
-            ...(recipient ? { clientEmail: recipient } : {}),
-          },
+          data: { status: ProjectStatus.approved },
         });
         await tx.auditEvent.create({
           data: {
@@ -380,57 +364,9 @@ export class DocumentsService {
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
-    if (options.deliver === false) {
-      const document = await this.prisma.document.findUniqueOrThrow({ where: { projectId } });
-      return this.prisma.documentVersion.findUniqueOrThrow({
-        where: { documentId_version: { documentId: document.id, version } },
-      });
-    }
-    return this.deliver(projectId, version);
-  }
-  async deliver(projectId: string, version: number) {
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-      include: { document: true },
-    });
-    if (!project?.document) return fail('DOCUMENT_NOT_FOUND', 'Document not found', 404);
-    if (project.status === ProjectStatus.archived)
-      return fail('PROJECT_LOCKED', 'Archived projects cannot be delivered');
-    const saved = await this.prisma.documentVersion.findUnique({
-      where: { documentId_version: { documentId: project.document.id, version } },
-    });
-    if (!saved?.approvedAt) return fail('DOCUMENT_NOT_APPROVED', 'Document requires approval');
-    if (saved.deliveredAt) return saved;
-    if (!project.clientEmail)
-      return fail('CLIENT_EMAIL_REQUIRED', 'Client must sign in before document delivery');
-    const [pdf, docx] = await Promise.all([
-      this.download(projectId, version, 'pdf'),
-      this.download(projectId, version, 'docx'),
-    ]);
-    await this.email.send(
-      project.clientEmail,
-      'Tu alcance aprobado — Scope-to-Profit',
-      '<p>Adjuntamos el alcance aprobado en PDF y Word editable.</p>',
-      [pdf, docx].map((file) => ({ name: file.name, content: file.buffer.toString('base64') })),
-      saved.deliveryKey!,
-    );
-    return this.prisma.$transaction(async (tx) => {
-      const changed = await tx.documentVersion.updateMany({
-        where: { id: saved.id, deliveredAt: null },
-        data: { deliveredAt: new Date(), status: 'delivered' },
-      });
-      if (changed.count) {
-        await tx.project.update({ where: { id: projectId }, data: { status: 'delivered' } });
-        await tx.auditEvent.create({
-          data: {
-            projectId,
-            action: 'document.delivered',
-            result: 'success',
-            metadata: { version },
-          },
-        });
-      }
-      return tx.documentVersion.findUnique({ where: { id: saved.id } });
+    const document = await this.prisma.document.findUniqueOrThrow({ where: { projectId } });
+    return this.prisma.documentVersion.findUniqueOrThrow({
+      where: { documentId_version: { documentId: document.id, version } },
     });
   }
 }

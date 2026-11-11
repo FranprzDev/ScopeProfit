@@ -20,7 +20,7 @@ ScopeProfit runs as a [Model Context Protocol](https://modelcontextprotocol.io) 
 | `answer_question`        | write       | Stores the client's answer as a message, removes the question, regenerates the document.                                |
 | `get_scope_document`     | read        | Template 7.1 rendered as Markdown + structured brief + `briefVersion`.                                                  |
 | `update_scope_section`   | write       | Replaces one section (optimistic lock on `expected_version`), validates it, saves a document draft.                     |
-| `approve_scope`          | destructive | Approves the current document version without email by default; explicit send_to_client:true delivers via Brevo.        |
+| `approve_scope`          | destructive | Approves the current document version and locks the project; approval never emails the client.                       |
 | `export_document`        | write       | Signed, expiring download URL for `pdf`, `docx` or `md`; can regenerate and persist the document.                       |
 | `get_quote`              | read        | Quote of a project: status, currency, priced module lines, payment milestones, terms, validity and totals.              |
 | `save_quote`             | write       | Create or update the DRAFT quote from scope estimates or explicit lines, priced only with the professional's rate card. |

@@ -10,8 +10,8 @@
  */
 
 import type * as runtime from "@prisma/client/runtime/wasm-engine-edge"
-import * as $Enums from "./enums.ts"
-import type * as Prisma from "./internal/prismaNamespace.ts"
+import * as $Enums from "./enums"
+import type * as Prisma from "./internal/prismaNamespace"
 
 
 export type UuidFilter<$PrismaModel = never> = {

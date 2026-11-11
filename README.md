@@ -53,7 +53,7 @@ Use the opt-in HTTPS overlay and host-led drafting setup in [docs/self-host-chat
 1. `create_project` → `add_client_input` with the client's words and image URLs.
 2. Either the host LLM drafts the scope with `update_scope_section` (every requirement must quote a stored message), or the server agent does it in the background (`analyze: true`, needs the owner's Gemini key).
 3. `get_tldr` / `list_pending_questions` → `answer_question` until nothing blocks the estimate.
-4. `get_scope_document` to review template 7.1 → `approve_scope` (locks the reviewed version without email by default; explicit `send_to_client: true` delivers via Brevo) → `export_document` for a signed download link.
+4. `get_scope_document` to review template 7.1 → `approve_scope` (locks the reviewed version; approval never emails the client) → `export_document` for a signed download link to share.
 
 ## Stack
 
@@ -61,7 +61,7 @@ Use the opt-in HTTPS overlay and host-led drafting setup in [docs/self-host-chat
 - **MCP:** xmcp 1.9 (file-based tools, Streamable HTTP + stdio) with the existing OAuth 2.1 authorization server
 - **Agent (optional):** LangGraph + LangChain JS with Gemini; clarification gate via Vercel AI Gateway
 - **Documents:** structured Brief → Markdown, `pdfkit` → PDF, `docx` → DOCX
-- **Email:** Brevo (approved document delivery)
+- **Email:** Brevo (magic-link sign-in only; document delivery emails are out of scope)
 - **Bot:** grammY webhook with `secret_token`
 - **Quality:** unit, integration, MCP (SDK client over xmcp HTTP) and e2e (HTTP, OAuth, stdio) tests on real PostgreSQL; separate backend and landing CI pipelines
 - **Deploy:** Docker Compose with PostgreSQL and persistent volumes
