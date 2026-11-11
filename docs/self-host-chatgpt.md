@@ -21,7 +21,6 @@ From a trusted server shell, copy `.env.example` to `.env` and set:
 | `PUBLIC_API_URL`    | The matching HTTPS origin, for example `https://api.example.com`; no path prefix     |
 | `WEB_URL`           | Your HTTPS landing origin (or the API origin for MCP-only use with no magic-link UI) |
 | `ENCRYPTION_KEY`    | 32 random bytes encoded as base64                                                    |
-| `SESSION_SECRET`    | A random value of at least 32 characters                                             |
 
 Generate fresh encryption/session values with `node scripts/preflight.mjs --generate-secrets` and save them directly in protected environment/secret storage. Do not paste secrets into chat, commit `.env`, reuse local test secrets or regenerate the encryption key over existing encrypted data. Protect the file with `chmod 600 .env`.
 
