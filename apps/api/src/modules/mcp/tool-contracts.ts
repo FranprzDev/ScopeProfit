@@ -38,6 +38,12 @@ export function toolError(error: unknown): CallToolResult {
   if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034') {
     code = 'VERSION_CONFLICT';
     message = 'Project changed during this request; read its current version and retry';
+  } else if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+    code = 'NOT_FOUND';
+    message = 'The referenced record no longer exists; re-read the current state and retry';
+  } else if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+    code = 'CONFLICT';
+    message = 'A record with that unique value already exists';
   } else if (error instanceof HttpException) {
     const body = error.getResponse();
     if (body && typeof body === 'object') {

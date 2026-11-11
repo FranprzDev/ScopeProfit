@@ -341,9 +341,14 @@ export class QuotesService {
       where: { projectId },
       include: quoteInclude(),
     });
-    if (!quote) fail('QUOTE_NOT_FOUND', 404);
+    if (!quote)
+      fail('QUOTE_NOT_FOUND', 404, 'This project has no quote yet; create one with save_quote');
     if (quote.status !== QuoteStatus.draft && quote.status !== QuoteStatus.sent)
-      fail('QUOTE_NOT_SENDABLE', 409);
+      fail(
+        'QUOTE_NOT_SENDABLE',
+        409,
+        `Quote is already ${quote.status}; only a draft or sent quote can be decided`,
+      );
     const decided = await this.db.$transaction(async (tx) => {
       const changed = await tx.quote.updateMany({
         where: { id: quote.id, status: { in: [QuoteStatus.draft, QuoteStatus.sent] } },
