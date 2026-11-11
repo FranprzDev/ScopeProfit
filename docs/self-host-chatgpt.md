@@ -8,7 +8,7 @@ Each operator hosts their own API, PostgreSQL and export files. The public landi
 - An API hostname whose A/AAAA records point to that server. Both advertised IPv4 and IPv6 must work. Ports 80 and 443 must reach it and be free for Caddy. The optional overlay obtains and renews HTTPS certificates; it does not buy a domain or server.
 - A ChatGPT account/workspace allowed to create custom MCP plugins. Check the [current OpenAI requirements](https://help.openai.com/en/articles/12584461-connecting-custom-mcp-servers-in-chatgpt). Do not assume Free/Plus availability.
 
-No backend AI or email account is required for host-led scope drafting. Avoid `analyze: true` and email delivery until those optional services are configured.
+No backend AI account is required for host-led scope drafting; avoid `analyze: true` unless the optional Gemini gateway is configured. ScopeProfit never sends email: the professional shares export links themselves.
 
 ## Configure
 
@@ -22,7 +22,7 @@ From a trusted server shell, copy `.env.example` to `.env` and set:
 | `WEB_URL`           | Your HTTPS landing origin (or the API origin for MCP-only use)                      |
 | `ENCRYPTION_KEY`    | 32 random bytes encoded as base64                                                   |
 
-Generate fresh encryption/session values with `node scripts/preflight.mjs --generate-secrets` and save them directly in protected environment/secret storage. Do not paste secrets into chat, commit `.env`, reuse local test secrets or regenerate the encryption key over existing encrypted data. Protect the file with `chmod 600 .env`.
+Generate a fresh encryption key with `node scripts/preflight.mjs --generate-secrets` and save them directly in protected environment/secret storage. Do not paste secrets into chat, commit `.env`, reuse local test secrets or regenerate the encryption key over existing encrypted data. Protect the file with `chmod 600 .env`.
 
 `DATABASE_URL` in the example is for host-side commands. Compose injects its own database URL pointing to `postgres`; keep database credentials consistent. The overlay sets `TRUST_PROXY_HOPS=1` for Caddy. If adding other proxies, review the actual trust boundary rather than copying this number.
 
@@ -34,7 +34,7 @@ docker compose -f docker-compose.yml -f docker-compose.mcp.yml up -d --build pos
 
 The default Compose file is unchanged. The opt-in overlay publishes only Caddy's web ports, not PostgreSQL or the API directly. Do not attach untrusted containers to its internal network. Caddy persists certificate state in `caddy_data` and `caddy_config`; database and exports use the existing `postgres_data` and `storage_data` volumes. Back up database and export data together. Never use `down -v` on an installation whose data you need.
 
-Full `production:preflight` still checks the optional AI/email credentials for the original full-service setup; `--mcp-only` intentionally does not. Neither mode proves live connectivity or credential validity.
+Full `production:preflight` still checks the optional AI credentials for the original full-service setup; `--mcp-only` intentionally does not. Neither mode proves live connectivity or credential validity.
 
 ## Provision and verify
 
@@ -53,7 +53,7 @@ Before adding ChatGPT, check from outside the server:
 - `https://api.example.com/.well-known/oauth-protected-resource/api/mcp` identifies this exact MCP resource.
 - An unauthenticated POST to `/api/mcp` is rejected, not allowed through by the proxy. Preserve authorization headers and origin checks; do not remove auth to get a tool scan working.
 
-Follow [ChatGPT connection steps](mcp.md#chatgpt-custom-mcp-plugin). Start with `list_projects` and a new invented brief, `analyze: false`. Review the generated scope before approval/export. Do not send client email in a connectivity test. Verify OAuth consent, discovered tools, a real authorized call and revocation before declaring the installation connected. Refresh-token renewal needs a later live check too.
+Follow [ChatGPT connection steps](mcp.md#chatgpt-custom-mcp-plugin). Start with `list_projects` and a new invented brief, `analyze: false`. Review the generated scope before approval/export. Verify OAuth consent, discovered tools, a real authorized call and revocation before declaring the installation connected. Refresh-token renewal needs a later live check too.
 
 To revoke access, run the existing `mcp:keys list` and `mcp:keys revoke <key-id>` through the same Compose `exec api` prefix. Revoking the key also invalidates its OAuth grants. Deleting the ChatGPT plugin alone is not server-side key revocation.
 

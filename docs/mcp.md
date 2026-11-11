@@ -11,10 +11,11 @@ ScopeProfit runs as a [Model Context Protocol](https://modelcontextprotocol.io) 
 | Tool                     | Kind        | What it does                                                                                                            |
 | ------------------------ | ----------- | ----------------------------------------------------------------------------------------------------------------------- |
 | `list_projects`          | read        | Projects with status, TLDR and blocking-question count (archived hidden unless asked).                                  |
-| `create_project`         | write       | New project (`name`, optional `client_name` and `client_email`).                                                        |
+| `create_project`         | write       | New project (`name`, optional `client_name` as display label for documents).                                            |
 | `get_project`            | read        | Lifecycle + agent status, brief/document versions, counts. Use it to poll.                                              |
 | `add_client_input`       | write       | Client text and/or public image URLs (JPEG/PNG/WebP, ≤10 MB, ≤5), stored verbatim as citable messages.                  |
 | `get_conversation`       | read        | Stored messages with ids (needed to cite requirement sources).                                                          |
+| `get_input_image`        | read        | A stored screenshot/sketch as native MCP image content (`fileId` from `get_conversation`).                              |
 | `get_tldr`               | read        | Summary, requirement count, top blocking questions, red risks, total hour range.                                        |
 | `list_pending_questions` | read        | Open questions; `blocksEstimate=true` blocks approval.                                                                  |
 | `answer_question`        | write       | Stores the client's answer as a message, removes the question, regenerates the document.                                |
@@ -34,11 +35,13 @@ ScopeProfit runs as a [Model Context Protocol](https://modelcontextprotocol.io) 
 
 Each project has at most one quote (`draft` -> `sent` -> `accepted`/`rejected`). Build it with `save_quote`: `from_estimates: true` prices the approved scope estimates, or pass explicit `lines` with hour ranges. Amounts are always computed from the professional's own rate card (`rate_card` in the call, or the saved default) - ScopeProfit never suggests prices. `milestones` split payment by percent (they must sum 100) or by fixed amount; `terms` and `valid_until` carry the commercial conditions in plain language. Only draft quotes change: once sent, accepted or rejected, edits return `QUOTE_NOT_DRAFT`. `export_quote` returns a signed, expiring download URL (PDF or DOCX); review the quote before sharing the link. There is no client portal: the professional shares the link themselves and records the client's answer with `decide_quote` (deciding a draft marks it sent first).
 
+Your default rate card is managed through `save_quote` itself: passing `rate_card` upserts the default used by later `from_estimates` pricing. There is no separate rate-card tool.
+
 Domain errors come back as tool results with `isError: true` and a stable code (`VERSION_CONFLICT`, `PROJECT_LOCKED`, `ESTIMATE_BLOCKED`, `INVALID_REQUIREMENT_SOURCE`, …) so the model can recover. Tools carry `readOnlyHint` / `destructiveHint` annotations so hosts can skip or require confirmation.
 
 ### Client identity
 
-Pass `client_name` to `create_project` when the client or company name is known. It is a display label in scope and quote documents, separate from `client_email`, which remains the delivery destination. Existing projects without a name retain the email or generic fallback; existing document versions remain unchanged. REST project creation accepts `clientName` too. Apply the included database migration before running the new API.
+There are no client accounts, client logins or delivery emails. The professional drives everything: pass `client_name` to `create_project` when the client or company name is known and it appears as a display label in scope and quote documents. The professional shares signed export links themselves and records outcomes with `decide_quote`.
 
 ### Two ways to fill the scope
 
@@ -54,6 +57,43 @@ After `answer_question`, review the answer and update affected sections with `up
 ### Review after an answer
 
 `answer_question` records evidence and removes the answered question. Its `reviewRequired` response lists sections to review, including the summary: no other section is automatically rewritten. Update affected sections using the current brief version, then read the entire document back to look for contradictions. The checklist is guidance, not a semantic validator. A valid source quote, zero pending questions or successful tool calls do not prove that the scope is consistent, complete or correctly estimated. The professional must review the content before approval.
+
+## Quickstart: a full project in eight calls
+
+```text
+1. create_project        { "name": "Booking app for Acme", "client_name": "Acme" }
+2. add_client_input      { "project_id", "text": "<what the client said, verbatim>" }   # repeat per message/file
+3. get_tldr              { "project_id" }                                               # where do I stand
+4. list_pending_questions { "project_id", "blocking_only": true }                        # note brief_version
+5. answer_question       { "project_id", "question_id": "Q1", "answer": "...", "expected_version": <brief_version> }
+6. update_scope_section  { "project_id", "expected_version": <brief_version>, "section": "requirements", "value": [...] }
+7. approve_scope         { "project_id", "document_version": <n> }                       # ask the professional first
+8. export_document       { "project_id", "format": "pdf" }                               # share the link yourself
+```
+
+Quote it afterwards: `save_quote` (with `from_estimates: true` or explicit `lines`) → `get_quote` → `export_quote` → `decide_quote` once the client answers. Post-approval changes go to `log_change_request`.
+
+## Error codes
+
+Domain failures return a tool result with `isError: true` and a stable code. Common ones:
+
+| Code                                        | Meaning                                                     | What to do                                                                                       |
+| ------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `PROJECT_NOT_FOUND`                         | Wrong or unknown `project_id`                               | Find it with `list_projects`                                                                     |
+| `PROJECT_LOCKED`                            | Project is approved/archived and read-only                  | Reopen is not supported; create a change request with `log_change_request`                       |
+| `VERSION_CONFLICT`                          | `expected_version` is stale                                 | Re-read (`get_scope_document` / `list_pending_questions`) and retry with the new `brief_version` |
+| `EMPTY_INPUT`                               | `add_client_input` without text or images                   | Pass text, `image_urls` or both                                                                  |
+| `INVALID_IMAGE_URL` / `IMAGE_FETCH_FAILED`  | Image URL rejected by the SSRF guards or unreachable        | Use public https image URLs under 10 MB                                                          |
+| `INVALID_REQUIREMENT_SOURCE`                | `source` is not an exact quote of `sourceMessageId`         | Copy the quote verbatim from `get_conversation`                                                  |
+| `INVALID_SECTION_VALUE`                     | Section value has the wrong shape                           | Check the shape list in the `update_scope_section` schema                                        |
+| `ESTIMATE_BLOCKED`                          | Approval blocked by open questions or unmitigated red risks | Answer blocking questions; add mitigations                                                       |
+| `MANUAL_EDITS_REVIEW_REQUIRED`              | Carried-forward manual terms not confirmed                  | Review, then approve with `manual_edits_reviewed: true`                                          |
+| `QUOTE_NOT_FOUND`                           | No quote exists for the project                             | Create one with `save_quote`                                                                     |
+| `QUOTE_NOT_DRAFT` / `QUOTE_NOT_SENDABLE`    | Quote is in the wrong status for the change                 | Only drafts change; only draft/sent quotes can be decided                                        |
+| `INVALID_QUOTE_LINE` / `INVALID_MILESTONES` | Quote lines or milestones failed validation                 | The message names the exact problem                                                              |
+| `RATE_CARD_REQUIRED`                        | No rate card available                                      | Pass `rate_card` in `save_quote`                                                                 |
+| `INVALID_CURSOR`                            | Pagination cursor no longer valid                           | Restart the traversal without a cursor                                                           |
+| `INVALID_API_KEY`                           | Bearer key/token missing, revoked or malformed              | Provision a key with `mcp:keys create` or re-authorize the connector                             |
 
 ## Authentication
 
@@ -80,7 +120,7 @@ Replace `https://api.example.com` with your `PUBLIC_API_URL`.
 
 ### ChatGPT (custom MCP plugin)
 
-ScopeProfit already exposes its 19 tools over Streamable HTTP with OAuth. It does not need a second MCP implementation or a paid backend AI key when ChatGPT drafts sections itself. A custom connection is not a public app-directory listing.
+ScopeProfit already exposes its 20 tools over Streamable HTTP with OAuth. It does not need a second MCP implementation or a paid backend AI key when ChatGPT drafts sections itself. A custom connection is not a public app-directory listing.
 
 OpenAI's current [connection guide](https://help.openai.com/en/articles/12584461-connecting-custom-mcp-servers-in-chatgpt) lists full custom MCP support on ChatGPT web for Business and Enterprise/Edu, subject to workspace permissions. Business requires an admin/owner; Enterprise/Edu may delegate creation through RBAC. Do not assume every Free/Plus account can add this server. Availability and labels can change; check the linked guide and the intended account.
 
@@ -190,7 +230,7 @@ For the API-only Railway recipe, costs, volume permissions and verification boun
 
 ## Approval is separate from delivery
 
-`approve_scope` defaults to approval only: it locks the reviewed document and returns export links without emailing anyone. Pass `send_to_client: true` only after the professional confirms delivery and the client email. Existing clients relying on the old implicit email behavior must now set this flag explicitly. API keys and OAuth do not themselves authorize client communication. REST document approval behavior is unchanged.
+`approve_scope` locks the reviewed document version and returns signed, expiring export links. ScopeProfit never emails or otherwise contacts the client: the professional reviews the exported files, shares the links through their own channels and records the outcome themselves.
 
 ## Optional quotation validity
 
@@ -223,7 +263,7 @@ The tools are file-based xmcp modules in `apps/api/src/modules/mcp/tools`. HTTP 
 
 Updating a section or answering a question saves the brief and a document snapshot in one transaction. The document version still advances, but PDF/DOCX are not rendered while filling sections. `get_scope_document` returns the current Markdown preview without writing export files. Background reanalysis also saves a draft instead of rendering exports.
 
-The first export or download materializes the saved snapshot. A Markdown-only export writes only Markdown; a PDF or DOCX export builds and stores all three formats together. Later exports reuse those files without creating another document version. A failed export leaves the draft intact and can be retried. Historical downloads use their saved snapshot, not the current brief. Approval still validates the selected current version and locks the project; emailing an approved scope generates its attachments if needed.
+The first export or download materializes the saved snapshot. A Markdown-only export writes only Markdown; a PDF or DOCX export builds and stores all three formats together. Later exports reuse those files without creating another document version. A failed export leaves the draft intact and can be retried. Historical downloads use their saved snapshot, not the current brief. Approval still validates the selected current version and locks the project.
 
 ### Reading long conversations
 
@@ -253,4 +293,4 @@ Use `get_input_image` with the `fileId` returned by `get_conversation`. It retur
 
 New OAuth grants carry one grant ID across rotating access/refresh token pairs. Reusing a refresh token revokes that grant's active tokens. Rotation and replay handling serialize on the grant ID, and token issuance is in the rotation transaction. A replay forces that connector to authorize again. Other grants and API keys remain independent.
 
-Upgrade decision is pending: historical tokens do not contain a recoverable grant relationship. The proposed schema migration gives existing rows separate IDs, which does not reconstruct historical refresh families. It is not a complete security upgrade for existing grants. Options are to revoke existing OAuth grants and require connector authorization again, or keep them temporarily with the documented replay limitation while arranging a controlled reauthorization window. Do not merge/deploy this migration until the operator explicitly decides how existing connectors are handled. API keys are unaffected, but that does not remove the OAuth reconnect impact.
+The grant-lineage migration (`20261028060000_oauth_grant_lineage`) is merged: every token carries a grant ID. Tokens issued before that migration received separate per-row grant IDs, so a replay on one of them revokes only that token's own grant; connectors authorized before the migration may need to re-authorize to benefit from full lineage. API keys are unaffected.
