@@ -58,11 +58,16 @@ export class ApiKeysService {
         lastUsedAt: true,
         revokedAt: true,
         createdAt: true,
+        user: { select: { email: true } },
       },
     });
   }
 
   async revoke(id: string) {
+    const existing = await this.db.apiKey.findUnique({
+      where: { id },
+      select: { label: true, user: { select: { email: true } } },
+    });
     const revoked = await this.db.apiKey.updateMany({
       where: { id, revokedAt: null },
       data: { revokedAt: new Date() },
@@ -75,7 +80,11 @@ export class ApiKeysService {
       await this.db.auditEvent.create({
         data: { action: 'api_key.revoked', result: 'success', metadata: { apiKeyId: id } },
       });
-    return { revoked: revoked.count === 1 };
+    return {
+      revoked: revoked.count === 1,
+      label: existing?.label,
+      email: existing?.user.email,
+    };
   }
 
   /** Resolves an active key to its key record and professional user, or fails with 401. */

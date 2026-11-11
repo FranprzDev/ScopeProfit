@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import { isEmail } from 'class-validator';
 import { PrismaService } from '../prisma.service';
 import { AuthService } from '../modules/auth/auth.service';
 import { ApiKeysService } from '../modules/mcp/api-keys.service';
@@ -28,6 +29,7 @@ async function main() {
     if (command === 'create') {
       const email = option(args, '--email');
       if (!email) throw new Error(usage);
+      if (!isEmail(email)) throw new Error(`--email must be a valid email address: ${email}`);
       const created = await keys.createForEmail(
         email,
         option(args, '--label') ?? 'mcp',
@@ -39,15 +41,20 @@ async function main() {
     } else if (command === 'list') {
       for (const key of await keys.list())
         process.stdout.write(
-          `${key.id}  ${key.prefix}…  ${key.label}  ${key.revokedAt ? 'revoked' : 'active'}  last used: ${key.lastUsedAt?.toISOString() ?? 'never'}\n`,
+          `${key.id}  ${key.prefix}…  ${key.label}  ${key.user.email}  ${key.revokedAt ? 'revoked' : 'active'}  created: ${key.createdAt.toISOString()}  last used: ${key.lastUsedAt?.toISOString() ?? 'never'}\n`,
         );
     } else if (command === 'revoke' && args[0]) {
-      const { revoked } = await keys.revoke(args[0]);
-      process.stdout.write(revoked ? 'Revoked.\n' : 'No active key with that id.\n');
+      const { revoked, label, email } = await keys.revoke(args[0]);
+      process.stdout.write(
+        revoked
+          ? `Revoked key "${label}" of ${email}; its OAuth grants were revoked too.\n`
+          : 'No active key with that id.\n',
+      );
     } else if (command === 'set-ai-key') {
       const email = option(args, '--email');
       const aiKey = process.env.SCOPEPROFIT_AI_KEY;
       if (!email || !aiKey) throw new Error(usage);
+      if (!isEmail(email)) throw new Error(`--email must be a valid email address: ${email}`);
       await auth.saveKey(await auth.professionalUser(email), aiKey);
       process.stdout.write('AI key stored (encrypted).\n');
     } else {
