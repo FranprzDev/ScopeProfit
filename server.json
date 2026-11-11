@@ -1,8 +1,8 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.franprzdev/scopeprofit",
+  "name": "io.github.FranprzDev/scopeprofit",
   "title": "ScopeProfit",
-  "description": "MCP server that turns client requests into a clear scope document and a quote with your own rates. 20 tools for scoping, approval and quoting, with PDF/Word exports. Connect ChatGPT, Claude or any MCP client to the hosted instance, or self-host with Docker Compose.",
+  "description": "Turn client requests into a clear scope and a quote with your rates. 20 tools, PDF/Word exports.",
   "version": "1.0.0",
   "websiteUrl": "https://scopeprofit.vercel.app",
   "repository": {
