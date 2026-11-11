@@ -312,20 +312,27 @@ test('computeQuoteTotals rounds prices and totals deterministically', () => {
   assert.equal(totals.totalMax, 160.93);
 });
 
+const throwsCode = (fn: () => unknown, code: string) =>
+  assert.throws(
+    fn,
+    (err: unknown) =>
+      err instanceof HttpException && (err.getResponse() as { code?: string }).code === code,
+  );
+
 test('an empty quote or an inverted hour range is rejected', () => {
   assert.throws(
     () => computeQuoteTotals([{ module: 'Auth', minHours: 10, maxHours: 5 }], quoteRateCard),
     /INVALID_QUOTE_LINE/,
   );
-  assert.throws(
+  throwsCode(
     () => validateQuoteLines([{ module: 'Auth', minHours: 10, maxHours: 5 }]),
-    /INVALID_QUOTE_LINE/,
+    'INVALID_QUOTE_LINE',
   );
-  assert.throws(
+  throwsCode(
     () => validateQuoteLines([{ module: '   ', minHours: 1, maxHours: 2 }]),
-    /INVALID_QUOTE_LINE/,
+    'INVALID_QUOTE_LINE',
   );
-  assert.throws(() => validateQuoteLines([]), /INVALID_QUOTE_LINE/);
+  throwsCode(() => validateQuoteLines([]), 'INVALID_QUOTE_LINE');
   assert.deepEqual(validateQuoteLines([{ module: ' Auth ', minHours: 10.4, maxHours: 20.6 }]), [
     { module: 'Auth', minHours: 10, maxHours: 21 },
   ]);
@@ -342,25 +349,25 @@ test('milestone percentages must add up to 100', () => {
       { name: 'Entrega', percent: 60, amount: null },
     ],
   );
-  assert.throws(
+  throwsCode(
     () =>
       validateQuoteMilestones([
         { name: 'Arranque', percent: 50 },
         { name: 'Entrega', percent: 40 },
       ]),
-    /INVALID_MILESTONES/,
+    'INVALID_MILESTONES',
   );
-  assert.throws(
+  throwsCode(
     () =>
       validateQuoteMilestones([
         { name: 'Arranque', percent: 100 },
         { name: 'Entrega', amount: 1000 },
       ]),
-    /INVALID_MILESTONES/,
+    'INVALID_MILESTONES',
   );
-  assert.throws(
+  throwsCode(
     () => validateQuoteMilestones([{ name: 'Arranque', percent: 100 }, { name: 'Entrega' }]),
-    /INVALID_MILESTONES/,
+    'INVALID_MILESTONES',
   );
 });
 
@@ -369,8 +376,8 @@ test('milestone amounts must be strictly positive', () => {
     { name: 'Único', percent: null, amount: 1500 },
   ]);
   assert.deepEqual(validateQuoteMilestones([]), []);
-  assert.throws(() => validateQuoteMilestones([{ name: 'A', amount: -100 }]), /INVALID_MILESTONES/);
-  assert.throws(() => validateQuoteMilestones([{ name: 'A', amount: 0 }]), /INVALID_MILESTONES/);
+  throwsCode(() => validateQuoteMilestones([{ name: 'A', amount: -100 }]), 'INVALID_MILESTONES');
+  throwsCode(() => validateQuoteMilestones([{ name: 'A', amount: 0 }]), 'INVALID_MILESTONES');
 });
 
 test('only a draft quote can be patched', () => {
@@ -381,7 +388,7 @@ test('only a draft quote can be patched', () => {
       (err: unknown) =>
         err instanceof HttpException &&
         err.getStatus() === 409 &&
-        err.message === 'QUOTE_NOT_DRAFT',
+        (err.getResponse() as { code?: string }).code === 'QUOTE_NOT_DRAFT',
     );
   }
 });
@@ -586,7 +593,7 @@ test('only a sent quote accepts a client decision', () => {
       (err: unknown) =>
         err instanceof HttpException &&
         err.getStatus() === 409 &&
-        err.message === 'QUOTE_NOT_SENDABLE',
+        (err.getResponse() as { code?: string }).code === 'QUOTE_NOT_SENDABLE',
     );
   }
 });
