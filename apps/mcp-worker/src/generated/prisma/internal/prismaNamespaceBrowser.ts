@@ -69,7 +69,9 @@ export const ModelName = {
   MaintenanceEntry: 'MaintenanceEntry',
   ApiKey: 'ApiKey',
   OAuthClient: 'OAuthClient',
-  OAuthToken: 'OAuthToken'
+  OAuthToken: 'OAuthToken',
+  UsageEvent: 'UsageEvent',
+  UsageConversion: 'UsageConversion'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -380,6 +382,31 @@ export const OAuthTokenScalarFieldEnum = {
 } as const
 
 export type OAuthTokenScalarFieldEnum = (typeof OAuthTokenScalarFieldEnum)[keyof typeof OAuthTokenScalarFieldEnum]
+
+
+export const UsageEventScalarFieldEnum = {
+  id: 'id',
+  day: 'day',
+  keyHash: 'keyHash',
+  originClass: 'originClass',
+  clientName: 'clientName',
+  sessionHash: 'sessionHash',
+  tool: 'tool',
+  ok: 'ok',
+  createdAt: 'createdAt'
+} as const
+
+export type UsageEventScalarFieldEnum = (typeof UsageEventScalarFieldEnum)[keyof typeof UsageEventScalarFieldEnum]
+
+
+export const UsageConversionScalarFieldEnum = {
+  keyHash: 'keyHash',
+  kind: 'kind',
+  firstDay: 'firstDay',
+  createdAt: 'createdAt'
+} as const
+
+export type UsageConversionScalarFieldEnum = (typeof UsageConversionScalarFieldEnum)[keyof typeof UsageConversionScalarFieldEnum]
 
 
 export const SortOrder = {

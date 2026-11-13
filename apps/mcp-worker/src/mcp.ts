@@ -10,6 +10,7 @@ import { scopeToolContext } from '../../api/src/modules/mcp/tool-context';
 import { MCP_SCOPE, type McpPrincipal } from '../../api/src/modules/mcp/oauth.provider';
 import { publicApiUrl } from '../../api/src/modules/mcp/export-links';
 import { TOOLS } from './registry';
+import { recordUsage, type WaitUntil } from './usage';
 import type { Container } from './container';
 
 function buildServer(): McpServer {
@@ -40,31 +41,68 @@ const unauthorized = (resourceMetadataUrl: string, message = 'invalid_token') =>
     },
   });
 
-export async function handleMcp(request: Request, container: Container): Promise<Response> {
+interface Peeked {
+  method?: string;
+  params?: { name?: string; clientInfo?: { name?: string } };
+}
+
+export async function handleMcp(
+  request: Request,
+  container: Container,
+  ctx: WaitUntil,
+): Promise<Response> {
   const issuer = publicApiUrl();
   const resourceMetadataUrl = `${issuer}/.well-known/oauth-protected-resource`;
 
   const origin = request.headers.get('origin');
   const webUrl = process.env.WEB_URL;
-  if (origin && origin !== new URL(issuer).origin && origin !== webUrl)
+  if (origin && origin !== new URL(issuer).origin && origin !== webUrl) {
+    recordUsage(container, ctx, request, { ok: false });
     return new Response(JSON.stringify({ error: 'invalid_origin' }), {
       status: 403,
       headers: { 'content-type': 'application/json' },
     });
+  }
+
+  // Peek at the JSON-RPC envelope for usage labels; the transport re-reads the clone.
+  const peeked = (await request
+    .clone()
+    .json()
+    .catch(() => null)) as Peeked | null;
+  const label =
+    peeked?.method === 'tools/call' ? `tools/call ${peeked.params?.name ?? '?'}` : peeked?.method;
+  const details = () => ({
+    method: peeked?.method,
+    tool: peeked?.method === 'tools/call' ? peeked.params?.name : undefined,
+    clientName: peeked?.method === 'initialize' ? peeked?.params?.clientInfo?.name : undefined,
+  });
 
   const header = request.headers.get('authorization') ?? '';
   const match = /^Bearer (.+)$/.exec(header);
-  if (!match) return unauthorized(resourceMetadataUrl);
+  if (!match) {
+    recordUsage(container, ctx, request, { ...details(), ok: false });
+    return unauthorized(resourceMetadataUrl);
+  }
   let principal: McpPrincipal;
   try {
     const info = await container.provider.verifyAccessToken(match[1]);
     principal = info.extra as McpPrincipal;
   } catch {
+    recordUsage(container, ctx, request, { ...details(), ok: false });
     return unauthorized(resourceMetadataUrl);
   }
-  if (!principal?.user) return unauthorized(resourceMetadataUrl);
+  if (!principal?.user) {
+    recordUsage(container, ctx, request, { ...details(), ok: false });
+    return unauthorized(resourceMetadataUrl);
+  }
 
   if (request.method !== 'POST') {
+    recordUsage(container, ctx, request, {
+      ...details(),
+      apiKeyId: principal.apiKeyId,
+      userEmail: principal.user.email,
+      ok: false,
+    });
     return new Response(
       JSON.stringify({
         jsonrpc: '2.0',
@@ -75,14 +113,6 @@ export async function handleMcp(request: Request, container: Container): Promise
     );
   }
 
-  // Peek at the JSON-RPC envelope for error logging; the transport re-reads the clone.
-  const peeked = (await request
-    .clone()
-    .json()
-    .catch(() => null)) as { method?: string; params?: { name?: string } } | null;
-  const label =
-    peeked?.method === 'tools/call' ? `tools/call ${peeked.params?.name ?? '?'}` : peeked?.method;
-
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined, // stateless JSON mode
     enableJsonResponse: true,
@@ -90,9 +120,17 @@ export async function handleMcp(request: Request, container: Container): Promise
   const server = buildServer();
   await server.connect(transport);
   try {
-    return (await scopeToolContext.provider({ tools: container.tools, user: principal.user }, () =>
-      transport.handleRequest(request),
+    const response = (await scopeToolContext.provider(
+      { tools: container.tools, user: principal.user },
+      () => transport.handleRequest(request),
     )) as Response;
+    recordUsage(container, ctx, request, {
+      ...details(),
+      apiKeyId: principal.apiKeyId,
+      userEmail: principal.user.email,
+      ok: response.ok,
+    });
+    return response;
   } catch (error) {
     // Uncaught failures otherwise surface only as Cloudflare 1101s with no context in tail logs.
     console.error(

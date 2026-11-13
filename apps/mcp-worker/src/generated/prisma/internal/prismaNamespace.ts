@@ -410,7 +410,9 @@ export const ModelName = {
   MaintenanceEntry: 'MaintenanceEntry',
   ApiKey: 'ApiKey',
   OAuthClient: 'OAuthClient',
-  OAuthToken: 'OAuthToken'
+  OAuthToken: 'OAuthToken',
+  UsageEvent: 'UsageEvent',
+  UsageConversion: 'UsageConversion'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -426,7 +428,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "project" | "changeRequest" | "message" | "file" | "brief" | "briefVersion" | "document" | "documentVersion" | "auditEvent" | "telegramUpdate" | "telegramState" | "rateCard" | "quote" | "quoteLine" | "quoteMilestone" | "maintenanceAgreement" | "maintenanceEntry" | "apiKey" | "oAuthClient" | "oAuthToken"
+    modelProps: "user" | "project" | "changeRequest" | "message" | "file" | "brief" | "briefVersion" | "document" | "documentVersion" | "auditEvent" | "telegramUpdate" | "telegramState" | "rateCard" | "quote" | "quoteLine" | "quoteMilestone" | "maintenanceAgreement" | "maintenanceEntry" | "apiKey" | "oAuthClient" | "oAuthToken" | "usageEvent" | "usageConversion"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1984,6 +1986,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    UsageEvent: {
+      payload: Prisma.$UsageEventPayload<ExtArgs>
+      fields: Prisma.UsageEventFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.UsageEventFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsageEventPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.UsageEventFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsageEventPayload>
+        }
+        findFirst: {
+          args: Prisma.UsageEventFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsageEventPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.UsageEventFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsageEventPayload>
+        }
+        findMany: {
+          args: Prisma.UsageEventFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsageEventPayload>[]
+        }
+        create: {
+          args: Prisma.UsageEventCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsageEventPayload>
+        }
+        createMany: {
+          args: Prisma.UsageEventCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.UsageEventCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsageEventPayload>[]
+        }
+        delete: {
+          args: Prisma.UsageEventDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsageEventPayload>
+        }
+        update: {
+          args: Prisma.UsageEventUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsageEventPayload>
+        }
+        deleteMany: {
+          args: Prisma.UsageEventDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.UsageEventUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.UsageEventUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsageEventPayload>[]
+        }
+        upsert: {
+          args: Prisma.UsageEventUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsageEventPayload>
+        }
+        aggregate: {
+          args: Prisma.UsageEventAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateUsageEvent>
+        }
+        groupBy: {
+          args: Prisma.UsageEventGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UsageEventGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.UsageEventCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UsageEventCountAggregateOutputType> | number
+        }
+      }
+    }
+    UsageConversion: {
+      payload: Prisma.$UsageConversionPayload<ExtArgs>
+      fields: Prisma.UsageConversionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.UsageConversionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsageConversionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.UsageConversionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsageConversionPayload>
+        }
+        findFirst: {
+          args: Prisma.UsageConversionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsageConversionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.UsageConversionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsageConversionPayload>
+        }
+        findMany: {
+          args: Prisma.UsageConversionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsageConversionPayload>[]
+        }
+        create: {
+          args: Prisma.UsageConversionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsageConversionPayload>
+        }
+        createMany: {
+          args: Prisma.UsageConversionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.UsageConversionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsageConversionPayload>[]
+        }
+        delete: {
+          args: Prisma.UsageConversionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsageConversionPayload>
+        }
+        update: {
+          args: Prisma.UsageConversionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsageConversionPayload>
+        }
+        deleteMany: {
+          args: Prisma.UsageConversionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.UsageConversionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.UsageConversionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsageConversionPayload>[]
+        }
+        upsert: {
+          args: Prisma.UsageConversionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UsageConversionPayload>
+        }
+        aggregate: {
+          args: Prisma.UsageConversionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateUsageConversion>
+        }
+        groupBy: {
+          args: Prisma.UsageConversionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UsageConversionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.UsageConversionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UsageConversionCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -2315,6 +2465,31 @@ export const OAuthTokenScalarFieldEnum = {
 } as const
 
 export type OAuthTokenScalarFieldEnum = (typeof OAuthTokenScalarFieldEnum)[keyof typeof OAuthTokenScalarFieldEnum]
+
+
+export const UsageEventScalarFieldEnum = {
+  id: 'id',
+  day: 'day',
+  keyHash: 'keyHash',
+  originClass: 'originClass',
+  clientName: 'clientName',
+  sessionHash: 'sessionHash',
+  tool: 'tool',
+  ok: 'ok',
+  createdAt: 'createdAt'
+} as const
+
+export type UsageEventScalarFieldEnum = (typeof UsageEventScalarFieldEnum)[keyof typeof UsageEventScalarFieldEnum]
+
+
+export const UsageConversionScalarFieldEnum = {
+  keyHash: 'keyHash',
+  kind: 'kind',
+  firstDay: 'firstDay',
+  createdAt: 'createdAt'
+} as const
+
+export type UsageConversionScalarFieldEnum = (typeof UsageConversionScalarFieldEnum)[keyof typeof UsageConversionScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -2667,6 +2842,8 @@ export type GlobalOmitConfig = {
   apiKey?: Prisma.ApiKeyOmit
   oAuthClient?: Prisma.OAuthClientOmit
   oAuthToken?: Prisma.OAuthTokenOmit
+  usageEvent?: Prisma.UsageEventOmit
+  usageConversion?: Prisma.UsageConversionOmit
 }
 
 /* Types for Logging */
