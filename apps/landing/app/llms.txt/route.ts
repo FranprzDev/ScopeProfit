@@ -8,7 +8,7 @@ const BODY = `# ScopeProfit
 
 > ScopeProfit is an open-source MCP server that gives AI agents the tools to turn client requests into a clear scope document and a quote with your own rates, exportable to PDF and Word. There is no web UI: the product is the MCP itself.
 
-A public hosted instance is available. You connect your agent (ChatGPT, Claude, Claude Code, Cursor or any MCP client) to the remote MCP endpoint, authorize it, and the agent gains 20 tools for scoping and quoting projects. Self-hosting with Docker Compose is also supported.
+You self-host it: an agent can clone the repo, run the install steps below, create its own API key and connect over stdio or local HTTP in a few minutes, with no account or signup anywhere.
 
 ## Docs
 
@@ -16,10 +16,18 @@ A public hosted instance is available. You connect your agent (ChatGPT, Claude, 
 - [GitHub repository](https://github.com/FranprzDev/ScopeProfit): source code (MIT-style open source), README and docs/mcp.md
 - [MCP setup guide](https://github.com/FranprzDev/ScopeProfit/blob/main/docs/mcp.md): per-client recipes (ChatGPT OAuth, Claude connector, Claude Code header, local stdio) and the eight-call quickstart
 
+## Install (self-hosted, nothing to request)
+
+1. git clone https://github.com/FranprzDev/ScopeProfit.git && cd ScopeProfit && pnpm install
+2. cp .env.example .env and set DATABASE_URL (any PostgreSQL) and ENCRYPTION_KEY (64 hex chars)
+3. pnpm --filter @scopeprofit/contracts run build && pnpm run db:migrate && pnpm --filter @scopeprofit/api run build
+4. Create your own API key: pnpm --filter @scopeprofit/api run mcp:keys create --email you@example.com --label my-agent (prints sp_live_... once)
+
 ## Connect
 
-- MCP endpoint (Streamable HTTP): https://scopeprofit-mcp.franutn23.workers.dev/api/mcp
-- Auth: OAuth 2.1 (dynamic client registration + PKCE) for ChatGPT and Claude connectors, or an API key as "Authorization: Bearer sp_live_..."; API keys are issued by the installation operator
+- stdio (Claude Code, Cursor, Claude Desktop): run \`pnpm --filter @scopeprofit/api run mcp:stdio\` in the repo with DATABASE_URL and SCOPEPROFIT_API_KEY in the environment
+- Local HTTP: \`pnpm run dev:api\` serves Streamable HTTP at http://localhost:3001/api/mcp with "Authorization: Bearer sp_live_..."
+- ChatGPT or Claude remote connectors need your instance on a public HTTPS URL; OAuth 2.1 (dynamic client registration + PKCE) is built in, see docs/self-host-chatgpt.md
 - Projects are isolated per account; the server is stateless (POST JSON, no SSE sessions)
 
 ## Tools
