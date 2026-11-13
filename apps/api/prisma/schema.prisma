@@ -344,3 +344,29 @@ model OAuthToken {
  @@index([expiresAt])
  @@map("oauth_tokens")
 }
+
+model UsageEvent {
+  id          String   @id @default(uuid()) @db.Uuid
+  day         DateTime @db.Date
+  keyHash     String   @map("key_hash")
+  originClass String   @map("origin_class")
+  clientName  String?  @map("client_name")
+  sessionHash String   @map("session_hash")
+  tool        String?
+  ok          Boolean
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([day, originClass])
+  @@index([keyHash, day])
+  @@map("usage_events")
+}
+
+model UsageConversion {
+  keyHash   String   @map("key_hash")
+  kind      String
+  firstDay  DateTime @db.Date @map("first_day")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@id([keyHash, kind])
+  @@map("usage_conversions")
+}

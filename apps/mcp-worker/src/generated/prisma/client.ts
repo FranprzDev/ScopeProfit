@@ -143,3 +143,13 @@ export type OAuthClient = Prisma.OAuthClientModel
  * 
  */
 export type OAuthToken = Prisma.OAuthTokenModel
+/**
+ * Model UsageEvent
+ * 
+ */
+export type UsageEvent = Prisma.UsageEventModel
+/**
+ * Model UsageConversion
+ * 
+ */
+export type UsageConversion = Prisma.UsageConversionModel

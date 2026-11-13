@@ -80,7 +80,7 @@ app.get('/api/exports/:token', async (c) => {
   });
 });
 
-app.all('/api/mcp', (c) => handleMcp(c.req.raw, getContainer(c.env)));
+app.all('/api/mcp', (c) => handleMcp(c.req.raw, getContainer(c.env), c.executionCtx));
 
 app.route('/', oauthApp());
 

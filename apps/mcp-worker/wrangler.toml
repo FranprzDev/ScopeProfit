@@ -11,6 +11,7 @@ workers_dev = true
 PUBLIC_API_URL = "https://scopeprofit-mcp.franutn23.workers.dev"
 WEB_URL = "https://scopeprofit.vercel.app"
 MCP_RATE_LIMIT_PER_MINUTE = "120"
+OWNER_EMAILS = "franciscoperezdeveloper@gmail.com"
 
 # R2 binding for when the account enables R2 (checkout requires a payment method).
 # [[r2_buckets]]
