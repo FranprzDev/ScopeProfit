@@ -59,7 +59,7 @@ Use the opt-in HTTPS overlay and host-led drafting setup in [docs/self-host-chat
 
 ScopeProfit is used **through an MCP client**, not a web UI. You talk to it from ChatGPT, Claude, Cursor, Claude Code or your own agent:
 
-**Fastest way (hosted, nothing to install):** add `https://scopeprofit-mcp.franutn23.workers.dev/api/mcp` as a connector in ChatGPT or Claude and authorize it — the OAuth consent screen asks for your API key once. It is also listed in the [official MCP Registry](https://registry.modelcontextprotocol.io/) as `io.github.FranprzDev/scopeprofit`. To get an API key for the hosted instance, open an issue in this repo. Full connection guide with examples: [scopeprofit.vercel.app/docs](https://scopeprofit.vercel.app/docs).
+**Install it yourself (self-hosted, ~5 minutes, nothing to request):** clone the repo, `pnpm install`, point `.env` at any PostgreSQL, run the migrations and create your own API key with `mcp:keys create` — then connect over stdio (`mcp:stdio`) or local HTTP. Any agent that can run shell commands can do the whole setup from the guide at [scopeprofit.vercel.app/docs](https://scopeprofit.vercel.app/docs). ScopeProfit is also listed in the [official MCP Registry](https://registry.modelcontextprotocol.io/) as `io.github.FranprzDev/scopeprofit`.
 
 1. Get an API key from the installation operator: `pnpm --filter @scopeprofit/api run mcp:keys create --email you@example.com --label <client>`.
 2. Connect your host — per-client recipes (ChatGPT OAuth, Claude connector, Claude Code header, local stdio for Claude Desktop/Cursor) are in [docs/mcp.md](docs/mcp.md).

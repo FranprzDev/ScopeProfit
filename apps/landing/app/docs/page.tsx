@@ -9,12 +9,10 @@ export const metadata: Metadata = {
   ...buildPageMetadata(SitePath.Docs),
   title: 'Documentación | ScopeProfit',
   description:
-    'Cómo conectar tu agente de IA al MCP de ScopeProfit: endpoint, API key, OAuth con ChatGPT y Claude, las 20 tools con ejemplos reales, el flujo típico y los límites conocidos.',
+    'Cómo instalar ScopeProfit y conectar tu agente de IA al MCP: instalación autoalojada paso a paso, API key propia, stdio y HTTP local, OAuth para ChatGPT y Claude, las 20 tools con ejemplos reales y los límites conocidos.',
 };
 
 export const dynamic = 'force-static';
-
-const WORKER_URL = 'https://scopeprofit-mcp.franutn23.workers.dev/api/mcp';
 
 type Kind = 'read' | 'write' | 'destructive';
 
@@ -30,8 +28,8 @@ const TOOLS: ToolDoc[] = [
   {
     name: 'create_project',
     kind: 'write',
-    description: 'Crea un proyecto (solo necesita un título). Devuelve el id.',
-    example: '{ "title": "Sitio institucional para Cafetería Andina" }',
+    description: 'Crea un proyecto (solo necesita un nombre). Devuelve el id.',
+    example: '{ "name": "Sitio institucional para Cafetería Andina" }',
   },
   {
     name: 'list_projects',
@@ -182,8 +180,9 @@ export default function DocsPage() {
         <section>
           <h1 className={s.title}>Documentación</h1>
           <p className={s.lead}>
-            Todo lo que necesita tu agente de IA para conectarse a ScopeProfit: el endpoint del MCP,
-            la autenticación, las 20 tools con ejemplos reales y el flujo típico de trabajo.
+            Todo lo que necesita tu agente de IA para instalar y usar ScopeProfit: la instalación
+            paso a paso, la autenticación, las 20 tools con ejemplos reales y el flujo típico de
+            trabajo.
           </p>
         </section>
 
@@ -201,58 +200,72 @@ export default function DocsPage() {
 
         <section className={s.section}>
           <h2>Conectar tu agente</h2>
-          <p>El endpoint MCP (Streamable HTTP) de la instancia pública es:</p>
-          <pre className={s.pre}>
-            <code>{WORKER_URL}</code>
-          </pre>
           <p>
-            Hay dos formas de autenticarte. En ambas, los proyectos quedan aislados por cuenta: tu
-            agente solo ve tus proyectos.
+            ScopeProfit se autoaloja: lo instalás vos (o tu agente) en tu máquina o tu servidor y
+            queda bajo tu control. No hay que pedirle nada a nadie: cualquier agente que sepa
+            ejecutar comandos puede seguir esta página e instalarlo solo. Necesitás Node 22, pnpm y
+            una base PostgreSQL.
           </p>
 
-          <h3>API key</h3>
+          <h3>1. Instalar</h3>
+          <pre className={s.pre}>
+            <code>{`git clone https://github.com/FranprzDev/ScopeProfit.git
+cd ScopeProfit
+pnpm install
+cp .env.example .env
+# Editá .env: DATABASE_URL (tu PostgreSQL) y ENCRYPTION_KEY (64 hex)
+pnpm --filter @scopeprofit/contracts run build
+pnpm run db:migrate
+pnpm --filter @scopeprofit/api run build`}</code>
+          </pre>
           <p>
-            Pedile una key al operador de la instalación (el comando del operador es{' '}
-            <code>mcp:keys create &quot;tu-email&quot; --label &quot;ChatGPT&quot;</code>). Tiene el
-            formato <code>sp_live_&lt;32 bytes hex&gt;</code> y viaja como{' '}
-            <code>Authorization: Bearer sp_live_…</code>. Compartila solo con tus propios agentes.
+            Si no tenés PostgreSQL a mano, con Docker alcanza:{' '}
+            <code>
+              docker run -d -p 5432:5432 -e POSTGRES_USER=scopeprofit -e
+              POSTGRES_PASSWORD=una-clave-larga -e POSTGRES_DB=scopeprofit postgres:17-alpine
+            </code>{' '}
+            y en <code>.env</code>:{' '}
+            <code>
+              DATABASE_URL=postgresql://scopeprofit:una-clave-larga@localhost:5432/scopeprofit
+            </code>
+            .
           </p>
 
-          <h3>ChatGPT (OAuth)</h3>
-          <ol>
-            <li>Settings → Apps → Advanced settings → activá Developer mode.</li>
-            <li>Create app → completá el nombre y la URL del MCP de arriba.</li>
-            <li>
-              El servidor usa OAuth 2.1 con registro dinámico: al conectar, tu cliente se registra
-              solo y te pide autorización.
-            </li>
-            <li>
-              En la pantalla de consentimiento pegás tu API key (<code>sp_live_…</code>) una sola
-              vez. Después el acceso usa tokens <code>sp_at_…</code>, que expiran y se revocan con
-              un logout.
-            </li>
-          </ol>
-
-          <h3>Claude (OAuth)</h3>
-          <ol>
-            <li>Settings → Connectors → Add custom connector.</li>
-            <li>Nombre: ScopeProfit. Remote MCP server URL: la de arriba.</li>
-            <li>Add → autorizá con tu API key en la pantalla de consentimiento.</li>
-          </ol>
-
-          <h3>Claude Code</h3>
+          <h3>2. Crear tu API key</h3>
+          <p>Vos sos el operador de tu instalación: la key la creás vos con un comando.</p>
           <pre className={s.pre}>
-            <code>{`claude mcp add scopeprofit --transport http \\
-  ${WORKER_URL} \\
-  --header "Authorization: Bearer sp_live_TU_KEY"`}</code>
+            <code>{`pnpm --filter @scopeprofit/api run mcp:keys create --email tu@email.com --label "mi-agente"`}</code>
           </pre>
-
-          <h3>stdio (autoservicio)</h3>
           <p>
-            Si corrés tu propia instancia, podés conectar por stdio con el repo clonado:{' '}
-            <code>npx tsx apps/api/src/modules/mcp/stdio.ts</code>, con{' '}
-            <code>SCOPEPROFIT_API_KEY</code> y <code>DATABASE_URL</code> en el entorno. El paso a
-            paso completo está en <a href={`${REPO_URL}/blob/main/docs/mcp.md`}>docs/mcp.md</a>.
+            Devuelve una key <code>sp_live_…</code> (se muestra una sola vez). Autentica como{' '}
+            <code>Authorization: Bearer sp_live_…</code>. Los proyectos quedan aislados por cuenta:
+            cada key solo ve sus proyectos.
+          </p>
+
+          <h3>3. Conectar el agente</h3>
+          <p>
+            <strong>stdio (Claude Code, Cursor, Claude Desktop):</strong> el camino más simple, todo
+            local. El cliente ejecuta este comando en la carpeta del repo, con{' '}
+            <code>DATABASE_URL</code> y <code>SCOPEPROFIT_API_KEY</code> en el entorno:
+          </p>
+          <pre className={s.pre}>
+            <code>{`pnpm --filter @scopeprofit/api run mcp:stdio`}</code>
+          </pre>
+          <p>
+            <strong>HTTP local:</strong> <code>pnpm run dev:api</code> y el endpoint queda en{' '}
+            <code>http://localhost:3001/api/mcp</code> (Streamable HTTP, Bearer key).
+          </p>
+          <p>
+            <strong>ChatGPT o Claude (conector remoto):</strong> necesitás exponer tu instancia con
+            HTTPS público y ahí entra el OAuth 2.1 (registro dinámico + PKCE): al conectar, el
+            cliente se registra solo y la pantalla de consentimiento te pide tu API key una vez. La
+            guía de despliegue (overlay Caddy con <code>docker-compose.mcp.yml</code> y{' '}
+            <code>MCP_DOMAIN</code>, o Cloudflare Workers) está en{' '}
+            <a href={`${REPO_URL}/blob/main/docs/self-host-chatgpt.md`}>
+              docs/self-host-chatgpt.md
+            </a>{' '}
+            y la referencia completa en{' '}
+            <a href={`${REPO_URL}/blob/main/docs/mcp.md`}>docs/mcp.md</a>.
           </p>
         </section>
 
