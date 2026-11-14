@@ -76,8 +76,20 @@ jobs:
       - run: pnpm --filter @scopeprofit/mcp-worker run typecheck
       - run: pnpm --filter @scopeprofit/mcp-worker run build
       - run: pnpm --filter @scopeprofit/mcp-worker run test
-      - run: pnpm run smoke
+      - uses: docker/setup-buildx-action@v3
+      - name: Build smoke image (cached)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          target: build
+          tags: scopeprofit-smoke-test
+          load: true
+          cache-from: type=gha,scope=scopeprofit-smoke
+          cache-to: type=gha,mode=max,scope=scopeprofit-smoke
+      - run: SKIP_BUILD=1 pnpm run smoke
       - uses: actions/upload-artifact@v4
+        if: github.ref == 'refs/heads/main'
         with:
           name: backend-production
           include-hidden-files: true

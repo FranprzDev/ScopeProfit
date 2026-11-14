@@ -5,7 +5,9 @@ project="scopeprofit-smoke-$(date +%s)-$$"
 compose=(docker compose -p "$project" -f docker-compose.smoke.yml)
 cleanup() { "${compose[@]}" down --volumes --remove-orphans >/dev/null; }
 trap cleanup EXIT
-"${compose[@]}" build test
+if [ "${SKIP_BUILD:-0}" != "1" ]; then
+  docker build -f apps/api/Dockerfile --target build -t scopeprofit-smoke-test .
+fi
 "${compose[@]}" up -d --wait postgres
 "${compose[@]}" run --rm test
 "${compose[@]}" restart postgres
