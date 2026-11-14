@@ -54,7 +54,6 @@ export class RateLimiter {
 let singleton: RateLimiter | undefined;
 
 export function mcpRateLimiter(): RateLimiter {
-  if (!singleton)
-    singleton = new RateLimiter(Number(process.env.MCP_RATE_LIMIT_PER_MINUTE ?? 120));
+  if (!singleton) singleton = new RateLimiter(Number(process.env.MCP_RATE_LIMIT_PER_MINUTE ?? 120));
   return singleton;
 }
