@@ -12,6 +12,7 @@ import { publicApiUrl } from '../../api/src/modules/mcp/export-links';
 import { TOOLS } from './registry';
 import { mcpRateLimiter } from './rate-limit';
 import { recordUsage, type WaitUntil } from './usage';
+import { isAllowedOrigin } from '../../api/src/modules/mcp/origin';
 import type { Container } from './container';
 
 function buildServer(): McpServer {
@@ -78,7 +79,7 @@ export async function handleMcp(
 
   const origin = request.headers.get('origin');
   const webUrl = process.env.WEB_URL;
-  if (origin && origin !== new URL(issuer).origin && origin !== webUrl) {
+  if (!isAllowedOrigin(origin, new URL(issuer).origin, webUrl)) {
     recordUsage(container, ctx, request, { ok: false });
     return new Response(JSON.stringify({ error: 'invalid_origin' }), {
       status: 403,

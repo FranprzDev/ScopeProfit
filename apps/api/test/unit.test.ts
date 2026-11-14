@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { HttpException } from '@nestjs/common';
 import { MaintenanceStatus, QuoteStatus } from '@prisma/client';
 import { encrypt, decrypt, hash, secureEqual, isAuthorizedProfessional } from '../src/security';
+import { isAllowedOrigin } from '../src/modules/mcp/origin';
 import {
   validateBrief,
   validateBriefForSave,
@@ -759,4 +760,19 @@ test('brief content rejects blank contractual values and ambiguous identity keys
     validateBriefForSave({ ...emptyBrief(), questions: [question] }).questions.length,
     1,
   );
+});
+
+test('loopback origins are allowed for local MCP tooling, other origins are not', () => {
+  const issuer = 'https://scopeprofit-mcp.franutn23.workers.dev';
+  const web = 'https://scopeprofit.vercel.app';
+  assert.equal(isAllowedOrigin(null, issuer, web), true);
+  assert.equal(isAllowedOrigin(issuer, issuer, web), true);
+  assert.equal(isAllowedOrigin(web, issuer, web), true);
+  assert.equal(isAllowedOrigin('http://localhost:6274', issuer, web), true);
+  assert.equal(isAllowedOrigin('http://127.0.0.1:3000', issuer, web), true);
+  assert.equal(isAllowedOrigin('http://[::1]:8080', issuer, web), true);
+  assert.equal(isAllowedOrigin('https://evil.example', issuer, web), false);
+  assert.equal(isAllowedOrigin('https://localhost.evil.example', issuer, web), false);
+  assert.equal(isAllowedOrigin('file://localhost/x', issuer, web), false);
+  assert.equal(isAllowedOrigin('not a url', issuer, web), false);
 });
