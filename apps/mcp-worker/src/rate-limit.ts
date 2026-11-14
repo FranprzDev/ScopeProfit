@@ -58,3 +58,10 @@ export function mcpRateLimiter(): RateLimiter {
   if (!singleton) singleton = new RateLimiter(Number(process.env.MCP_RATE_LIMIT_PER_MINUTE ?? 120));
   return singleton;
 }
+
+let consentSingleton: RateLimiter | undefined;
+
+export function consentRateLimiter(): RateLimiter {
+  if (!consentSingleton) consentSingleton = new RateLimiter(20, Date.now, 15 * 60_000);
+  return consentSingleton;
+}
