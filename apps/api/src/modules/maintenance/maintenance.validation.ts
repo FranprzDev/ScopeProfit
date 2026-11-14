@@ -54,7 +54,10 @@ export function validateEntryInput(input: CreateEntryInput): CreateEntryInput {
 export function validateHoursPerMonth(value: number): number {
   const parsed = hoursPerMonthSchema.safeParse(value);
   if (!parsed.success) fail('INVALID_MAINTENANCE_AGREEMENT', 400);
-  return round2(parsed.data);
+  const hours = parsed.data;
+  if (Math.abs(hours * 100 - Math.round(hours * 100)) > 1e-6)
+    fail('INVALID_MAINTENANCE_AGREEMENT', 400);
+  return round2(hours);
 }
 
 export function validateMonthlyPrice(value: number): number {
