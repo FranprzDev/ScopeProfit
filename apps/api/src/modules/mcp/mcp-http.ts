@@ -2,6 +2,7 @@ import type { INestApplication } from '@nestjs/common';
 import express from 'express';
 import type { NextFunction, Request, Response } from 'express';
 import { rateLimit } from 'express-rate-limit';
+import { isAllowedOrigin } from './origin';
 import {
   getOAuthProtectedResourceMetadataUrl,
   mcpAuthRouter,
@@ -132,8 +133,7 @@ export function mountMcp(app: INestApplication) {
   const xmcp = new xmcpAdapter.XmcpService();
 
   const originCheck = (req: Request, res: Response, next: NextFunction) => {
-    const origin = req.headers.origin;
-    if (origin && origin !== issuer.origin && origin !== process.env.WEB_URL)
+    if (!isAllowedOrigin(req.headers.origin, issuer.origin, process.env.WEB_URL))
       return void res.status(403).json({ error: 'invalid_origin' });
     next();
   };
