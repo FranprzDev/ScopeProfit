@@ -13,10 +13,7 @@ services:
       timeout: 5s
       retries: 30
   test:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
-      target: build
+    image: scopeprofit-smoke-test
     environment:
       NODE_ENV: test
       DATABASE_URL: postgresql://scopeprofit:smoke-only-password@postgres:5432/scopeprofit_smoke

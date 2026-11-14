@@ -58,4 +58,13 @@ jobs:
           retention-days: 7
       - run: pnpm --filter @scopeprofit/landing run build
       - run: pnpm --filter @scopeprofit/landing run test:smoke
-      - run: docker build -f apps/landing/Dockerfile -t scopeprofit-landing .
+      - uses: docker/setup-buildx-action@v3
+      - name: Build landing image (cached)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/landing/Dockerfile
+          tags: scopeprofit-landing
+          load: true
+          cache-from: type=gha,scope=scopeprofit-landing
+          cache-to: type=gha,mode=max,scope=scopeprofit-landing
