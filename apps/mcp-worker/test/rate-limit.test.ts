@@ -32,3 +32,15 @@ test('remaining counts down inside the window', () => {
   assert.equal(limiter.check('ip').remaining, 0);
   assert.equal(limiter.check('ip').remaining, 0);
 });
+
+test('consent limiter uses a 15 minute window', () => {
+  let now = 1000;
+  const limiter = new RateLimiter(2, () => now, 15 * 60_000);
+  assert.equal(limiter.check('ip').allowed, true);
+  assert.equal(limiter.check('ip').allowed, true);
+  assert.equal(limiter.check('ip').allowed, false);
+  now += 60_001;
+  assert.equal(limiter.check('ip').allowed, false);
+  now += 14 * 60_000;
+  assert.equal(limiter.check('ip').allowed, true);
+});

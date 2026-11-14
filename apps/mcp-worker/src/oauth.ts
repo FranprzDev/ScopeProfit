@@ -16,6 +16,7 @@ import { consentPage, verifyConsent } from '../../api/src/modules/mcp/oauth-cons
 import { MCP_SCOPE } from '../../api/src/modules/mcp/oauth.provider';
 import { LiteRequest, LiteResponse, parseBody, runHandler } from './express-lite';
 import { getContainer, type Container, type WorkerEnv } from './container';
+import { consentRateLimiter } from './rate-limit';
 import { recordConversion, recordUsage } from './usage';
 
 const noRateLimit = { windowMs: 60_000, limit: 10_000 };
@@ -118,6 +119,14 @@ export function oauthApp() {
   app.post('/oauth/consent', async (c) => {
     const env = c.env;
     const container = getContainer(env);
+    const rate = consentRateLimiter().check(c.req.raw.headers.get('cf-connecting-ip') ?? 'unknown');
+    if (!rate.allowed) {
+      recordUsage(container, c.executionCtx, c.req.raw, { method: 'oauth_consent', ok: false });
+      return new Response('Too many consent attempts; retry later', {
+        status: 429,
+        headers: { 'content-type': 'text/plain', 'retry-after': String(rate.retryAfterSeconds) },
+      });
+    }
     const body = (await parseBody(c.req.raw)) as Record<string, unknown>;
     const res = new LiteResponse();
     const fail400 = (message: string) => {
