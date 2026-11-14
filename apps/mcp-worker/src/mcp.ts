@@ -10,6 +10,7 @@ import { scopeToolContext } from '../../api/src/modules/mcp/tool-context';
 import { MCP_SCOPE, type McpPrincipal } from '../../api/src/modules/mcp/oauth.provider';
 import { publicApiUrl } from '../../api/src/modules/mcp/export-links';
 import { TOOLS } from './registry';
+import { mcpRateLimiter } from './rate-limit';
 import { recordUsage, type WaitUntil } from './usage';
 import type { Container } from './container';
 
@@ -53,6 +54,27 @@ export async function handleMcp(
 ): Promise<Response> {
   const issuer = publicApiUrl();
   const resourceMetadataUrl = `${issuer}/.well-known/oauth-protected-resource`;
+
+  const rate = mcpRateLimiter().check(request.headers.get('cf-connecting-ip') ?? 'unknown');
+  if (!rate.allowed) {
+    recordUsage(container, ctx, request, { ok: false });
+    return new Response(
+      JSON.stringify({
+        code: 'RATE_LIMITED',
+        message: 'Too many requests; respect the RateLimit headers and retry after the window',
+      }),
+      {
+        status: 429,
+        headers: {
+          'content-type': 'application/json',
+          'retry-after': String(rate.retryAfterSeconds),
+          'ratelimit-limit': String(rate.limit),
+          'ratelimit-remaining': '0',
+          'ratelimit-reset': String(rate.retryAfterSeconds),
+        },
+      },
+    );
+  }
 
   const origin = request.headers.get('origin');
   const webUrl = process.env.WEB_URL;
