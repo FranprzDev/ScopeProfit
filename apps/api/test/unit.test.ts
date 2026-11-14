@@ -39,6 +39,7 @@ import {
   assertReopenable,
   monthRange,
   validateEntryInput,
+  validateHoursPerMonth,
 } from '../src/modules/maintenance/maintenance.validation';
 import type { TiptapNode } from '@scopeprofit/contracts';
 
@@ -726,6 +727,14 @@ test('validateEntryInput enforces positive two-decimal hours and a real descript
     () => validateEntryInput({ ...base, changeRequestId: 'not-a-uuid' }),
     maintenanceFailure('INVALID_MAINTENANCE_ENTRY', 400),
   );
+});
+
+test('validateHoursPerMonth rejects sub-precision hours instead of rounding to zero', () => {
+  assert.throws(
+    () => validateHoursPerMonth(0.001),
+    maintenanceFailure('INVALID_MAINTENANCE_AGREEMENT', 400),
+  );
+  assert.equal(validateHoursPerMonth(1.25), 1.25);
 });
 
 test('monthRange resolves UTC month boundaries and defaults to the current month', () => {
