@@ -7,16 +7,20 @@ import { Hono } from 'hono';
 import { getContainer, type WorkerEnv } from './container';
 import { oauthApp } from './oauth';
 import { handleMcp } from './mcp';
+import { recordUsage } from './usage';
 import { verifyExportTokenDetailed } from '../../api/src/modules/mcp/export-links';
 
 const app = new Hono<{ Bindings: WorkerEnv }>();
 
 app.get('/health', async (c) => {
+  const container = getContainer(c.env);
   try {
-    await getContainer(c.env).db.$queryRaw`SELECT 1`;
+    await container.db.$queryRaw`SELECT 1`;
   } catch {
+    recordUsage(container, c.executionCtx, c.req.raw, { method: 'health', ok: false });
     return c.json({ ok: false, service: 'scopeprofit-mcp', database: 'unreachable' }, 503);
   }
+  recordUsage(container, c.executionCtx, c.req.raw, { method: 'health', ok: true });
   return c.json({ ok: true, service: 'scopeprofit-mcp', database: 'up' });
 });
 
