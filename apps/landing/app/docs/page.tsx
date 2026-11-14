@@ -40,8 +40,8 @@ const TOOLS: ToolDoc[] = [
   {
     name: 'get_project',
     kind: 'read',
-    description: 'Detalle del proyecto; puede incluir inputs y change requests.',
-    example: '{ "project_id": "<id>", "include": "inputs,change_requests" }',
+    description: 'Detalle del proyecto: estado, versiones del brief/documento y conteos.',
+    example: '{ "project_id": "<id>" }',
   },
   {
     name: 'archive_project',
@@ -54,13 +54,13 @@ const TOOLS: ToolDoc[] = [
     kind: 'write',
     description: 'Agrega un mensaje del cliente. Re-analiza y devuelve el estado del scope.',
     example:
-      '{ "project_id": "<id>", "content": "Necesitamos una web con catálogo de 40 productos, en español, para fin de mes." }',
+      '{ "project_id": "<id>", "text": "Necesitamos una web con catálogo de 40 productos, en español, para fin de mes." }',
   },
   {
     name: 'get_input_image',
     kind: 'read',
-    description: 'Devuelve una imagen adjuntada a un input, en base64.',
-    example: '{ "project_id": "<id>", "input_id": "<id>" }',
+    description: 'Devuelve una imagen adjuntada a un input (file_id de get_conversation).',
+    example: '{ "project_id": "<id>", "file_id": "<id>" }',
   },
   {
     name: 'get_tldr',
@@ -84,21 +84,21 @@ const TOOLS: ToolDoc[] = [
   {
     name: 'get_scope_document',
     kind: 'read',
-    description: 'Documento de alcance completo en Markdown; opcionalmente con imágenes.',
-    example: '{ "project_id": "<id>", "include_images": true }',
+    description: 'Documento de alcance completo en Markdown, con el brief y su versión.',
+    example: '{ "project_id": "<id>" }',
   },
   {
     name: 'update_scope_section',
     kind: 'write',
     description: 'Reemplaza una sección del scope y re-analiza.',
     example:
-      '{ "project_id": "<id>", "section": "assumptions", "content": "El cliente provee textos y fotos", "expected_version": 4 }',
+      '{ "project_id": "<id>", "section": "assumptions", "value": "El cliente provee textos y fotos", "expected_version": 4 }',
   },
   {
     name: 'approve_scope',
     kind: 'write',
     description: 'Aprueba el alcance y devuelve un link Markdown firmado. Bloquea el proyecto.',
-    example: '{ "project_id": "<id>", "expected_version": 5 }',
+    example: '{ "project_id": "<id>", "document_version": 5 }',
   },
   {
     name: 'export_document',
@@ -110,14 +110,13 @@ const TOOLS: ToolDoc[] = [
     name: 'log_change_request',
     kind: 'write',
     description: 'Registra un pedido de cambio después de la aprobación.',
-    example:
-      '{ "project_id": "<id>", "description": "El cliente agregó una sección de blog", "affected_section": "included" }',
+    example: '{ "project_id": "<id>", "request": "El cliente agregó una sección de blog" }',
   },
   {
     name: 'list_change_requests',
     kind: 'read',
-    description: 'Lista los change requests del proyecto, con filtro opcional por estado.',
-    example: '{ "project_id": "<id>", "status": "pending" }',
+    description: 'Lista los change requests del proyecto con su estado y clasificación.',
+    example: '{ "project_id": "<id>" }',
   },
   {
     name: 'get_conversation',
@@ -142,13 +141,13 @@ const TOOLS: ToolDoc[] = [
     name: 'export_quote',
     kind: 'write',
     description: 'Exporta la cotización a PDF o Word y devuelve un link firmado.',
-    example: '{ "quote_id": "<id>", "format": "pdf" }',
+    example: '{ "project_id": "<id>", "format": "pdf" }',
   },
   {
     name: 'decide_quote',
     kind: 'write',
     description: 'Marca el borrador como aceptado o rechazado. Acción terminal.',
-    example: '{ "quote_id": "<id>", "decision": "accepted" }',
+    example: '{ "project_id": "<id>", "decision": "accepted" }',
   },
 ];
 
