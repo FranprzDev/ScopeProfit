@@ -65,6 +65,7 @@ export function recordUsage(
         day: new Date(`${day}T00:00:00Z`),
         keyHash,
         originClass,
+        method: details.method ?? null,
         clientName: details.clientName ?? null,
         sessionHash,
         tool: details.tool ?? null,

@@ -389,6 +389,7 @@ export const UsageEventScalarFieldEnum = {
   day: 'day',
   keyHash: 'keyHash',
   originClass: 'originClass',
+  method: 'method',
   clientName: 'clientName',
   sessionHash: 'sessionHash',
   tool: 'tool',

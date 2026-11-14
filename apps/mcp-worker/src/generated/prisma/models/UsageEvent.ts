@@ -29,6 +29,7 @@ export type UsageEventMinAggregateOutputType = {
   day: Date | null
   keyHash: string | null
   originClass: string | null
+  method: string | null
   clientName: string | null
   sessionHash: string | null
   tool: string | null
@@ -41,6 +42,7 @@ export type UsageEventMaxAggregateOutputType = {
   day: Date | null
   keyHash: string | null
   originClass: string | null
+  method: string | null
   clientName: string | null
   sessionHash: string | null
   tool: string | null
@@ -53,6 +55,7 @@ export type UsageEventCountAggregateOutputType = {
   day: number
   keyHash: number
   originClass: number
+  method: number
   clientName: number
   sessionHash: number
   tool: number
@@ -67,6 +70,7 @@ export type UsageEventMinAggregateInputType = {
   day?: true
   keyHash?: true
   originClass?: true
+  method?: true
   clientName?: true
   sessionHash?: true
   tool?: true
@@ -79,6 +83,7 @@ export type UsageEventMaxAggregateInputType = {
   day?: true
   keyHash?: true
   originClass?: true
+  method?: true
   clientName?: true
   sessionHash?: true
   tool?: true
@@ -91,6 +96,7 @@ export type UsageEventCountAggregateInputType = {
   day?: true
   keyHash?: true
   originClass?: true
+  method?: true
   clientName?: true
   sessionHash?: true
   tool?: true
@@ -176,6 +182,7 @@ export type UsageEventGroupByOutputType = {
   day: Date
   keyHash: string
   originClass: string
+  method: string | null
   clientName: string | null
   sessionHash: string
   tool: string | null
@@ -209,6 +216,7 @@ export type UsageEventWhereInput = {
   day?: Prisma.DateTimeFilter<"UsageEvent"> | Date | string
   keyHash?: Prisma.StringFilter<"UsageEvent"> | string
   originClass?: Prisma.StringFilter<"UsageEvent"> | string
+  method?: Prisma.StringNullableFilter<"UsageEvent"> | string | null
   clientName?: Prisma.StringNullableFilter<"UsageEvent"> | string | null
   sessionHash?: Prisma.StringFilter<"UsageEvent"> | string
   tool?: Prisma.StringNullableFilter<"UsageEvent"> | string | null
@@ -221,6 +229,7 @@ export type UsageEventOrderByWithRelationInput = {
   day?: Prisma.SortOrder
   keyHash?: Prisma.SortOrder
   originClass?: Prisma.SortOrder
+  method?: Prisma.SortOrderInput | Prisma.SortOrder
   clientName?: Prisma.SortOrderInput | Prisma.SortOrder
   sessionHash?: Prisma.SortOrder
   tool?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -236,6 +245,7 @@ export type UsageEventWhereUniqueInput = Prisma.AtLeast<{
   day?: Prisma.DateTimeFilter<"UsageEvent"> | Date | string
   keyHash?: Prisma.StringFilter<"UsageEvent"> | string
   originClass?: Prisma.StringFilter<"UsageEvent"> | string
+  method?: Prisma.StringNullableFilter<"UsageEvent"> | string | null
   clientName?: Prisma.StringNullableFilter<"UsageEvent"> | string | null
   sessionHash?: Prisma.StringFilter<"UsageEvent"> | string
   tool?: Prisma.StringNullableFilter<"UsageEvent"> | string | null
@@ -248,6 +258,7 @@ export type UsageEventOrderByWithAggregationInput = {
   day?: Prisma.SortOrder
   keyHash?: Prisma.SortOrder
   originClass?: Prisma.SortOrder
+  method?: Prisma.SortOrderInput | Prisma.SortOrder
   clientName?: Prisma.SortOrderInput | Prisma.SortOrder
   sessionHash?: Prisma.SortOrder
   tool?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -266,6 +277,7 @@ export type UsageEventScalarWhereWithAggregatesInput = {
   day?: Prisma.DateTimeWithAggregatesFilter<"UsageEvent"> | Date | string
   keyHash?: Prisma.StringWithAggregatesFilter<"UsageEvent"> | string
   originClass?: Prisma.StringWithAggregatesFilter<"UsageEvent"> | string
+  method?: Prisma.StringNullableWithAggregatesFilter<"UsageEvent"> | string | null
   clientName?: Prisma.StringNullableWithAggregatesFilter<"UsageEvent"> | string | null
   sessionHash?: Prisma.StringWithAggregatesFilter<"UsageEvent"> | string
   tool?: Prisma.StringNullableWithAggregatesFilter<"UsageEvent"> | string | null
@@ -278,6 +290,7 @@ export type UsageEventCreateInput = {
   day: Date | string
   keyHash: string
   originClass: string
+  method?: string | null
   clientName?: string | null
   sessionHash: string
   tool?: string | null
@@ -290,6 +303,7 @@ export type UsageEventUncheckedCreateInput = {
   day: Date | string
   keyHash: string
   originClass: string
+  method?: string | null
   clientName?: string | null
   sessionHash: string
   tool?: string | null
@@ -302,6 +316,7 @@ export type UsageEventUpdateInput = {
   day?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   keyHash?: Prisma.StringFieldUpdateOperationsInput | string
   originClass?: Prisma.StringFieldUpdateOperationsInput | string
+  method?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessionHash?: Prisma.StringFieldUpdateOperationsInput | string
   tool?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -314,6 +329,7 @@ export type UsageEventUncheckedUpdateInput = {
   day?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   keyHash?: Prisma.StringFieldUpdateOperationsInput | string
   originClass?: Prisma.StringFieldUpdateOperationsInput | string
+  method?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessionHash?: Prisma.StringFieldUpdateOperationsInput | string
   tool?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -326,6 +342,7 @@ export type UsageEventCreateManyInput = {
   day: Date | string
   keyHash: string
   originClass: string
+  method?: string | null
   clientName?: string | null
   sessionHash: string
   tool?: string | null
@@ -338,6 +355,7 @@ export type UsageEventUpdateManyMutationInput = {
   day?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   keyHash?: Prisma.StringFieldUpdateOperationsInput | string
   originClass?: Prisma.StringFieldUpdateOperationsInput | string
+  method?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessionHash?: Prisma.StringFieldUpdateOperationsInput | string
   tool?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -350,6 +368,7 @@ export type UsageEventUncheckedUpdateManyInput = {
   day?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   keyHash?: Prisma.StringFieldUpdateOperationsInput | string
   originClass?: Prisma.StringFieldUpdateOperationsInput | string
+  method?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessionHash?: Prisma.StringFieldUpdateOperationsInput | string
   tool?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -362,6 +381,7 @@ export type UsageEventCountOrderByAggregateInput = {
   day?: Prisma.SortOrder
   keyHash?: Prisma.SortOrder
   originClass?: Prisma.SortOrder
+  method?: Prisma.SortOrder
   clientName?: Prisma.SortOrder
   sessionHash?: Prisma.SortOrder
   tool?: Prisma.SortOrder
@@ -374,6 +394,7 @@ export type UsageEventMaxOrderByAggregateInput = {
   day?: Prisma.SortOrder
   keyHash?: Prisma.SortOrder
   originClass?: Prisma.SortOrder
+  method?: Prisma.SortOrder
   clientName?: Prisma.SortOrder
   sessionHash?: Prisma.SortOrder
   tool?: Prisma.SortOrder
@@ -386,6 +407,7 @@ export type UsageEventMinOrderByAggregateInput = {
   day?: Prisma.SortOrder
   keyHash?: Prisma.SortOrder
   originClass?: Prisma.SortOrder
+  method?: Prisma.SortOrder
   clientName?: Prisma.SortOrder
   sessionHash?: Prisma.SortOrder
   tool?: Prisma.SortOrder
@@ -400,6 +422,7 @@ export type UsageEventSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   day?: boolean
   keyHash?: boolean
   originClass?: boolean
+  method?: boolean
   clientName?: boolean
   sessionHash?: boolean
   tool?: boolean
@@ -412,6 +435,7 @@ export type UsageEventSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   day?: boolean
   keyHash?: boolean
   originClass?: boolean
+  method?: boolean
   clientName?: boolean
   sessionHash?: boolean
   tool?: boolean
@@ -424,6 +448,7 @@ export type UsageEventSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   day?: boolean
   keyHash?: boolean
   originClass?: boolean
+  method?: boolean
   clientName?: boolean
   sessionHash?: boolean
   tool?: boolean
@@ -436,6 +461,7 @@ export type UsageEventSelectScalar = {
   day?: boolean
   keyHash?: boolean
   originClass?: boolean
+  method?: boolean
   clientName?: boolean
   sessionHash?: boolean
   tool?: boolean
@@ -443,7 +469,7 @@ export type UsageEventSelectScalar = {
   createdAt?: boolean
 }
 
-export type UsageEventOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "day" | "keyHash" | "originClass" | "clientName" | "sessionHash" | "tool" | "ok" | "createdAt", ExtArgs["result"]["usageEvent"]>
+export type UsageEventOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "day" | "keyHash" | "originClass" | "method" | "clientName" | "sessionHash" | "tool" | "ok" | "createdAt", ExtArgs["result"]["usageEvent"]>
 
 export type $UsageEventPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "UsageEvent"
@@ -453,6 +479,7 @@ export type $UsageEventPayload<ExtArgs extends runtime.Types.Extensions.Internal
     day: Date
     keyHash: string
     originClass: string
+    method: string | null
     clientName: string | null
     sessionHash: string
     tool: string | null
@@ -885,6 +912,7 @@ export interface UsageEventFieldRefs {
   readonly day: Prisma.FieldRef<"UsageEvent", 'DateTime'>
   readonly keyHash: Prisma.FieldRef<"UsageEvent", 'String'>
   readonly originClass: Prisma.FieldRef<"UsageEvent", 'String'>
+  readonly method: Prisma.FieldRef<"UsageEvent", 'String'>
   readonly clientName: Prisma.FieldRef<"UsageEvent", 'String'>
   readonly sessionHash: Prisma.FieldRef<"UsageEvent", 'String'>
   readonly tool: Prisma.FieldRef<"UsageEvent", 'String'>

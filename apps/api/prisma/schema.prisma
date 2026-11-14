@@ -350,6 +350,7 @@ model UsageEvent {
   day         DateTime @db.Date
   keyHash     String   @map("key_hash")
   originClass String   @map("origin_class")
+  method      String?
   clientName  String?  @map("client_name")
   sessionHash String   @map("session_hash")
   tool        String?
