@@ -98,3 +98,22 @@ async function upsertConversion(
     update: {},
   });
 }
+
+export function recordConversion(
+  container: Container,
+  ctx: WaitUntil,
+  apiKeyId: string,
+  kind: string,
+): void {
+  const day = new Date().toISOString().slice(0, 10);
+  const keyHash = hmac(`key:${apiKeyId}`);
+  ctx.waitUntil(
+    upsertConversion(container, keyHash, kind, day).catch((error) => {
+      console.error(
+        `scopeprofit-mcp: conversion write failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }),
+  );
+}
