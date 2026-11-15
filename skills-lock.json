@@ -1,41 +1,47 @@
 {
-  "version": 1,
+  "version": 2,
   "skills": {
     "babysit": {
       "source": "tester-army/e2e",
       "sourceType": "github",
       "skillPath": ".claude/skills/babysit/SKILL.md",
-      "computedHash": "8795e0d12f5272d4b6d3b36a682852f6945d45d316e0a4ccb86b29a61a83ba5b"
+      "computedHash": "e31609848a9229e2cc7e5166e9faadddf861d647e3feef1eca695b7c3619dab3"
     },
     "design-taste-frontend": {
       "source": "Leonxlnx/taste-skill",
       "sourceType": "github",
       "skillPath": "skills/taste-skill/SKILL.md",
-      "computedHash": "18f81679d2b0247ce9da298b03ed8e47ecd3c206f2951d70eefb1b65d3219345"
+      "computedHash": "41d9dafd0f0d9a9469a0d3416332d7eb2252fa13286c490634b24484994eda71"
     },
     "e2e": {
       "source": "tester-army/e2e",
       "sourceType": "github",
       "skillPath": "skills/e2e/SKILL.md",
-      "computedHash": "c276bef95736b9e9f2717ce0c7f79791434f3e085d4b2c590e551ab80c6abadd"
+      "computedHash": "c383a9d4197697571b87b4d187f69fb8432fb373e29667a5cef774eea2242f59"
+    },
+    "modern-web-guidance": {
+      "source": "GoogleChrome/modern-web-guidance",
+      "sourceType": "github",
+      "skillPath": "skills/modern-web-guidance/SKILL.md",
+      "computedHash": "9e69ce00dc314b64f6664031b70295ea46c7de93ac682c624808df6e48e08b66"
     },
     "ship-pr": {
       "source": "tester-army/e2e",
       "sourceType": "github",
       "skillPath": ".claude/skills/ship-pr/SKILL.md",
-      "computedHash": "982000e4c223f24398d572d5387e6f6068e4648ec5958fa36ffb3cc9bef0e963"
+      "computedHash": "635bb99737c5b5265f815a1e2ac4b776e5e304870b338a3d421f84afa817c791"
     },
     "verify": {
       "source": "tester-army/e2e",
       "sourceType": "github",
       "skillPath": ".claude/skills/verify/SKILL.md",
-      "computedHash": "579570bd3cfeaaca55220a5a415d8db64cc4ca9bfe1926651bcfbc17b791dea3"
+      "computedHash": "133694cd403abd7873af8ee77365c7ddef4d48f0488d18b8cef5e5d6af780ec7"
     },
     "writing-pr": {
       "source": "tester-army/e2e",
       "sourceType": "github",
       "skillPath": ".claude/skills/writing-pr/SKILL.md",
-      "computedHash": "0df20f3dbb5eb56f07a8a712efb88054844984bda9741a2544211ffe6e2179ed"
+      "computedHash": "9835e3c20111995cb501efa7d0a2cf465be2edd90a46a59bc60e75d5be5926be"
     }
   }
 }
