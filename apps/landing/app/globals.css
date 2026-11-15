@@ -190,8 +190,8 @@ body::after {
   *,
   *::before,
   *::after {
-    animation-duration: 1ms !important;
+    animation-duration: 150ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 1ms !important;
+    transition-duration: 150ms !important;
   }
 }

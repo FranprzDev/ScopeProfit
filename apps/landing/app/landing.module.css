@@ -102,7 +102,7 @@
   color: var(--text-muted);
   font-size: 0.92rem;
   font-weight: 500;
-  transition: color 0.15s ease;
+  transition: color 0.15s var(--ease-out);
 }
 .header nav a:hover {
   color: var(--text-white);
@@ -237,9 +237,9 @@
   border-radius: 10px;
   box-shadow: 0 16px 34px -16px rgba(0, 0, 0, 0.65);
   transition:
-    transform 0.15s ease,
-    background-color 0.15s ease,
-    box-shadow 0.15s ease;
+    transform 0.15s var(--ease-out),
+    background-color 0.15s var(--ease-out),
+    box-shadow 0.15s var(--ease-out);
 }
 .button:hover {
   transform: translateY(-2px);
@@ -444,7 +444,7 @@
   color: var(--text-muted);
   font-size: 0.9rem;
   font-weight: 500;
-  transition: color 0.15s ease;
+  transition: color 0.15s var(--ease-out);
 }
 .footer a:hover {
   color: var(--text-white);
@@ -566,8 +566,8 @@
   font-family: inherit;
   font-size: 0.85rem;
   transition:
-    border-color 0.15s ease,
-    color 0.15s ease;
+    border-color 0.15s var(--ease-out),
+    color 0.15s var(--ease-out);
 }
 .finderExample:hover {
   color: var(--text-white);
@@ -601,9 +601,9 @@
   .page *,
   .page *::before,
   .page *::after {
-    animation-duration: 0.01ms !important;
+    animation-duration: 150ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    transition-duration: 150ms !important;
     scroll-behavior: auto !important;
   }
   .button:hover,
@@ -746,7 +746,7 @@
 .buttonArrow {
   display: inline-block;
   margin-left: 0.6rem;
-  transition: transform 0.15s ease;
+  transition: transform 0.15s var(--ease-out);
 }
 .button:hover .buttonArrow {
   transform: translateX(4px);
@@ -888,7 +888,7 @@
   font-weight: 700;
   letter-spacing: -0.015em;
   list-style: none;
-  transition: color 0.15s ease;
+  transition: color 0.15s var(--ease-out);
 }
 .faqItem summary::-webkit-details-marker {
   display: none;
