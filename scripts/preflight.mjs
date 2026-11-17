@@ -2,7 +2,12 @@ import { randomBytes } from 'node:crypto';
 import { existsSync } from 'node:fs';
 
 if (process.argv.includes('--generate-secrets')) {
-  process.stdout.write(`ENCRYPTION_KEY=${randomBytes(32).toString('base64')}\n`);
+  // One secret per line, KEY=value. ENCRYPTION_KEY must stay the first line:
+  // existing docs and scripts read it from there.
+  process.stdout.write(
+    `ENCRYPTION_KEY=${randomBytes(32).toString('base64')}\n` +
+      `POSTGRES_PASSWORD=${randomBytes(24).toString('base64url')}\n`,
+  );
   process.exit(0);
 }
 if (existsSync('.env')) process.loadEnvFile('.env');

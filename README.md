@@ -102,3 +102,4 @@ pnpm run production:preflight
 - `docs/mcp.md` — MCP tools, auth and client setup
 - `docs/technical-plan.md` — original v1 technical plan (historical; the web client it describes was removed)
 - `docs/production-launch-checklist.md` — production checklist
+- `docs/production-runbook.md` — current production topology, secrets rotation, backups and live validation (`scripts/smoke-production.mjs`)
