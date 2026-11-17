@@ -11,18 +11,21 @@ For host-led MCP drafting without backend AI or email, use [self-host-chatgpt.md
 
 ## 2. Infraestructura
 
-- [ ] Dominio HTTPS real para `WEB_URL` (landing y base de los links de descarga firmados).
-- [ ] Base de datos PostgreSQL gestionada (o el `docker-compose.yml` provisto) con backups habilitados.
-- [ ] Volumen/bucket de almacenamiento persistente para archivos subidos (`apps/api/src/modules/storage`).
+La instancia pública del autor ya tiene esto resuelto (Vercel + Cloudflare Worker + Neon + KV); ver [production-runbook.md](production-runbook.md). Para una instalación nueva:
+
+- [ ] Dominio HTTPS real para `WEB_URL` (landing y base de los links de descarga firmados) y un origen HTTPS propio para el API (`PUBLIC_API_URL`).
+- [ ] Base de datos PostgreSQL gestionada (o el `docker-compose.yml` provisto) con backups habilitados (`scripts/backup.sh` para self-host).
+- [ ] Volumen/bucket de almacenamiento persistente para archivos subidos (`apps/api/src/modules/storage`); el compose ya monta `storage_data` en `/data/storage`.
 
 ## 3. Secretos
 
-- [ ] Rotar `ENCRYPTION_KEY` — generar valores nuevos para producción (no reutilizar los usados en pruebas locales). Se pueden generar con `node scripts/preflight.mjs --generate-secrets`.
+- [ ] Rotar `ENCRYPTION_KEY` — generar valores nuevos para producción (no reutilizar los usados en pruebas locales). Se generan con `node scripts/preflight.mjs --generate-secrets` (imprime `ENCRYPTION_KEY` y `POSTGRES_PASSWORD`). Rotar `ENCRYPTION_KEY` invalida las AI keys guardadas de los profesionales; ver la tabla de rotación en [production-runbook.md](production-runbook.md).
 - [ ] Cargar todas las variables de `.env.example` en el gestor de secretos del entorno de despliegue.
 
 ## 4. Validación previa al primer despliegue
 
 - [ ] Ejecutar `pnpm run production:preflight` en el entorno real con las variables reales cargadas.
+- [ ] Después del deploy, validar conectividad real con `node scripts/smoke-production.mjs --url <origen>` (health, discovery OAuth, rechazo sin auth; `initialize` + `tools/list` con `SCOPEPROFIT_API_KEY`).
 - [ ] Confirmar CI en verde en el último PR de la implementación (`backend-ci.yml`, `frontend-ci.yml` — landing only).
 
 ## 5. Go-live
