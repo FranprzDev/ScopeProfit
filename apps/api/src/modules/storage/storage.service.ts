@@ -2,6 +2,7 @@ import { Injectable, HttpException } from '@nestjs/common';
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readFile, writeFile, rename, rm } from 'node:fs/promises';
 import { resolve, relative, dirname, extname } from 'node:path';
+import type {} from 'multer';
 import sharp from 'sharp';
 
 @Injectable()

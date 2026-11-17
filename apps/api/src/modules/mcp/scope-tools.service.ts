@@ -9,6 +9,7 @@ import { PrismaService } from '../../prisma.service';
 import { AuthService } from '../auth/auth.service';
 import { ProjectsService } from '../projects/projects.service';
 import { DocumentsService } from '../documents/documents.service';
+import type {} from 'multer';
 import { AgentService } from '../agent/agent.service';
 import { StorageService } from '../storage/storage.service';
 import { ChangeRequestsService } from '../projects/change-requests.service';

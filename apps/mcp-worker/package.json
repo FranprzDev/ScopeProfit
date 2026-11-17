@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsrs -p tsconfig.json --noEmit",
     "test": "tsx --test test/*.test.ts",
     "deploy": "pnpm run build && wrangler deploy",
     "tail": "wrangler tail"
@@ -26,6 +26,7 @@
     "@types/pdfkit": "^0.17.4",
     "esbuild": "^0.25.0",
     "tsx": "^4.20.6",
+    "tsrs": "0.25.0-ts7.1.0-beta",
     "typescript": "^5.9.0",
     "wrangler": "^4.40.0"
   }
