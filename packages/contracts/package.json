@@ -6,9 +6,10 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsrs -p tsconfig.json --noEmit"
   },
   "devDependencies": {
+    "tsrs": "0.25.0-ts7.1.0-beta",
     "typescript": "^5.9.3"
   }
 }

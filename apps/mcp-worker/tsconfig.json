@@ -15,7 +15,6 @@
     "emitDecoratorMetadata": false,
     "resolveJsonModule": true,
     "noEmit": true,
-    "baseUrl": ".",
     "paths": {
       "@prisma/client": ["./src/generated/prisma/client.ts"],
       "@nestjs/common": ["./src/shims/nestjs-common.ts"],
