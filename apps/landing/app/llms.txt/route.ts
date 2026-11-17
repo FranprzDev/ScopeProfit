@@ -19,7 +19,7 @@ You self-host it: an agent can clone the repo, run the install steps below, crea
 ## Install (self-hosted, nothing to request)
 
 1. git clone https://github.com/FranprzDev/ScopeProfit.git && cd ScopeProfit && pnpm install
-2. cp .env.example .env and set DATABASE_URL (any PostgreSQL) and ENCRYPTION_KEY (64 hex chars)
+2. cp .env.example .env and set DATABASE_URL (any PostgreSQL: local Docker or a managed free tier like Neon) and ENCRYPTION_KEY (32 random bytes, base64; generate with: node scripts/preflight.mjs --generate-secrets)
 3. pnpm --filter @scopeprofit/contracts run build && pnpm run db:migrate && pnpm --filter @scopeprofit/api run build
 4. Create your own API key: pnpm --filter @scopeprofit/api run mcp:keys create --email you@example.com --label my-agent (prints sp_live_... once)
 
@@ -27,7 +27,7 @@ You self-host it: an agent can clone the repo, run the install steps below, crea
 
 - stdio (Claude Code, Cursor, Claude Desktop): run \`pnpm --filter @scopeprofit/api run mcp:stdio\` in the repo with DATABASE_URL and SCOPEPROFIT_API_KEY in the environment
 - Local HTTP: \`pnpm run dev:api\` serves Streamable HTTP at http://localhost:3001/api/mcp with "Authorization: Bearer sp_live_..."
-- ChatGPT or Claude remote connectors need your instance on a public HTTPS URL; OAuth 2.1 (dynamic client registration + PKCE) is built in, see docs/self-host-chatgpt.md
+- ChatGPT or Claude remote connectors need your instance on a public HTTPS URL; OAuth 2.1 (dynamic client registration + PKCE) is built in, see docs/self-host-chatgpt.md. A free Cloudflare Worker is enough to expose it: the author's own instance runs on scopeprofit-mcp.franutn23.workers.dev with a free-tier Neon Postgres (code in apps/mcp-worker)
 - Projects are isolated per account; the server is stateless (POST JSON, no SSE sessions)
 
 ## Tools

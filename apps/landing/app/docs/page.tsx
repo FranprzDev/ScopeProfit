@@ -212,7 +212,9 @@ export default function DocsPage() {
 cd ScopeProfit
 pnpm install
 cp .env.example .env
-# Editá .env: DATABASE_URL (tu PostgreSQL) y ENCRYPTION_KEY (64 hex)
+# Editá .env: DATABASE_URL (tu PostgreSQL) y ENCRYPTION_KEY
+# (32 bytes aleatorios en base64; generala con:
+#   node scripts/preflight.mjs --generate-secrets)
 pnpm --filter @scopeprofit/contracts run build
 pnpm run db:migrate
 pnpm --filter @scopeprofit/api run build`}</code>
@@ -228,6 +230,12 @@ pnpm --filter @scopeprofit/api run build`}</code>
               DATABASE_URL=postgresql://scopeprofit:una-clave-larga@localhost:5432/scopeprofit
             </code>
             .
+          </p>
+          <p>
+            ¿Sin Docker? También sirve una PostgreSQL gestionada con free tier (por ejemplo Neon):
+            te dan la <code>DATABASE_URL</code> lista para pegar en <code>.env</code>. La instancia
+            pública del autor corre así, sin pagar nada: Cloudflare Workers (free) + Neon Postgres
+            (free); el código del worker está en <code>apps/mcp-worker</code> del repo.
           </p>
 
           <h3>2. Crear tu API key</h3>
@@ -257,9 +265,11 @@ pnpm --filter @scopeprofit/api run build`}</code>
           <p>
             <strong>ChatGPT o Claude (conector remoto):</strong> necesitás exponer tu instancia con
             HTTPS público y ahí entra el OAuth 2.1 (registro dinámico + PKCE): al conectar, el
-            cliente se registra solo y la pantalla de consentimiento te pide tu API key una vez. La
-            guía de despliegue (overlay Caddy con <code>docker-compose.mcp.yml</code> y{' '}
-            <code>MCP_DOMAIN</code>, o Cloudflare Workers) está en{' '}
+            cliente se registra solo y la pantalla de consentimiento te pide tu API key una vez.
+            Para exponerla gratis alcanza con un Cloudflare Worker (free tier): la instancia del
+            autor corre en <code>scopeprofit-mcp.franutn23.workers.dev</code>. La guía de despliegue
+            (overlay Caddy con <code>docker-compose.mcp.yml</code> y <code>MCP_DOMAIN</code>, o
+            Cloudflare Workers) está en{' '}
             <a href={`${REPO_URL}/blob/main/docs/self-host-chatgpt.md`}>
               docs/self-host-chatgpt.md
             </a>{' '}
